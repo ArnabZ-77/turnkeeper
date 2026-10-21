@@ -1,0 +1,46 @@
+[project]
+name = "turnkeeper"
+version = "0.1.0"
+description = "AI treasurer for rotating savings circles, on PayPal sandbox rails"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sse-starlette>=2.1",
+  "httpx>=0.27",
+  "requests>=2.32",
+  "pydantic>=2.10",
+  "pydantic-settings>=2.4",
+  "python-dotenv>=1.0",
+  "sqlmodel>=0.0.22",
+  "apscheduler>=3.10,<4",
+  "anthropic>=2.0.0",
+  "fastmcp>=4.1",
+  # Installed with --no-deps: its pinned framework adapters (openai-agents, langchain, crewai-tools)
+  # are not needed; we use paypal_agent_toolkit.shared.* only. See docs/CONTRACTS.md.
+  "paypal-agent-toolkit==1.11.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "respx>=0.21", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

@@ -1,0 +1,38 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+
+# data
+*.db
+*.db-wal
+*.db-shm
+/var/
+data/
+
+# node
+web/node_modules/
+web/dist/
+app/static/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# local scratch
+scratch/
+docs/screenshots/raw/

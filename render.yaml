@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: turnkeeper
+    runtime: docker
+    plan: starter
+    branch: demo-stable
+    autoDeploy: false
+    healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: TK_DB_PATH
+        value: /var/data/turnkeeper.db
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MANDATE_HMAC_SECRET
+        generateValue: true
+      - key: MCP_DEMO_TOKEN
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
