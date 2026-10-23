@@ -182,7 +182,8 @@ def test_valid_token_lists_and_calls_read_only_tools_with_masking(demo_token, fa
 
 def test_rate_limit_30_per_minute_per_token_and_ip(demo_token):
     headers = {**RPC_HEADERS, "Authorization": f"Bearer {demo_token}"}
-    with TestClient(_app_with_public_mcp()) as c:
+    # The socket peer is Render's proxy (a private address), so X-Forwarded-For is honoured.
+    with TestClient(_app_with_public_mcp(), client=("10.0.0.2", 50000)) as c:
         codes = [c.post("/mcp", json=TOOLS_LIST, headers=headers).status_code for _ in range(31)]
         assert codes[:30] == [200] * 30 and codes[30] == 429
         r = c.post("/mcp", json=TOOLS_LIST, headers=headers)
@@ -199,6 +200,12 @@ def test_client_ip_prefers_forwarded_for():
         )
         == "198.51.100.4"
     )
+    # M1 review: the client controls the left of the list; the proxy appends the real peer on the right.
+    spoofed = {"headers": [(b"x-forwarded-for", b"1.2.3.4, 198.51.100.7")], "client": ("10.0.0.2", 1)}
+    assert auth_mod.client_ip(spoofed) == "198.51.100.7"
+    # X-Forwarded-For from a direct (non-proxy) peer is ignored.
+    direct = {"headers": [(b"x-forwarded-for", b"1.2.3.4")], "client": ("203.0.113.50", 1)}
+    assert auth_mod.client_ip(direct) == "203.0.113.50"
     assert auth_mod.client_ip({"headers": [], "client": ("127.0.0.1", 1)}) == "127.0.0.1"
     assert auth_mod.client_ip({"headers": []}) == "unknown"
 
@@ -208,3 +215,22 @@ def test_bearer_scheme_is_case_insensitive(demo_token, token_header):
     with TestClient(_app_with_public_mcp()) as c:
         r = c.post("/mcp", json=TOOLS_LIST, headers={**RPC_HEADERS, "Authorization": token_header})
         assert r.status_code == 200
+
+
+def test_wrong_token_guesses_share_one_ip_budget(demo_token):
+    """M1 review: each distinct wrong token used to get its own bucket, so guessing was never throttled."""
+    with TestClient(_app_with_public_mcp(), client=("203.0.113.60", 1)) as c:
+        codes = [
+            c.post(
+                "/mcp", json=TOOLS_LIST, headers={**RPC_HEADERS, "Authorization": f"Bearer guess-{i}"}
+            ).status_code
+            for i in range(31)
+        ]
+        assert codes[:30] == [401] * 30 and codes[30] == 429
+        # spoofing X-Forwarded-For from a direct peer does not reset the budget
+        r = c.post(
+            "/mcp",
+            json=TOOLS_LIST,
+            headers={**RPC_HEADERS, "Authorization": "Bearer guess-x", "X-Forwarded-For": "198.51.100.99"},
+        )
+        assert r.status_code == 429

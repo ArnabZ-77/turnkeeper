@@ -3,6 +3,7 @@
  * (trial expiry, blocked chunk, ...). Same data as the scheduler, same props, no dependencies.
  */
 
+import { useLayoutEffect, useRef } from "react";
 import type { BoardMapping, ContributionMeta, EventMeta, PotMeta } from "./mapping";
 import { STATUS_COLOR, ROUND_COLOR } from "./mapping";
 import { fmtDate, shortId } from "../format";
@@ -21,7 +22,38 @@ interface Column {
   pot: PotMeta | null;
 }
 
+/**
+ * FLIP animation for row re-orders (a turn swap): rows keyed by handle slide from their old
+ * position to the new one. Skipped for viewers who prefer reduced motion.
+ */
+function useRowFlip(order: string) {
+  const rows = useRef(new Map<string, HTMLDivElement>());
+  const last = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const reduce =
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const next = new Map<string, number>();
+    rows.current.forEach((el, handle) => {
+      const top = el.offsetTop;
+      next.set(handle, top);
+      const before = last.current.get(handle);
+      if (reduce || before === undefined || before === top) return;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${before - top}px)`;
+      void el.offsetHeight; // commit the inverted position before animating back
+      el.style.transition = "transform 650ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+      el.style.transform = "";
+    });
+    last.current = next;
+  }, [order]);
+  return (handle: string) => (el: HTMLDivElement | null) => {
+    if (el) rows.current.set(handle, el);
+    else rows.current.delete(handle);
+  };
+}
+
 export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProps) {
+  const rowRef = useRowFlip(mapping.resources.map((r) => r.id).join(","));
   const contributions = mapping.events.filter((e): e is typeof e & { tk: ContributionMeta } => e.tk.kind === "contribution");
   const pots = mapping.events.filter((e): e is typeof e & { tk: PotMeta } => e.tk.kind === "pot");
   const columns: Column[] = [];
@@ -60,7 +92,7 @@ export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProp
         ))}
       </div>
       {mapping.resources.map((r) => (
-        <div className="tk-grid-row" role="row" key={r.id}>
+        <div className={`tk-grid-row${r.moved ? " tk-row-moved" : ""}`} role="row" key={r.id} ref={rowRef(r.id)}>
           <div className="tk-grid-cell tk-grid-member" role="rowheader">
             <span>
               <strong>{r.name}</strong> <span className="tk-muted">@{r.handle}</span>
@@ -68,6 +100,7 @@ export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProp
             <span className="tk-muted tk-small">
               #{r.rotationPos} · {r.wallet} · {r.vaulted ? "vaulted" : "not vaulted"}
             </span>
+            {r.label && <span className="tk-member-label">{r.label}</span>}
           </div>
           {columns.map((c) => {
             const ev = contributions.find((e) => e.tk.roundN === c.roundN && e.tk.member === r.handle);
@@ -89,6 +122,7 @@ export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProp
                 )}
                 {pot && (
                   <button
+                    key={`pot-${pot.tk.roundN}-${pot.resourceId}`}
                     type="button"
                     className={`tk-pot tk-pot-${pot.tk.status.toLowerCase()} tk-btn tk-btn-sm tk-btn-ghost`}
                     style={{ color: ROUND_COLOR[pot.tk.status] }}

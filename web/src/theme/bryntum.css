@@ -132,6 +132,29 @@
   color: var(--tk-accent);
   font-weight: 600;
 }
+.tk-scheduler .tk-member-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tk-warn-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A turn that just moved (schedule_changed): a short wash so the eye follows the swap. */
+.tk-scheduler .tk-member-moved {
+  animation: tk-moved-wash 2.4s ease-out;
+  border-radius: 4px;
+}
+/* Milestones slide to their new row; make that move a little slower than Bryntum's default. */
+.tk-scheduler .b-sch-event-wrap.tk-pot {
+  transition-duration: 0.6s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-scheduler .tk-member-moved {
+    animation: none;
+    outline: 2px solid var(--tk-accent);
+  }
+}
 
 /* Tooltip (rendered by Bryntum via innerHTML; all values are HTML-encoded in RotationBoard). */
 .tk-tip {

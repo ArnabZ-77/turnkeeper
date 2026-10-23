@@ -6,7 +6,7 @@
  * 429 `{"waitlist": true}` response the session cap returns.
  */
 
-import type { BoardModel, JudgeResult, SessionInfo, TaskStarted } from "./types";
+import type { BoardModel, JudgeResult, RecoveryInfo, SessionInfo, TaskStarted, TaskStatus } from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -38,6 +38,7 @@ function messageFor(status: number, data: unknown): string {
   if (isRecord(data)) {
     const detail = data.detail ?? data.error ?? data.message ?? data.denied;
     if (typeof detail === "string") return detail;
+    if (isRecord(detail) && typeof detail.message === "string") return detail.message;
     if (detail !== undefined) return JSON.stringify(detail);
     if (data.waitlist === true) return "All demo seats are busy right now; you are on the waitlist";
   }
@@ -73,7 +74,15 @@ export type JudgeAction =
   | "advance_clock"
   | "run_round"
   | "toggle_ravi_declines"
-  | "make_next_payout_unclaimed";
+  | "make_next_payout_unclaimed"
+  // B6 recovery path (app/routes/recovery.py)
+  | "reply_as_ravi"
+  | "vote_as_members"
+  | "consent_as_affected"
+  | "approve_as_priya"
+  | "mark_invoice_paid"
+  // No live sandbox (no credentials or no seeded vault ids): stands in for Run Round 3
+  | "simulate_round3_decline";
 
 /** `POST /api/judge/{action}` with `{circle_id, ...extra}`. */
 export function judge(action: JudgeAction, circleId: string, extra: Record<string, unknown> = {}): Promise<JudgeResult> {
@@ -95,7 +104,17 @@ export const api = {
     toggleRaviDeclines: (circleId: string, on: boolean) => judge("toggle_ravi_declines", circleId, { on }),
     makeNextPayoutUnclaimed: (circleId: string, on: boolean) =>
       judge("make_next_payout_unclaimed", circleId, { on }),
+    replyAsRavi: (circleId: string, text?: string) => judge("reply_as_ravi", circleId, text ? { text } : {}),
+    voteAsMembers: (circleId: string) => judge("vote_as_members", circleId),
+    consentAsAffected: (circleId: string) => judge("consent_as_affected", circleId),
+    approveAsPriya: (circleId: string) => judge("approve_as_priya", circleId),
+    markInvoicePaid: (circleId: string) => judge("mark_invoice_paid", circleId),
+    simulateRound3Decline: (circleId: string) => judge("simulate_round3_decline", circleId),
   },
+  getTask: (taskId: string): Promise<TaskStatus> => request("GET", `/api/tasks/${enc(taskId)}`),
+  getRecovery: (circleId: string): Promise<RecoveryInfo> => request("GET", `/api/circles/${enc(circleId)}/recovery`),
+  startRecovery: (circleId: string, body: { round_n?: number; member?: string } = {}): Promise<TaskStarted> =>
+    request("POST", `/api/circles/${enc(circleId)}/recovery/start`, body),
 };
 
 /** URL of the session's SSE stream. */

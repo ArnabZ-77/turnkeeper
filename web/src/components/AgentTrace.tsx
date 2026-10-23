@@ -1,11 +1,15 @@
 import { useEffect, useRef } from "react";
 import type { TraceEntry } from "../state";
 import { fmtTime } from "../format";
+import type { RunMode } from "../types";
+import { MODE_HELP, modeBadge, modeChip } from "../recovery";
 
 export interface AgentTraceProps {
   entries: TraceEntry[];
-  /** null while the session is unknown; otherwise whether the treasurer runs live against the model. */
-  liveAi: boolean | null;
+  /** How the latest run actually executed (latest trace line with a mode, or the finished task). */
+  mode: RunMode | null;
+  /** Session flag: a model key is configured. Shown muted only; it never means "this run was live". */
+  keyConfigured: boolean;
   onClear: () => void;
 }
 
@@ -28,7 +32,8 @@ function argsText(args: unknown): string {
 }
 
 /** Scrolling list of `trace` events; sticks to the bottom unless the viewer scrolled up. */
-export function AgentTrace({ entries, liveAi, onClear }: AgentTraceProps) {
+export function AgentTrace({ entries, mode, keyConfigured, onClear }: AgentTraceProps) {
+  const chip = modeChip(mode);
   const listRef = useRef<HTMLOListElement | null>(null);
   const stickRef = useRef(true);
 
@@ -48,10 +53,17 @@ export function AgentTrace({ entries, liveAi, onClear }: AgentTraceProps) {
       <h2 className="tk-card-title">
         <span>Treasurer trace</span>
         <span className="tk-chips">
-          {liveAi !== null && (
-            <span className={`tk-chip ${liveAi ? "tk-chip-accent" : "tk-chip-pending"}`}>
+          {chip && (
+            <span className={`tk-chip ${chip.cls}`} title={`${chip.tip}
+
+${MODE_HELP}`}>
               <span className="tk-dot" />
-              {liveAi ? "live AI" : "replay / rules mode"}
+              {chip.label}
+            </span>
+          )}
+          {keyConfigured && (
+            <span className="tk-chip tk-chip-muted" title="A model API key is configured on the server. Each run still reports its own mode.">
+              model key configured
             </span>
           )}
           <button type="button" className="tk-btn tk-btn-sm tk-btn-ghost" onClick={onClear} disabled={!entries.length}>
@@ -63,7 +75,14 @@ export function AgentTrace({ entries, liveAi, onClear }: AgentTraceProps) {
         {entries.length === 0 && <li className="tk-trace-empty">No agent activity yet. Run a round from the judge bar.</li>}
         {entries.map((e) => (
           <li key={e.id} className={`tk-trace-item tk-trace-${e.kind}`}>
-            <span className="tk-trace-kind">{KIND_LABEL[e.kind] ?? e.kind}</span>
+            <span className="tk-trace-kind">
+              {KIND_LABEL[e.kind] ?? e.kind}
+              {modeBadge(e.mode) && (
+                <span className={`tk-mode-badge tk-mode-${e.mode}`} title={modeChip(e.mode)?.tip}>
+                  {modeBadge(e.mode)}
+                </span>
+              )}
+            </span>
             <span className="tk-trace-body">
               {e.kind === "tool_call" && e.tool && <span className="tk-trace-tool">{e.tool}</span>}
               {e.kind === "tool_call" && e.tool && argsText(e.args) ? ` ${argsText(e.args)}` : ""}

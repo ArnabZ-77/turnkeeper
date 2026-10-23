@@ -9,6 +9,18 @@ os.environ.setdefault("PAYPAL_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("PAYPAL_WEBHOOK_ID", "WH-TEST")
 os.environ.setdefault("MANDATE_HMAC_SECRET", "test-hmac-secret")
 os.environ.setdefault("TK_DB_PATH", ":memory:")
+# Never reach a live LLM from tests, whatever keys a developer's .env holds (env vars beat .env). Agent tests
+# opt back in per test with fake providers (tests/agent/conftest.py).
+os.environ["TK_LLM_PROVIDER"] = "none"
+os.environ["TK_LLM_API_KEY"] = ""
+os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["TK_LLM_CACHE"] = "off"
+os.environ["TK_LLM_MODEL"] = ""
+os.environ["TK_LLM_BASE_URL"] = ""
+# Real sandbox vault ids in a developer's .env must not leak into the fixture clones tests build.
+os.environ["TK_SEED_VAULT_IDS"] = ""
+# Local (http) base URL so a deployed .env never trips the https-only startup secrets check in tests.
+os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:8000")
 
 
 @pytest.fixture

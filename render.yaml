@@ -1,3 +1,14 @@
+# Hosting notes (researched 2026-10-23; hosting unchanged for now, revisit before the Nov 12 deadline):
+# - Render free web service: may ask for a card ($1 refundable check); sleeps after 15 min idle and takes about
+#   1 min to wake; free services cannot attach a disk, so SQLite at TK_DB_PATH is lost on redeploy/restart/sleep
+#   (the app re-clones the fixture per session, so the demo still works, but webhook/paypal_calls history resets).
+#   750 free hours/month covers one service all month. If you switch to `plan: free`, delete the `disk:` block
+#   and set TK_DB_PATH=/tmp/turnkeeper.db.
+# - Render $50 hackathon credit: credits only cover paid plans; anything uncovered is billed to the card on file.
+# - Hugging Face Spaces: Docker Spaces now need a paid plan (PRO); free accounts only get static/Gradio ZeroGPU.
+# Required for a working cold demo: PAYPAL_CLIENT_ID/SECRET, PUBLIC_BASE_URL (the https URL Render assigns),
+# TK_SEED_VAULT_IDS (else every charge is NOT_VAULTED), MCP_DEMO_TOKEN. /healthz lists anything missing under
+# "warnings". The app refuses to start on https with default/short MANDATE_HMAC_SECRET or SESSION_SECRET.
 services:
   - type: web
     name: turnkeeper
@@ -22,6 +33,9 @@ services:
       - key: PAYPAL_WEBHOOK_ID
         sync: false
       - key: PUBLIC_BASE_URL
+        sync: false
+      # JSON {handle: vault_id} or {handle: {vault_id, customer_id, payout_receiver, payout_wallet}}; see .env.example
+      - key: TK_SEED_VAULT_IDS
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false

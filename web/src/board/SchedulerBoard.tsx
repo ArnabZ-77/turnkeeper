@@ -55,6 +55,8 @@ const COLUMNS = [
       const wallet = String(record.get("wallet") ?? "PAYPAL");
       const vaulted = Boolean(record.get("vaulted"));
       const recipientRound = record.get("recipientRound") as number | null;
+      const label = record.get("label") as string | null;
+      const moved = Boolean(record.get("moved"));
       const meta: DomConfig[] = [
         { tag: "span", text: `@${handle} · #${pos ?? "?"} · ${wallet}${vaulted ? "" : " · not vaulted"}` },
       ];
@@ -65,7 +67,8 @@ const COLUMNS = [
         { tag: "span", className: "tk-member-name", text: name },
         { tag: "span", className: "tk-member-meta", children: meta },
       ];
-      return { className: "tk-member", children };
+      if (label) children.push({ tag: "span", className: "tk-member-label", text: label });
+      return { className: moved ? "tk-member tk-member-moved" : "tk-member", children };
     },
   },
 ];
@@ -90,7 +93,7 @@ const EVENT_TOOLTIP_FEATURE = {
 const STATIC_PROPS = {
   cls: "tk-scheduler",
   readOnly: true,
-  rowHeight: 56,
+  rowHeight: 64,
   barMargin: 6,
   eventStyle: "filled" as const,
   milestoneLayoutMode: "estimate" as const,

@@ -329,3 +329,53 @@ async def test_payout_status_for_replayed_round(vaulted_circle, paypal):
     assert status["ok"] and status["status"] == "SUCCESS" and status["item_id"].startswith("REPLAY-")
     assert paypal.item_polls == []
     assert (await rounds.payout_status(vaulted_circle, 99))["ok"] is False
+
+
+async def test_auth_error_with_mock_flag_is_not_a_sandbox_decline(
+    vaulted_circle, paypal_factory, collector, monkeypatch
+):
+    """M1 review: a 401 on ravi's charge with ravi_declines on must not read as an injected decline."""
+    from app.paypal.client import PayPalError
+
+    paypal = paypal_factory()
+
+    async def unauthorized(gw, **kw):
+        raise PayPalError(
+            401, {"error": "invalid_client", "error_description": "Client Authentication failed"}
+        )
+
+    monkeypatch.setattr(paypal, "charge_vaulted", unauthorized)
+    paypal.install(monkeypatch)
+    assert state.get_flags(state.load_circle(vaulted_circle)).get("ravi_declines")
+    res = await rounds.charge_member(vaulted_circle, 3, "ravi", publish=collector)
+    assert res["status"] == "PENDING" and res["decline_code"] is None
+    assert res["label"] == "PayPal error: invalid_client" and res["label"] != MOCK_DECLINE_LABEL
+    assert res["attempt"] == 0  # a call PayPal never evaluated does not consume an attempt
+
+
+async def test_rate_limited_charge_does_not_consume_attempt(
+    vaulted_circle, paypal_factory, collector, monkeypatch
+):
+    from app.paypal.client import PayPalError
+
+    paypal = paypal_factory()
+
+    async def throttled(gw, **kw):
+        raise PayPalError(429, {"name": "RATE_LIMIT_REACHED", "details": [{"issue": "RATE_LIMIT_REACHED"}]})
+
+    monkeypatch.setattr(paypal, "charge_vaulted", throttled)
+    paypal.install(monkeypatch)
+    res = await rounds.charge_member(vaulted_circle, 3, "asha", publish=collector)
+    assert res["status"] == "PENDING" and res["attempt"] == 0
+
+
+async def test_charge_without_paypal_credentials_burns_no_attempt(
+    vaulted_circle, paypal, collector, monkeypatch
+):
+    from app.config import get_settings
+
+    monkeypatch.setenv("PAYPAL_CLIENT_ID", "")
+    get_settings.cache_clear()
+    res = await rounds.charge_member(vaulted_circle, 3, "asha", publish=collector)
+    assert res["ok"] is False and res["error"] == "PAYPAL_NOT_CONFIGURED" and res["attempt"] == 0
+    assert paypal.charges == []

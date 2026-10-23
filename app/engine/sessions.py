@@ -116,14 +116,24 @@ def touch(sid: str) -> None:
             db.add(sess)
 
 
-def set_cookie(response: Response, sid: str) -> None:
+def request_is_https(request: Request | None) -> bool:
+    """https as seen by the browser: the request scheme or the proxy's X-Forwarded-Proto (Render terminates TLS)."""
+    if request is None:
+        return False
+    proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+    return request.url.scheme == "https" or proto == "https"
+
+
+def set_cookie(response: Response, sid: str, request: Request | None = None) -> None:
+    # Secure whenever the browser is on https, even if PUBLIC_BASE_URL was left at its localhost default.
+    secure = get_settings().public_base_url.startswith("https://") or request_is_https(request)
     response.set_cookie(
         COOKIE_NAME,
         sid,
         max_age=COOKIE_MAX_AGE,
         httponly=True,
         samesite="lax",
-        secure=get_settings().public_base_url.startswith("https://"),
+        secure=secure,
         path="/",
     )
 
@@ -140,10 +150,10 @@ def get_or_create_session(request: Request, response: Response) -> Session:
             raise WaitlistFull(active_count(now), settings.max_active_sessions)
         touch(existing.sid)
         existing.last_seen = now
-        set_cookie(response, existing.sid)
+        set_cookie(response, existing.sid, request)
         return existing
     sess = create_session()
-    set_cookie(response, sess.sid)
+    set_cookie(response, sess.sid, request)
     return sess
 
 

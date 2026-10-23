@@ -66,6 +66,10 @@ export interface BoardResource {
   rotationPos: number;
   /** Round in which this member receives the pot, when known. */
   recipientRound: number | null;
+  /** B6 member label ("Round 3: covered by buffer · Invoice due Fri"), or null. */
+  label: string | null;
+  /** True right after a schedule_changed moved this member's turn (highlight animation). */
+  moved: boolean;
 }
 
 export interface ContributionMeta {
@@ -180,6 +184,8 @@ export function chipLabel(c: ContributionInfo, amount: string, currency: string)
   const money = fmtMoney(c.gross ?? amount, currency);
   switch (c.status) {
     case "COMPLETED":
+      // Rounds 1-2 are replayed from the fixture (REPLAY- ids): never call them captured or verified.
+      if (c.order_id?.startsWith("REPLAY-")) return `${money} replay`;
       return `${money}${c.webhook_verified ? " verified" : " captured"}`;
     case "DECLINED":
       return `Declined${c.label ? `: ${c.label}` : c.decline_code ? `: ${c.decline_code}` : ""}`;
@@ -246,7 +252,7 @@ export function potCls(meta: PotMeta): string {
 }
 
 /** Build everything the board needs. Returns null when the board has no rounds yet. */
-export function mapBoard(board: BoardModel | null): BoardMapping | null {
+export function mapBoard(board: BoardModel | null, moved: readonly string[] = []): BoardMapping | null {
   if (!board || !board.rounds?.length) return null;
   const currency = board.circle?.currency ?? "USD";
   const amount = board.circle?.amount ?? "";
@@ -270,6 +276,8 @@ export function mapBoard(board: BoardModel | null): BoardMapping | null {
     vaulted: Boolean(m.vaulted),
     rotationPos: m.rotation_pos,
     recipientRound: rounds.find((r) => r.recipient === m.handle)?.n ?? null,
+    label: m.label ?? null,
+    moved: moved.includes(m.handle),
   }));
 
   const events: BoardEvent[] = [];
@@ -308,6 +316,7 @@ export function mapBoard(board: BoardModel | null): BoardMapping | null {
     if (byHandle.has(round.recipient)) {
       const meta = potMeta(round, byHandle.get(round.recipient));
       events.push({
+        // Stable id: after a swap Bryntum moves this milestone to the new row (event animations on).
         id: `pot-${round.n}`,
         resourceId: round.recipient,
         name: potLabel(round, currency),

@@ -81,7 +81,10 @@ async def main() -> bool:
     debug_url = base + DEBUG_PATH
     emit("plan", listener_url=listener_url, debug_url=debug_url, events=len(webhooks.WEBHOOK_EVENTS))
 
-    async with SmokeGateway(settings) as sg, httpx.AsyncClient(timeout=15.0) as http:
+    # A deployed (https) app guards /api/debug/webhooks with the MCP demo token.
+    token = (settings.mcp_demo_token or "").strip()
+    debug_headers = {"Authorization": f"Bearer {token}"} if token else {}
+    async with SmokeGateway(settings) as sg, httpx.AsyncClient(timeout=15.0, headers=debug_headers) as http:
         hook = await ensure_webhook(sg.gw, listener_url)
         webhook_id = str(hook.get("id") or "")
         emit(

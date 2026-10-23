@@ -41,7 +41,7 @@ def test_collect_runs_run_task_in_the_background_with_the_session_publisher(clie
 
     seen: dict = {}
 
-    async def fake_run_task(task, *, publish, client=None):
+    async def fake_run_task(task, *, publish, client=None, live_allowed=True):
         seen["task"] = task
         await publish({"type": "trace", "kind": "text", "text": "hello from the fake agent"})
         await asyncio.sleep(0.05)
@@ -60,7 +60,9 @@ def test_collect_runs_run_task_in_the_background_with_the_session_publisher(clie
     task = seen["task"]
     assert isinstance(task, treasurer.AgentTask)
     assert task.kind == "collect_round" and task.circle_id == session["circle_id"]
-    assert task.round_n == 3 and task.sid == session["sid"] and task.context["run_id"] == session["run_id"]
+    assert (
+        task.round_n == 3 and task.sid == session["sid"] and "run_id" not in task.context
+    )  # keeps replays cross-session
 
     recent = get_event_bus().recent(session["sid"])
     assert any(e["type"] == "trace" and e["text"] == "hello from the fake agent" for e in recent)
@@ -80,7 +82,7 @@ def test_payout_route_uses_kind_payout(client, session, monkeypatch):
 
     kinds: list[str] = []
 
-    async def fake_run_task(task, *, publish, client=None):
+    async def fake_run_task(task, *, publish, client=None, live_allowed=True):
         kinds.append(task.kind)
         return treasurer.AgentRunResult(ok=False, mode="rules", summary="held", tool_calls=0, trace=[])
 
@@ -96,7 +98,7 @@ def test_second_run_on_the_same_circle_is_409(client, session, monkeypatch):
 
     release = asyncio.Event()
 
-    async def slow_run_task(task, *, publish, client=None):
+    async def slow_run_task(task, *, publish, client=None, live_allowed=True):
         await release.wait()
         return treasurer.AgentRunResult(ok=True, mode="rules", summary="", tool_calls=0, trace=[])
 
@@ -112,7 +114,7 @@ def test_second_run_on_the_same_circle_is_409(client, session, monkeypatch):
 def test_agent_failure_is_surfaced_not_lost(client, session, monkeypatch):
     import app.agent.treasurer as treasurer
 
-    async def broken(task, *, publish, client=None):
+    async def broken(task, *, publish, client=None, live_allowed=True):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(treasurer, "run_task", broken)
@@ -191,3 +193,65 @@ def test_rules_mode_payout_task_after_manual_collection(client, vaulted, paypal,
     done = wait_for_task(client, r.json()["task_id"])
     assert done["ok"] is True and "Pot paid" in done["summary"]
     assert client.get(f"/api/circles/{circle_id}").json()["rounds"][2]["status"] == "PAID"
+
+
+def test_tasks_are_visible_only_to_their_session(app, client, session, monkeypatch):
+    """M1 review: GET /api/tasks/{id} is bound to the session that started the run."""
+    from fastapi.testclient import TestClient
+
+    import app.agent.treasurer as treasurer
+
+    async def fake_run_task(task, *, publish, client=None, live_allowed=True):
+        return treasurer.AgentRunResult(ok=True, mode="rules", summary="fake", tool_calls=0, trace=[])
+
+    monkeypatch.setattr(treasurer, "run_task", fake_run_task)
+    task_id = client.post(f"/api/circles/{session['circle_id']}/rounds/3/collect").json()["task_id"]
+    wait_for_task(client, task_id)
+    with TestClient(app) as other:
+        assert other.get(f"/api/tasks/{task_id}").status_code == 401  # no cookie
+        other.get("/api/session")
+        assert other.get(f"/api/tasks/{task_id}").status_code == 404  # someone else's task
+
+
+def test_collect_without_paypal_credentials_is_503(client, session, monkeypatch):
+    """M1 review: no sandbox credentials -> refuse the run instead of burning every member's attempt."""
+    from app.config import get_settings
+
+    monkeypatch.setenv("PAYPAL_CLIENT_SECRET", "")
+    get_settings.cache_clear()
+    r = client.post(f"/api/circles/{session['circle_id']}/rounds/3/collect")
+    assert r.status_code == 503 and "not configured" in r.json()["detail"]
+    board = client.get(f"/api/circles/{session['circle_id']}").json()
+    assert all(c["attempt"] == 0 for c in board["contributions"] if c["round_n"] == 3)
+
+
+def test_live_ai_budget_is_checked_once_per_run_and_passed_to_the_agent(client, session, monkeypatch):
+    """With a model key, each run asks allow_live_call(ip); over the per-IP budget the agent gets
+    live_allowed=False (replay, then rules mode). The IP never reaches the task context."""
+    import app.agent.treasurer as treasurer
+    from app.agent.llm import reset_live_calls
+    from app.config import get_settings
+
+    monkeypatch.setenv("TK_LLM_PROVIDER", "groq")
+    monkeypatch.setenv("TK_LLM_API_KEY", "test-not-a-real-key")
+    monkeypatch.setenv("TK_LIVE_LLM_PER_IP_HOUR", "1")
+    get_settings.cache_clear()
+    reset_live_calls()
+    seen: list = []
+
+    async def fake_run_task(task, *, publish, client=None, live_allowed=True):
+        seen.append((live_allowed, dict(task.context)))
+        return treasurer.AgentRunResult(ok=True, mode="rules", summary="fake", tool_calls=0, trace=[])
+
+    monkeypatch.setattr(treasurer, "run_task", fake_run_task)
+    try:
+        assert client.get("/api/session").json()["live_ai"] is True
+        for _ in range(2):
+            r = client.post(f"/api/circles/{session['circle_id']}/rounds/3/collect")
+            assert r.status_code == 202, r.text
+            wait_for_task(client, r.json()["task_id"])
+        assert [allowed for allowed, _ in seen] == [True, False]
+        assert all("run_id" not in ctx for _, ctx in seen)
+    finally:
+        reset_live_calls()
+        get_settings.cache_clear()

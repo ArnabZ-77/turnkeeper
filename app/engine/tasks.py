@@ -41,6 +41,8 @@ class TaskRecord:
         self.summary: str | None = None
         self.error: str | None = None
         self.task: asyncio.Task[None] | None = None
+        # False when this visitor used up the live-AI budget (allow_live_call): replay, then rules mode.
+        self.live_allowed = True
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -69,6 +71,27 @@ def agent_available() -> tuple[bool, str]:
     if not hasattr(mod, "run_task") or not hasattr(mod, "AgentTask"):
         return False, "agent module lacks run_task/AgentTask"
     return True, ""
+
+
+def live_allowed_for(request: Any) -> bool:
+    """One live-AI budget check per run that could go live (``app.agent.llm.allow_live_call``).
+
+    Without a model key nothing can go live, so nothing is counted. The IP never goes into the task context
+    (that is rendered into the prompt).
+    """
+    if request is None:
+        return True
+    try:
+        from app.config import get_settings
+
+        if not get_settings().llm_configured:
+            return True
+        from app.agent.llm import allow_live_call
+        from app.mcp.auth import client_ip
+
+        return allow_live_call(client_ip(request.scope))
+    except ImportError:
+        return True
 
 
 def make_publisher(sid: str, circle_id: str, run_id: str) -> Publish:
@@ -133,9 +156,9 @@ async def _run(rec: TaskRecord, run_id: str, publish: Publish, fallback_engine: 
                 circle_id=rec.circle_id,
                 round_n=rec.round_n,
                 sid=rec.sid,
-                context={"run_id": run_id},
+                # No run_id: it is per session and would make every replay-cache lookup miss.
             )
-            result = await agent.run_task(task, publish=publish)
+            result = await agent.run_task(task, publish=publish, live_allowed=rec.live_allowed)
             rec.ok = bool(getattr(result, "ok", False))
             rec.mode = getattr(result, "mode", None)
             rec.summary = getattr(result, "summary", None)
@@ -167,9 +190,11 @@ def start_task(
     run_id: str,
     fallback_engine: bool = False,
     runner: Callable[..., Awaitable[None]] | None = None,
+    live_allowed: bool = True,
 ) -> TaskRecord:
     """Spawn the background run and return its record immediately."""
     rec = TaskRecord(task_id=secrets.token_hex(8), kind=kind, circle_id=circle_id, round_n=round_n, sid=sid)
+    rec.live_allowed = live_allowed
     publish = make_publisher(sid, circle_id, run_id)
     coro = (runner or _run)(rec, run_id, publish, fallback_engine)
     rec.task = asyncio.get_running_loop().create_task(coro, name=f"tk-{kind}-{circle_id}-{round_n}")

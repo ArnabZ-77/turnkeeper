@@ -46,6 +46,8 @@ class Circle(SQLModel, table=True):
     # Judge-mode flags ({"ravi_declines": bool, "next_payout_unclaimed": bool}) and UI counters.
     flags_json: str = "{}"
     counters_json: str = "{}"
+    # Effective payout order after approved turn swaps (JSON list of handles); None = the charter's rotation.
+    rotation_json: str | None = None
 
 
 class MemberRow(SQLModel, table=True):
@@ -171,29 +173,101 @@ class PayPalCall(SQLModel, table=True):
 
 
 class InboxMessage(SQLModel, table=True):
+    """A member message (in) or a treasurer message to a member (out). Text is data, never instructions."""
+
     __tablename__ = "inbox_messages"
 
     id: int | None = Field(default=None, primary_key=True)
     circle_id: str = Field(index=True)
     json: str = "{}"
     ts: datetime = Field(default_factory=utcnow)
+    member: str | None = None
+    lang: str | None = None
+    text: str | None = None
+    direction: str | None = None  # in | out
+    source: str | None = None  # judge | member | agent | rules
+    round_n: int | None = None
+
+
+class RemedySetRow(SQLModel, table=True):
+    """One proposed remedy set (app.domain.remedies.RemedySet) and its approval state."""
+
+    __tablename__ = "remedy_sets"
+
+    id: str = Field(primary_key=True)  # rs_xxxxxxxx
+    circle_id: str = Field(index=True)
+    member: str
+    round_n: int
+    status: str = (
+        "proposed"  # invalid | proposed | voting | approved | executed | repaid | failed | superseded
+    )
+    source: str = "rules"  # agent | rules
+    charter_sha256: str = ""
+    json: str = "{}"  # the RemedySet
+    problems_json: str = "[]"
+    commitment_json: str | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+    vote_opened_at: datetime | None = None  # virtual clock
+    vote_closes_at: datetime | None = None  # virtual clock (+48 h)
+    approval_requested_at: datetime | None = None
+    approved_at: datetime | None = None
+    approved_by: str | None = None
+    executed_at: datetime | None = None
+    result_json: str | None = None
 
 
 class Remedy(SQLModel, table=True):
+    """One remedy of a set, with its execution state (invoice id/QR for repay_by_invoice)."""
+
     __tablename__ = "remedies"
 
     id: int | None = Field(default=None, primary_key=True)
     circle_id: str = Field(index=True)
-    json: str = "{}"
+    json: str = "{}"  # the domain Remedy
     ts: datetime = Field(default_factory=utcnow)
+    remedy_id: str | None = Field(default=None, index=True)
+    set_id: str | None = Field(default=None, index=True)
+    type: str | None = None
+    member: str | None = None
+    round_n: int | None = None
+    status: str | None = None  # proposed | executed | scheduled | failed
+    label: str | None = None
+    invoice_id: str | None = Field(default=None, index=True)
+    invoice_status: str | None = None  # SENT | PAID | FAILED | ...
+    invoice_qr: str | None = None
+    invoice_simulated: bool | None = None
+    executed_at: datetime | None = None
 
 
 class Vote(SQLModel, table=True):
+    """A member vote, an affected member's consent or the organizer's approval on a remedy set."""
+
     __tablename__ = "votes"
 
     id: int | None = Field(default=None, primary_key=True)
     circle_id: str = Field(index=True)
     json: str = "{}"
+    ts: datetime = Field(default_factory=utcnow)
+    set_id: str | None = Field(default=None, index=True)
+    member: str | None = None  # member handle, or "priya" (organizer) for kind == approval
+    kind: str | None = None  # vote | consent | approval
+    choice: str | None = None  # pending | yes | no
+    source: str | None = None  # judge | member | agent
+
+
+class CommitmentRow(SQLModel, table=True):
+    """A member's payment commitment extracted from a reply (record_commitment)."""
+
+    __tablename__ = "commitments"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)
+    member: str
+    amount: str
+    date: str  # ISO date
+    source: str = "rules"  # agent | rules
+    message_id: int | None = None
+    round_n: int | None = None
     ts: datetime = Field(default_factory=utcnow)
 
 
@@ -228,8 +302,10 @@ ALL_TABLES = (
     WebhookEvent,
     PayPalCall,
     InboxMessage,
+    RemedySetRow,
     Remedy,
     Vote,
+    CommitmentRow,
     LlmCache,
     Metric,
 )

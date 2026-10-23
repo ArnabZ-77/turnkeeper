@@ -63,3 +63,19 @@ def test_debug_webhooks_lists_last_20_newest_first(client, monkeypatch):
     assert rows[0]["event_id"] == "WH-ROUTE-024" and rows[-1]["event_id"] == "WH-ROUTE-005"
     assert all(r["verified"] is False for r in rows)
     assert all("payload" not in r for r in rows)  # bodies stay in the DB, never on the debug wire
+
+
+def test_debug_webhooks_needs_the_demo_token_when_deployed(client, monkeypatch):
+    """M1 review: on an https deployment the listing (capture/payout ids) is not public."""
+    from app.config import get_settings
+
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://turnkeeper.example")
+    monkeypatch.setenv("MCP_DEMO_TOKEN", "debug-test-token")
+    get_settings.cache_clear()
+    assert client.get("/api/debug/webhooks").status_code == 401
+    assert client.get("/api/debug/webhooks", headers={"Authorization": "Bearer wrong"}).status_code == 401
+    ok = client.get("/api/debug/webhooks", headers={"Authorization": "Bearer debug-test-token"})
+    assert ok.status_code == 200 and ok.json() == []
+    monkeypatch.setenv("MCP_DEMO_TOKEN", "")
+    get_settings.cache_clear()
+    assert client.get("/api/debug/webhooks", headers={"Authorization": "Bearer "}).status_code == 401

@@ -32,10 +32,23 @@ async def test_every_registered_tool_converts_to_a_strict_tool(server_path):
         assert schema["additionalProperties"] is False
         assert set(schema["required"]) == set(schema["properties"]), tool.name
         assert_strict(schema)
-        # Inputs are logical handles only: circle ids, round numbers, member handles, note text.
+        # Inputs are logical handles only: circle ids, round numbers, member handles, note text, plus the
+        # recovery path's commitment (amount string, ISO date), remedy set id and remedy list (B6).
         for prop, spec in schema["properties"].items():
-            assert prop in {"circle_id", "round_n", "member", "text"}, f"{tool.name}.{prop}"
-            assert spec["type"] in ("string", "integer"), f"{tool.name}.{prop}"
+            assert prop in {
+                "circle_id",
+                "round_n",
+                "member",
+                "text",
+                "amount",
+                "date",
+                "remedy_set_id",
+                "remedies",
+            }, f"{tool.name}.{prop}"
+            if prop == "remedies":
+                assert spec["type"] == "array", f"{tool.name}.{prop}"
+            else:
+                assert spec["type"] in ("string", "integer"), f"{tool.name}.{prop}"
 
 
 async def test_internal_tool_set_matches_contract():
@@ -54,6 +67,15 @@ async def test_internal_tool_set_matches_contract():
         "create_pot_payout",
         "get_payout_status",
         "record_note",
+        # B6 recovery path
+        "list_inbox_replies",
+        "record_commitment",
+        "propose_remedies",
+        "open_vote",
+        "get_vote_status",
+        "request_organizer_approval",
+        "execute_remedies",
+        "reschedule_turns",
     ]
 
 

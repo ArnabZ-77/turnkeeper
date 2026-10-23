@@ -24,6 +24,27 @@ Copy-Item .env.example .env   # fill in PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET 
 
 Then open http://localhost:8000/healthz.
 
+## Seeding the demo members (`TK_SEED_VAULT_IDS`)
+
+The demo circle's six members (`asha, ravi, meena, tomas, lin, dev`) need real **sandbox** vault ids before
+round 3 can charge anyone. Approve each sandbox personal account once with `scripts/smoke/a_setup_token.py`,
+then put the ids in `.env` (locally) or the Render env var of the same name, as one line of JSON:
+
+```
+TK_SEED_VAULT_IDS={"asha":"<vault id>","ravi":"<vault id>","meena":"<vault id>","tomas":"<vault id>","lin":"<vault id>","dev":"<vault id>"}
+```
+
+Each value may also be an object `{"vault_id", "customer_id", "payout_receiver", "payout_wallet"}`. Without it
+every charge reads "No vault id on file", `/healthz` reports `"vault_seeded": false` with a warning, and
+`GET /api/session` returns `"vault_seeded": false` so the board can say so.
+
+## Deploying
+
+`render.yaml` is a Render Blueprint. On an `https` `PUBLIC_BASE_URL` the app refuses to start while
+`MANDATE_HMAC_SECRET` or `SESSION_SECRET` is the development default or shorter than 16 characters, and
+`/api/debug/webhooks` requires `Authorization: Bearer <MCP_DEMO_TOKEN>`. `/healthz` lists missing configuration
+under `warnings`.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

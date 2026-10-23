@@ -211,7 +211,9 @@ def clone_fixture(db: DbSession, *, circle_id: str, run_id: str, now: datetime |
                         net=str(replay_net),
                         status="COMPLETED",
                         attempt=1,
-                        webhook_verified=True,
+                        # Replayed rows were never confirmed by a webhook; "verified" is reserved for rows
+                        # set by the reconciler on a signature-verified PAYMENT.CAPTURE.COMPLETED.
+                        webhook_verified=False,
                         label="Captured late (replay)"
                         if n in late.get(m.handle, set())
                         else "Captured (replay)",

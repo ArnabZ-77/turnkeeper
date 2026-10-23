@@ -7,7 +7,7 @@ import pytest
 from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
 from engine_fakes import DEMO_CIRCLE
 
-from app.agent import treasurer
+from app.agent import llm, treasurer
 from app.agent.treasurer import AgentRunResult, AgentTask, run_task
 
 
@@ -100,7 +100,8 @@ async def test_live_loop_runs_scripted_tool_calls(anthropic_key, fake_engine, co
     assert "You propose. The policy engine decides. Humans approve." in first["system"][0]["text"]
     assert "ravi (Ravi, hi, PAYPAL)" in first["system"][0]["text"]  # charter summary injected
     tools = first["tools"]
-    assert len(tools) == 10 and all(t["strict"] is True for t in tools)
+    assert {t["name"] for t in tools} == set(treasurer.allowed_tools(_task().kind))
+    assert all(t["strict"] is True for t in tools)
     assert all(t["input_schema"]["additionalProperties"] is False for t in tools)
     assert all(set(t["input_schema"]["required"]) == set(t["input_schema"]["properties"]) for t in tools)
     assert first["messages"] == [{"role": "user", "content": treasurer.task_prompt(_task())}]
@@ -173,8 +174,10 @@ async def test_refusal_and_max_tokens_fall_back_to_rules(anthropic_key, fake_eng
     result = await run_task(_task(), publish=collector, client=client)
     assert result.mode == "rules" and result.ok is True
     assert fake_engine.calls_named("pay_round") == [{"circle_id": DEMO_CIRCLE, "round_n": 3}]
-    fallback = [e for e in collector.events if e.get("kind") == "system" and "Falling back" in e["text"]]
+    fallback = [e for e in collector.events if e.get("kind") == "system" and "- rules mode" in e["text"]]
     assert fallback and f"stop_reason={stop_reason}" in fallback[0]["text"]
+    label = "refusal" if stop_reason == "refusal" else "max tokens"
+    assert fallback[0]["text"].startswith(f"AI unavailable ({label}) - rules mode")
     assert result.trace[0]["mode"] == "live" and result.trace[-1]["mode"] == "rules"
 
 
@@ -213,7 +216,7 @@ async def test_loop_builds_real_client_when_none_given(anthropic_key, fake_engin
         built["key"] = key
         return FakeClient([_message([_text("done")], "end_turn")])
 
-    monkeypatch.setattr(treasurer, "_make_client", fake_make)
+    monkeypatch.setattr(llm, "_make_anthropic_client", fake_make)
     result = await run_task(_task("payout"), publish=collector)
     assert built["key"] == "test-key-not-real"
     assert result.mode == "live" and result.summary == "done" and result.tool_calls == 0

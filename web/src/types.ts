@@ -41,6 +41,8 @@ export interface MemberInfo {
   payout_wallet: Wallet;
   vaulted: boolean;
   rotation_pos: number;
+  /** B6: "Round 3: covered by buffer · Invoice due Fri", "Turn moved to round 5 (swap with ravi)", ... */
+  label?: string | null;
 }
 
 export interface PayoutInfo {
@@ -95,6 +97,8 @@ export interface BoardModel {
   contributions: ContributionInfo[];
   counters: CountersInfo;
   ticker: TickerInfo;
+  /** B6 recovery block (absent on older servers). */
+  recovery?: RecoveryInfo | null;
 }
 
 export interface SessionInfo {
@@ -104,10 +108,116 @@ export interface SessionInfo {
   live_ai: boolean;
   paypal_live: boolean;
   frozen: boolean;
+  /** Every member of the circle has a real vault id (false -> "members not vaulted" banner). */
+  vault_seeded?: boolean;
 }
 
 export interface TaskStarted {
   task_id: string;
+}
+
+/** How a treasurer run actually executed (per trace line and per task). */
+export type RunMode = "live" | "replay" | "rules" | "engine";
+
+/** `GET /api/tasks/{task_id}`. */
+export interface TaskStatus {
+  task_id: string;
+  kind: string;
+  done: boolean;
+  ok: boolean | null;
+  mode: RunMode | string | null;
+  summary: string | null;
+  error: string | null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// B6 recovery path (docs/CONTRACTS.md "B6 recovery path")
+// ---------------------------------------------------------------------------------------------
+
+export type RemedyType = "retry_on_date" | "turn_swap" | "buffer_advance" | "repay_by_invoice";
+
+export interface RemedyInfo {
+  id: string;
+  type: RemedyType | string;
+  member: string;
+  round_n: number;
+  params: { swap_with: string | null; amount: string | null; due_date: string | null };
+  reason: string;
+  status: string;
+  label: string | null;
+}
+
+export interface VotesInfo {
+  yes: number;
+  no: number;
+  needed: number;
+  total: number;
+  passed: boolean;
+  closes_at: string | null;
+  rejected?: boolean;
+  voters?: { member: string; choice: string }[];
+}
+
+export interface ConsentsInfo {
+  needed: string[];
+  given: string[];
+  refused: string[];
+}
+
+export interface ApprovalInfo {
+  by: string;
+  status: "pending" | "requested" | "approved" | string;
+  at: string | null;
+}
+
+export interface InvoiceInfo {
+  id: string;
+  status: string;
+  member: string;
+  round_n: number;
+  amount: string | null;
+  due_date: string | null;
+  simulated: boolean;
+  /** Same-origin PNG route, or null when the invoice has no QR code. */
+  qr: string | null;
+  /** Only on `GET /recovery`: the QR as a data URL. */
+  qr_data?: string | null;
+}
+
+export interface CommitmentInfo {
+  member: string;
+  amount: string;
+  date: string;
+  source: string;
+}
+
+export interface InboxMessage {
+  id: number;
+  member: string;
+  lang: string;
+  text: string;
+  direction: "in" | "out" | string;
+  source: string;
+  round_n: number | null;
+  ts: string | null;
+}
+
+export interface RecoveryInfo {
+  status: string;
+  set_id: string | null;
+  member: string | null;
+  round_n: number | null;
+  source?: string | null;
+  commitment: CommitmentInfo | null;
+  remedies: RemedyInfo[];
+  problems: string[];
+  votes: VotesInfo | null;
+  consents: ConsentsInfo | null;
+  approval: ApprovalInfo | null;
+  blockers?: string[];
+  invoice: InvoiceInfo | null;
+  /** Only on `GET /recovery`: the last 20 inbox messages (oldest first). */
+  inbox?: InboxMessage[];
 }
 
 export interface JudgeResult {
@@ -146,6 +256,9 @@ export interface TraceEvent extends EventBase {
   tool?: string;
   args?: unknown;
   ms?: number;
+  /** How this line was produced: live model, replayed recording, rules mode, or the engine directly. */
+  mode?: RunMode | string;
+  source?: string;
 }
 
 export interface PayoutEvent extends EventBase {

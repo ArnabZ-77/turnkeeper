@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
-from app.config import get_settings
+from app.config import get_settings, is_deployed
 from app.db import session_scope
 from app.engine import state
 from app.engine.common import money, utcnow
@@ -350,7 +350,17 @@ async def handle_event(headers: Mapping[str, str], body: bytes, *, publish_for: 
     event_id = str(data.get("id") or "")
     event_type = str(data.get("event_type") or "")
     resource = data.get("resource") if isinstance(data.get("resource"), dict) else {}
-    resource_id = str(resource.get("id") or resource.get("payout_item_id") or "") or None
+    resource_id = (
+        str(
+            resource.get("id")
+            or resource.get("payout_item_id")
+            or (
+                (resource.get("invoice") or {}).get("id") if isinstance(resource.get("invoice"), dict) else ""
+            )
+            or ""
+        )
+        or None
+    )
     if not event_id or not event_type:
         return {"ok": False, "error": "missing id or event_type"}
 
@@ -382,6 +392,21 @@ async def handle_event(headers: Mapping[str, str], body: bytes, *, publish_for: 
             "rejected": "signature verification failed",
         }
 
+    if not verified and is_deployed(settings):
+        # A deployed app with no PAYPAL_WEBHOOK_ID cannot verify anything, and anyone can POST here: store the
+        # event for the debug view but never let it move money (INVOICING.INVOICE.PAID writes advance_repaid),
+        # change contributions, payouts or vault state. Local development still dispatches unverified events.
+        log.warning("webhook %s %s unverified on a deployed app; not dispatched", event_type, event_id)
+        return {
+            "ok": True,
+            "duplicate": False,
+            "event_id": event_id,
+            "event_type": event_type,
+            "verified": False,
+            "handled": False,
+            "rejected": "unverified",
+        }
+
     result: dict[str, Any] = {
         "ok": True,
         "duplicate": False,
@@ -399,6 +424,10 @@ async def handle_event(headers: Mapping[str, str], body: bytes, *, publish_for: 
             result.update(await _on_payout_item(event_type, resource, publish_for))
         elif event_type.startswith("VAULT.PAYMENT-TOKEN."):
             result.update(await _on_vault_token(event_type, resource, publish_for))
+        elif event_type == "INVOICING.INVOICE.PAID":
+            from app.engine.recovery import handle_invoice_paid_event  # lazy: recovery imports state
+
+            result.update(await handle_invoice_paid_event(resource, publish_for))
         elif event_type == "PAYMENT.PAYOUTSBATCH.SUCCESS":
             result.update(
                 {"handled": True, "batch_id": (resource.get("batch_header") or {}).get("payout_batch_id")}

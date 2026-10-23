@@ -74,7 +74,10 @@ def test_clone_creates_members_rounds_replay_and_mandate(circle_id):
 
     replayed = [c for c in contribs if c.round_n in (1, 2)]
     assert len(replayed) == 12
-    assert all(c.status == "COMPLETED" and c.webhook_verified for c in replayed)
+    assert all(c.status == "COMPLETED" for c in replayed)
+    # M1 review: replayed rows are never shown as webhook-verified.
+    assert not any(c.webhook_verified for c in replayed)
+    assert all(c.order_id.startswith("REPLAY-") and "replay" in c.label for c in replayed)
     assert all(c.order_id.startswith("REPLAY-") and c.capture_id.startswith("REPLAY-") for c in replayed)
     pending = [c for c in contribs if c.round_n >= 3]
     assert len(pending) == 24 and all(c.status == "PENDING" and c.attempt == 0 for c in pending)

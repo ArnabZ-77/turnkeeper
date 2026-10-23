@@ -1,0 +1,461 @@
+/* Recovery path, honest mode labels and the phone-width layout (builder D). Tokens: theme/tokens.css. */
+
+/* ---- honest mode labels ------------------------------------------------------------------ */
+
+.tk-chip-muted {
+  color: var(--tk-muted);
+  background: transparent;
+}
+.tk-chip-muted .tk-dot {
+  background: transparent;
+  border: 1px solid var(--tk-muted);
+}
+.tk-chip-replay {
+  border-style: dashed;
+  border-color: var(--tk-accent);
+}
+.tk-chip-replay .tk-dot {
+  background: var(--tk-accent);
+  opacity: 0.55;
+}
+.tk-mode-badge {
+  display: block;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  border: 1px solid var(--tk-border);
+  color: var(--tk-ink-2);
+}
+.tk-mode-live {
+  color: var(--tk-accent);
+  border-color: var(--tk-accent);
+}
+.tk-mode-replay {
+  color: var(--tk-accent);
+  border-style: dashed;
+  border-color: var(--tk-accent);
+}
+
+/* ---- main column with the recovery panel ------------------------------------------------- */
+
+.tk-main {
+  overflow: auto;
+}
+
+/* ---- phone inbox ------------------------------------------------------------------------- */
+
+.tk-phone-card {
+  flex: none;
+}
+.tk-phone {
+  position: relative;
+  margin: 0 auto;
+  max-width: 320px;
+  border: 8px solid var(--tk-ink);
+  border-radius: 28px;
+  background: var(--tk-page);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tk-phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 90px;
+  height: 14px;
+  transform: translateX(-50%);
+  background: var(--tk-ink);
+  border-radius: 0 0 10px 10px;
+  z-index: 1;
+}
+.tk-phone-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px 8px;
+  background: var(--tk-surface-2);
+  border-bottom: 1px solid var(--tk-hairline);
+  font-size: 13px;
+}
+.tk-phone-head > span:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.tk-phone-sub {
+  font-size: 11px;
+  color: var(--tk-muted);
+}
+.tk-phone-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tk-accent);
+  color: var(--tk-accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+.tk-phone-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 160px;
+  max-height: 300px;
+  overflow: auto;
+}
+.tk-phone-empty {
+  color: var(--tk-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 24px 0;
+}
+.tk-bubble {
+  max-width: 85%;
+  padding: 7px 10px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  animation: tk-bubble-in 280ms ease-out;
+}
+.tk-bubble-them {
+  align-self: flex-start;
+  background: var(--tk-surface-3);
+  border-bottom-left-radius: 4px;
+}
+.tk-bubble-me {
+  align-self: flex-end;
+  background: var(--tk-accent);
+  color: var(--tk-accent-ink);
+  border-bottom-right-radius: 4px;
+}
+.tk-bubble-text {
+  overflow-wrap: anywhere;
+}
+.tk-bubble-text:lang(hi) {
+  font-size: 14px;
+}
+.tk-bubble-sub {
+  font-size: 11.5px;
+  font-style: italic;
+  opacity: 0.85;
+  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  padding-top: 3px;
+}
+.tk-bubble-meta {
+  font-size: 10px;
+  opacity: 0.7;
+  align-self: flex-end;
+}
+@keyframes tk-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- recovery panel ---------------------------------------------------------------------- */
+
+.tk-recovery {
+  flex: none;
+}
+.tk-recovery-commit {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.tk-recovery-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.tk-remedies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tk-remedy {
+  padding: 8px 10px;
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  border-left: 3px solid var(--tk-accent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.tk-remedy-buffer_advance {
+  border-left-color: var(--tk-warn);
+}
+.tk-remedy-repay_by_invoice {
+  border-left-color: var(--tk-good);
+}
+.tk-remedy-problem {
+  border-left-color: var(--tk-critical);
+  display: block;
+}
+.tk-remedy-done {
+  opacity: 0.85;
+}
+.tk-remedy-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+.tk-remedy-reason {
+  margin: 0;
+  color: var(--tk-ink-2);
+}
+.tk-remedy-problems {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--tk-critical-ink);
+  font-size: 12px;
+}
+.tk-recovery-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.tk-vote {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tk-vote-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tk-vote-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+.tk-vote-approve {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tk-vote-blockers {
+  margin: 0;
+}
+.tk-meter {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--tk-surface-3);
+  overflow: hidden;
+}
+.tk-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--tk-accent);
+  border-radius: inherit;
+  transition: width 500ms ease;
+}
+.tk-meter-done > span {
+  background: var(--tk-good);
+}
+.tk-invoice {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px dashed var(--tk-border);
+  border-radius: var(--tk-radius-sm);
+  font-size: 13px;
+}
+.tk-invoice-paid {
+  border-style: solid;
+  border-color: var(--tk-good);
+}
+.tk-invoice-qr {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  background: #fff;
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+.tk-invoice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- board: labels and the swap animation ------------------------------------------------ */
+
+.tk-member-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tk-warn-ink);
+}
+.tk-grid-row {
+  position: relative;
+  background: var(--tk-surface);
+}
+.tk-row-moved {
+  animation: tk-moved-wash 2.4s ease-out;
+  z-index: 2;
+}
+.tk-grid .tk-pot {
+  animation: tk-pop 500ms ease-out;
+}
+@keyframes tk-moved-wash {
+  0% {
+    background: color-mix(in srgb, var(--tk-accent) 28%, var(--tk-surface));
+  }
+  100% {
+    background: var(--tk-surface);
+  }
+}
+@keyframes tk-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-row-moved,
+  .tk-grid .tk-pot,
+  .tk-bubble {
+    animation: none;
+  }
+  .tk-row-moved {
+    outline: 2px solid var(--tk-accent);
+  }
+}
+
+/* ---- judge bar rows and story steps ------------------------------------------------------ */
+
+.tk-judge-bar {
+  flex-direction: column;
+  align-items: stretch;
+}
+.tk-judge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tk-judge-row-2 {
+  padding-top: 8px;
+  border-top: 1px solid var(--tk-hairline);
+}
+.tk-judge-row .tk-spacer {
+  flex: 1;
+}
+.tk-judge-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--tk-hairline);
+  margin: 0 4px;
+}
+.tk-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+@media (max-width: 920px) {
+  .tk-recovery-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tk-main {
+    overflow: visible;
+  }
+}
+
+/* ---- phone width (<= 480 px): one column, rail under the board, no sideways page scroll ---- */
+
+@media (max-width: 480px) {
+  .tk-app {
+    padding: 8px;
+    gap: 8px;
+  }
+  .tk-brand .tk-tagline {
+    display: none;
+  }
+  .tk-counters {
+    gap: 6px;
+  }
+  .tk-stat-value {
+    font-size: 20px;
+  }
+  .tk-stat-value.tk-stat-hero {
+    font-size: 24px;
+  }
+  .tk-main {
+    min-height: 0;
+  }
+  .tk-board {
+    min-height: 420px;
+  }
+  .tk-grid-row {
+    grid-template-columns: 130px repeat(auto-fit, minmax(120px, 1fr));
+  }
+  .tk-phone {
+    max-width: none;
+  }
+  .tk-trace {
+    max-height: 60vh;
+  }
+  .tk-judge-sep {
+    display: none;
+  }
+  .tk-judge-row .tk-btn {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+  .tk-judge-row .tk-judge-label,
+  .tk-judge-row .tk-judge-clock {
+    flex-basis: 100%;
+  }
+  .tk-toasts {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+}

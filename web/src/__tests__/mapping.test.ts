@@ -42,8 +42,16 @@ describe("mapBoard", () => {
     const m = mapBoard(demoBoard())!;
     const byId = (id: string) => m.events.find((e) => e.id === id)!;
     expect(byId("c-1-meena").eventColor).toBe("#0ca30c");
-    expect(byId("c-1-meena").name).toContain("verified");
-    expect(byId("c-1-asha").name).toContain("captured");
+    // Fixture rows (REPLAY- ids) are labelled replay, never captured/verified.
+    expect(byId("c-1-meena").name).toContain("replay");
+    expect(byId("c-1-asha").name).toContain("replay");
+    const live = demoBoard();
+    live.contributions = live.contributions.map((c) =>
+      c.order_id ? { ...c, order_id: c.order_id.replace("REPLAY-", "SBX-") } : c,
+    );
+    const lm = mapBoard(live)!;
+    expect(lm.events.find((e) => e.id === "c-1-meena")!.name).toContain("verified");
+    expect(lm.events.find((e) => e.id === "c-1-asha")!.name).toContain("captured");
     const declined = byId("c-2-ravi");
     expect(declined.eventColor).toBe("#d03b3b");
     expect(declined.name).toContain("API decline: sandbox-injected");

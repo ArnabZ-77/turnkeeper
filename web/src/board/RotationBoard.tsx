@@ -14,7 +14,11 @@ import { IconCopy } from "../components/icons";
 
 export interface RotationBoardProps {
   board: BoardModel | null;
+  /** Handles whose turn just moved (schedule_changed); highlighted and animated. */
+  moved?: readonly string[];
 }
+
+const NO_MOVES: readonly string[] = [];
 
 type Loader = { status: "loading" } | { status: "ready"; Impl: ComponentType<SchedulerBoardProps> } | { status: "failed"; reason: string };
 
@@ -97,10 +101,10 @@ function SelectedDetail({ meta, currency, onClose }: { meta: EventMeta; currency
   );
 }
 
-export function RotationBoard({ board }: RotationBoardProps) {
+export function RotationBoard({ board, moved = NO_MOVES }: RotationBoardProps) {
   const [loader, setLoader] = useState<Loader>({ status: "loading" });
   const [selected, setSelected] = useState<EventMeta | null>(null);
-  const mapping = useMemo(() => mapBoard(board), [board]);
+  const mapping = useMemo(() => mapBoard(board, moved), [board, moved]);
 
   useEffect(() => {
     let alive = true;

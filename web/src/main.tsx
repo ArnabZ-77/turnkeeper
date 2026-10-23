@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./theme/tokens.css";
 import "./styles.css";
+import "./recovery.css";
 import { applyTheme, readPreference, resolveTheme } from "./theme/useTheme";
 
 // Stamp the theme before the first paint (index.html already set data-theme from storage; this

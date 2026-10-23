@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import threading
@@ -62,6 +63,19 @@ class RateLimiter:
             q.append(now)
             return True, 0.0
 
+    def is_limited(self, key: str) -> tuple[bool, float]:
+        """Like ``check`` but records nothing: ``(True, retry_after)`` when ``key`` is out of budget."""
+        now = self._clock()
+        with self._lock:
+            q = self._hits.get(key)
+            if not q:
+                return False, 0.0
+            while q and now - q[0] >= self.window:
+                q.popleft()
+            if len(q) >= self.limit:
+                return True, max(0.0, self.window - (now - q[0]))
+            return False, 0.0
+
     def _evict(self, now: float) -> None:
         stale = [k for k, q in self._hits.items() if not q or now - q[-1] >= self.window]
         for k in stale:
@@ -72,15 +86,43 @@ class RateLimiter:
             self._hits.clear()
 
 
+# Where a fronting proxy can sit: loopback, RFC 1918, carrier-grade NAT and IPv6 ULA. (Not `is_private`, which
+# also covers the documentation ranges.)
+_INTERNAL_NETS = tuple(
+    ipaddress.ip_network(n)
+    for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "100.64.0.0/10", "fc00::/7")
+)
+
+
+def _is_internal(addr: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    return ip.is_loopback or any(ip in net for net in _INTERNAL_NETS)
+
+
 def client_ip(scope: Scope) -> str:
-    """Best-effort caller IP: first ``X-Forwarded-For`` hop (Render fronts the app) else the socket peer."""
+    """Caller IP for rate limiting.
+
+    ``X-Forwarded-For`` is honoured only when the socket peer is a proxy we trust (loopback or a private
+    address, which is how Render's proxy reaches the app). Proxies append, so the client controls the left
+    side of the list: take the rightmost hop that is not itself an internal address. Anything else falls back
+    to the socket peer, so a direct caller cannot pick its own bucket by spoofing the header.
+    """
+    client = scope.get("client")
+    peer = client[0] if client else "unknown"
+    if not _is_internal(peer):
+        return peer
     for name, value in scope.get("headers") or []:
         if name == b"x-forwarded-for":
-            first = value.decode("latin-1").split(",")[0].strip()
-            if first:
-                return first
-    client = scope.get("client")
-    return client[0] if client else "unknown"
+            hops = [h.strip() for h in value.decode("latin-1").split(",") if h.strip()]
+            for hop in reversed(hops):
+                if not _is_internal(hop):
+                    return hop
+            if hops:
+                return hops[0]
+    return peer
 
 
 def _token_fingerprint(token: str) -> str:
@@ -91,8 +133,9 @@ class BearerAuthMiddleware:
     """Pure-ASGI middleware: ``Authorization: Bearer <settings.mcp_demo_token>`` or 401.
 
     - token setting empty -> 503 ``{"error": "MCP demo token not configured"}`` for every request
-    - more than ``limit`` requests per minute per (presented token, IP) -> 429 with ``Retry-After``
+    - more than ``limit`` failed-auth requests per minute per IP -> 429 (checked before auth)
     - wrong or missing token -> 401 with ``WWW-Authenticate: Bearer``
+    - more than ``limit`` authenticated requests per minute per (token, IP) -> 429 with ``Retry-After``
     """
 
     def __init__(
@@ -115,17 +158,16 @@ class BearerAuthMiddleware:
             await _json_response(send, 503, {"ok": False, "error": TOKEN_NOT_CONFIGURED})
             return
         presented = _bearer_token(scope)
-        key = f"{_token_fingerprint(presented)}|{client_ip(scope)}"
-        allowed, retry_after = self.limiter.check(key)
-        if not allowed:
-            await _json_response(
-                send,
-                429,
-                {"ok": False, "error": "rate limited: 30 requests per minute per token and IP"},
-                extra_headers=[(b"retry-after", str(int(retry_after) + 1).encode())],
-            )
+        ip = client_ip(scope)
+        # Failed attempts are budgeted per IP alone (checked before auth), so guessing tokens cannot mint a
+        # fresh bucket per guess; authenticated calls are budgeted per (token, IP) after auth.
+        fail_key = f"authfail|{ip}"
+        blocked, retry_after = self.limiter.is_limited(fail_key)
+        if blocked:
+            await _rate_limited(send, retry_after)
             return
         if not presented or not hmac.compare_digest(presented.encode(), expected.encode()):
+            self.limiter.check(fail_key)
             await _json_response(
                 send,
                 401,
@@ -133,7 +175,20 @@ class BearerAuthMiddleware:
                 extra_headers=[(b"www-authenticate", b'Bearer realm="turnkeeper-mcp"')],
             )
             return
+        allowed, retry_after = self.limiter.check(f"{_token_fingerprint(presented)}|{ip}")
+        if not allowed:
+            await _rate_limited(send, retry_after)
+            return
         await self.app(scope, receive, send)
+
+
+async def _rate_limited(send: Send, retry_after: float) -> None:
+    await _json_response(
+        send,
+        429,
+        {"ok": False, "error": "rate limited: 30 requests per minute per token and IP"},
+        extra_headers=[(b"retry-after", str(int(retry_after) + 1).encode())],
+    )
 
 
 def _bearer_token(scope: Scope) -> str:

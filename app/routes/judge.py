@@ -7,7 +7,7 @@ make_next_payout_unclaimed {on}. Later: reply_as_ravi, vote, approve.
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.engine import sessions, state
@@ -35,7 +35,9 @@ class JudgeBody(BaseModel):
 
 
 @router.post("/{action}")
-async def judge_action(action: str, body: JudgeBody, sess: CurrentSession) -> dict[str, Any]:
+async def judge_action(
+    action: str, body: JudgeBody, sess: CurrentSession, request: Request
+) -> dict[str, Any]:
     if action not in ACTIONS:
         raise HTTPException(status_code=404, detail=f"unknown judge action {action!r}")
     bus = get_event_bus()
@@ -63,7 +65,9 @@ async def judge_action(action: str, body: JudgeBody, sess: CurrentSession) -> di
     if action == "run_round":
         if body.round_n is None:
             raise HTTPException(status_code=422, detail="round_n is required")
-        started = start_round_task("collect_round", body.circle_id, body.round_n, sess, fallback_engine=True)
+        started = start_round_task(
+            "collect_round", body.circle_id, body.round_n, sess, fallback_engine=True, request=request
+        )
         return {"ok": True, "action": action, **started}
 
     if action in ("toggle_ravi_declines", "make_next_payout_unclaimed"):

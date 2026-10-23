@@ -237,6 +237,14 @@ async def collect_round(circle_id: str, round_n: int, *, publish: Publish) -> li
     return results
 
 
+def _notify_decline(circle_id: str, round_n: int, member: str) -> None:
+    """Ask the member when they can pay as soon as the decline happens (B6 inbox; cosmetic, never fatal)."""
+    try:
+        importlib.import_module("app.engine.recovery").send_decline_notice(circle_id, round_n, member)
+    except Exception as e:  # noqa: BLE001 - the notice must never break a charge
+        log.warning("decline notice for %s round %s failed: %s", member, round_n, type(e).__name__)
+
+
 async def charge_member(circle_id: str, round_n: int, member: str, *, publish: Publish) -> dict:
     """Merchant-initiated capture on the member's vault_id (policy-gated, idempotent per attempt)."""
     circle = state.load_circle(circle_id)
@@ -268,7 +276,20 @@ async def charge_member(circle_id: str, round_n: int, member: str, *, publish: P
         await publish(_chip(contrib))
         return _result(contrib, False, error="NOT_VAULTED")
 
+    if not get_settings().paypal_configured:
+        # No sandbox credentials: never burn an `a{n}` attempt on a call that can only fail with 401.
+        contrib.label = "PayPal sandbox not configured"
+        contrib.updated_at = utcnow()
+        _save(contrib)
+        await publish(_chip(contrib))
+        return _result(contrib, False, error="PAYPAL_NOT_CONFIGURED")
+
     mock = bool(state.get_flags(circle).get("ravi_declines")) and member == "ravi"
+    prev_attempt, prev_request_id, prev_attempt_at = (
+        contrib.attempt,
+        contrib.request_id,
+        contrib.last_attempt_at,
+    )
     attempt = contrib.attempt + 1
     request_id = _keys().order_request_id(circle.run_id, circle_id, round_n, member, attempt)
     contrib.attempt = attempt
@@ -296,20 +317,30 @@ async def charge_member(circle_id: str, round_n: int, member: str, *, publish: P
         payload = _error_payload(e)
         codes = payload["issues"]
         status = int(getattr(e, "status", 0) or 0)
-        declined = mock or "INSTRUMENT_DECLINED" in codes or (400 <= status < 500 and bool(codes))
+        # Only a business rejection with issue codes is a decline. Auth (401), throttling (429), 5xx and
+        # transport errors mean PayPal never evaluated the charge (nor the mock header), so they are not
+        # labelled as declines and do not consume an attempt.
+        declined = "INSTRUMENT_DECLINED" in codes or (
+            400 <= status < 500 and status not in (401, 429) and bool(codes)
+        )
         if declined:
             contrib.status = "DECLINED"
             contrib.decline_code = codes[0] if codes else payload["error"]
             contrib.decline_source = "api"
-            contrib.label = MOCK_DECLINE_LABEL if mock else f"API decline: {contrib.decline_code}"
+            injected = mock and "INSTRUMENT_DECLINED" in codes
+            contrib.label = MOCK_DECLINE_LABEL if injected else f"API decline: {contrib.decline_code}"
         else:
             contrib.label = f"PayPal error: {payload['error']}"
+            contrib.attempt, contrib.request_id = prev_attempt, prev_request_id
+            contrib.last_attempt_at = prev_attempt_at
         contrib.order_id = None
         contrib.capture_id = None
         contrib.updated_at = utcnow()
         _save(contrib)
         log.info("charge %s r%s a%s -> %s (%s)", member, round_n, attempt, contrib.status, contrib.label)
         await publish(_chip(contrib))
+        if declined:
+            _notify_decline(circle_id, round_n, member)
         return _result(contrib, False, **payload)
 
     summary = orders.capture_summary(order)

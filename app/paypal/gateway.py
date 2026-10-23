@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import importlib
 import inspect
 import logging
 import time
@@ -266,8 +267,19 @@ def get_gateway() -> Gateway:
     global _gateway
     if _gateway is None:
         settings = get_settings()
-        _gateway = Gateway(PayPalClient(settings), rate_per_min=settings.paypal_rate_per_min)
+        _gateway = Gateway(
+            PayPalClient(settings), rate_per_min=settings.paypal_rate_per_min, record=_default_record()
+        )
     return _gateway
+
+
+def _default_record() -> Callable[[dict], Any] | None:
+    """The engine's `record_paypal_call` (persists every call, incl. 429s, to `paypal_calls`) when importable."""
+    try:
+        return importlib.import_module("app.engine.state").record_paypal_call
+    except (ImportError, AttributeError) as e:
+        log.warning("paypal_calls recording unavailable: %s", e)
+        return None
 
 
 def set_gateway(gw: Gateway | None) -> None:

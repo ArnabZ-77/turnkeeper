@@ -17,6 +17,8 @@ dependencies = [
   "sqlmodel>=0.0.22",
   "apscheduler>=3.10,<4",
   "anthropic>=2.0.0",
+  # Free LLM providers (Groq, Gemini AI Studio, any OpenAI-compatible endpoint) via app/agent/llm.py
+  "openai>=1.50",
   "fastmcp>=4.1",
   # Installed with --no-deps: its pinned framework adapters (openai-agents, langchain, crewai-tools)
   # are not needed; we use paypal_agent_toolkit.shared.* only. See docs/CONTRACTS.md.

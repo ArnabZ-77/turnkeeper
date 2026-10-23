@@ -6,10 +6,13 @@
  */
 
 import type { ConnectionState } from "./events";
+import { movedHandles, normalizeMode } from "./recovery";
 import type {
   BoardModel,
   ContributionInfo,
   PayoutEvent,
+  RecoveryInfo,
+  RunMode,
   SessionInfo,
   TickerInfo,
   ToastLevel,
@@ -25,6 +28,9 @@ export interface TraceEntry {
   tool?: string;
   args?: unknown;
   ms?: number;
+  /** live | replay | rules | engine, when the server says how this line was produced. */
+  mode?: RunMode;
+  source?: string;
 }
 
 export interface Toast {
@@ -48,6 +54,14 @@ export interface UiState {
   busy: boolean;
   waitlist: boolean;
   error: string | null;
+  /** B6 recovery view (`GET /recovery`, refreshed with the board). */
+  recovery: RecoveryInfo | null;
+  /** How the latest treasurer run actually executed (trace lines, then the finished task). */
+  lastMode: RunMode | null;
+  /** English translations the server returned for inbox message ids. */
+  translations: Record<number, string>;
+  /** Members whose turn just moved (schedule_changed); drives the board animation. */
+  moved: { handles: string[]; seq: number } | null;
 }
 
 export type UiAction =
@@ -62,7 +76,12 @@ export type UiAction =
   | { type: "connection"; state: ConnectionState }
   | { type: "busy"; busy: boolean }
   | { type: "waitlist"; on: boolean }
-  | { type: "error"; message: string | null };
+  | { type: "error"; message: string | null }
+  | { type: "recovery"; recovery: RecoveryInfo }
+  /** A task finished (`GET /api/tasks/{id}`): its mode is authoritative for the run. */
+  | { type: "runMode"; mode: string | null | undefined }
+  | { type: "translation"; id: number; text: string }
+  | { type: "clearMoved" };
 
 export const TRACE_LIMIT = 500;
 export const TOAST_LIMIT = 6;
@@ -80,6 +99,10 @@ export const initialState: UiState = {
   busy: false,
   waitlist: false,
   error: null,
+  recovery: null,
+  lastMode: null,
+  translations: {},
+  moved: null,
 };
 
 let seq = 0;
@@ -141,9 +164,15 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
         tool: ev.tool,
         args: ev.args,
         ms: ev.ms,
+        mode: normalizeMode(ev.mode) ?? undefined,
+        source: typeof ev.source === "string" ? ev.source : undefined,
       };
       const trace = [...state.trace, entry];
-      return { ...state, trace: trace.length > TRACE_LIMIT ? trace.slice(-TRACE_LIMIT) : trace };
+      return {
+        ...state,
+        trace: trace.length > TRACE_LIMIT ? trace.slice(-TRACE_LIMIT) : trace,
+        lastMode: entry.mode ?? state.lastMode,
+      };
     }
     case "payout": {
       let board = state.board;
@@ -193,7 +222,12 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
         const recipient = rotation[r.n - 1];
         return recipient && r.status !== "PAID" ? { ...r, recipient } : r;
       });
-      return { ...state, board: { ...board, circle: { ...board.circle, rotation }, members, rounds } };
+      const handles = movedHandles(board.circle.rotation, rotation);
+      return {
+        ...state,
+        board: { ...board, circle: { ...board.circle, rotation }, members, rounds },
+        moved: handles.length ? { handles, seq: (state.moved?.seq ?? 0) + 1 } : state.moved,
+      };
     }
     case "unknown":
     default:
@@ -206,7 +240,23 @@ export function reducer(state: UiState, action: UiAction): UiState {
     case "session":
       return { ...state, session: action.session, waitlist: false, error: null };
     case "board":
-      return { ...state, board: action.board, ticker: action.board.ticker ?? state.ticker, error: null };
+      return {
+        ...state,
+        board: action.board,
+        ticker: action.board.ticker ?? state.ticker,
+        recovery: mergeRecovery(state.recovery, action.board.recovery),
+        error: null,
+      };
+    case "recovery":
+      return { ...state, recovery: action.recovery };
+    case "runMode": {
+      const mode = normalizeMode(action.mode);
+      return mode ? { ...state, lastMode: mode } : state;
+    }
+    case "translation":
+      return { ...state, translations: { ...state.translations, [action.id]: action.text } };
+    case "clearMoved":
+      return state.moved ? { ...state, moved: null } : state;
     case "event":
       return applyEvent(state, action.event);
     case "toast":
@@ -224,6 +274,10 @@ export function reducer(state: UiState, action: UiAction): UiState {
         ticker: initialState.ticker,
         queuePosition: 0,
         error: null,
+        recovery: null,
+        lastMode: null,
+        translations: {},
+        moved: null,
       };
     case "connection":
       return { ...state, connection: action.state };
@@ -236,6 +290,26 @@ export function reducer(state: UiState, action: UiAction): UiState {
     default:
       return state;
   }
+}
+
+/**
+ * Fold the BoardModel's `recovery` block into the full view from `GET /recovery`: the board copy
+ * wins for status/votes/remedies, the inbox and QR data URL are kept while the set is the same.
+ */
+export function mergeRecovery(prev: RecoveryInfo | null, next: RecoveryInfo | null | undefined): RecoveryInfo | null {
+  if (!next) return prev;
+  if (!prev) return next;
+  const sameSet = prev.set_id === next.set_id;
+  const sameInvoice = prev.invoice && next.invoice && prev.invoice.id === next.invoice.id;
+  return {
+    ...next,
+    inbox: next.inbox ?? prev.inbox,
+    invoice: next.invoice
+      ? { ...next.invoice, qr_data: next.invoice.qr_data ?? (sameInvoice ? prev.invoice?.qr_data : undefined) }
+      : sameSet
+        ? next.invoice
+        : null,
+  };
 }
 
 /** The lowest-numbered round that is not yet PAID or VOID (what "Run round N" should target). */

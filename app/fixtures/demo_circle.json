@@ -74,7 +74,7 @@
         "track_record_rounds": 3
       }
     ],
-    "rotation": ["meena", "asha", "dev", "lin", "tomas", "ravi"],
+    "rotation": ["meena", "asha", "dev", "lin", "ravi", "tomas"],
     "fee_policy": "net_pot",
     "buffer": { "seed": "250.00", "source": "organizer", "retention_pct": 0 },
     "grace_days": 3,
