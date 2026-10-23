@@ -36,7 +36,13 @@ COMPLETED_ORDER = {
             },
         }
     ],
-    "links": [{"href": "https://api-m.sandbox.paypal.com/v2/checkout/orders/5O190127TN364715T", "rel": "self", "method": "GET"}],
+    "links": [
+        {
+            "href": "https://api-m.sandbox.paypal.com/v2/checkout/orders/5O190127TN364715T",
+            "rel": "self",
+            "method": "GET",
+        }
+    ],
 }
 
 DECLINE_422 = {
@@ -55,7 +61,9 @@ def body_of(route) -> dict:
 
 
 async def test_charge_vaulted_sends_capture_intent_and_vault_id(gateway, paypal_mock):
-    route = paypal_mock.post("/v2/checkout/orders").mock(return_value=httpx.Response(201, json=COMPLETED_ORDER))
+    route = paypal_mock.post("/v2/checkout/orders").mock(
+        return_value=httpx.Response(201, json=COMPLETED_ORDER)
+    )
     data = await orders.charge_vaulted(
         gateway,
         request_id="tk:abcdefgh:c1x2y3:3:asha:a1",
@@ -109,15 +117,29 @@ async def test_charge_vaulted_mock_decline_header_and_error_mapping(gateway, pay
 
 
 async def test_charge_vaulted_rejects_bad_amounts_before_calling(gateway, paypal_mock):
-    route = paypal_mock.post("/v2/checkout/orders").mock(return_value=httpx.Response(201, json=COMPLETED_ORDER))
+    route = paypal_mock.post("/v2/checkout/orders").mock(
+        return_value=httpx.Response(201, json=COMPLETED_ORDER)
+    )
     for bad in (Decimal("0"), Decimal("-1")):
         with pytest.raises(ValueError):
             await orders.charge_vaulted(
-                gateway, request_id="tk:a:b:1:m:a1", vault_id="v", amount=bad, reference_id="r", custom_id="c", description="d"
+                gateway,
+                request_id="tk:a:b:1:m:a1",
+                vault_id="v",
+                amount=bad,
+                reference_id="r",
+                custom_id="c",
+                description="d",
             )
     with pytest.raises(TypeError):
         await orders.charge_vaulted(
-            gateway, request_id="tk:a:b:1:m:a1", vault_id="v", amount=200.0, reference_id="r", custom_id="c", description="d"
+            gateway,
+            request_id="tk:a:b:1:m:a1",
+            vault_id="v",
+            amount=200.0,
+            reference_id="r",
+            custom_id="c",
+            description="d",
         )
     assert route.call_count == 0
 
@@ -135,7 +157,23 @@ def test_capture_summary_parses_seller_receivable_breakdown():
 
 
 def test_capture_summary_without_breakdown_or_captures():
-    order = {"id": "X1", "status": "COMPLETED", "purchase_units": [{"payments": {"captures": [{"id": "C1", "status": "PENDING", "amount": {"currency_code": "USD", "value": "200.00"}}]}}]}
+    order = {
+        "id": "X1",
+        "status": "COMPLETED",
+        "purchase_units": [
+            {
+                "payments": {
+                    "captures": [
+                        {
+                            "id": "C1",
+                            "status": "PENDING",
+                            "amount": {"currency_code": "USD", "value": "200.00"},
+                        }
+                    ]
+                }
+            }
+        ],
+    }
     s = orders.capture_summary(order)
     assert (s.capture_id, s.status, s.gross, s.fee, s.net) == ("C1", "PENDING", Decimal("200.00"), None, None)
     assert not s.completed
@@ -145,13 +183,17 @@ def test_capture_summary_without_breakdown_or_captures():
 
 
 async def test_get_order_and_capture_order(gateway, paypal_mock):
-    get_route = paypal_mock.get("/v2/checkout/orders/5O190127TN364715T").mock(return_value=httpx.Response(200, json=COMPLETED_ORDER))
+    get_route = paypal_mock.get("/v2/checkout/orders/5O190127TN364715T").mock(
+        return_value=httpx.Response(200, json=COMPLETED_ORDER)
+    )
     assert (await orders.get_order(gateway, order_id="5O190127TN364715T"))["id"] == "5O190127TN364715T"
     assert get_route.called
     cap_route = paypal_mock.post("/v2/checkout/orders/5O190127TN364715T/capture").mock(
         return_value=httpx.Response(201, json=COMPLETED_ORDER)
     )
-    data = await orders.capture_order(gateway, order_id="5O190127TN364715T", request_id="tk:abcdefgh:c1x2y3:setup:asha")
+    data = await orders.capture_order(
+        gateway, order_id="5O190127TN364715T", request_id="tk:abcdefgh:c1x2y3:setup:asha"
+    )
     assert data["status"] == "COMPLETED"
     assert cap_route.calls.last.request.content == b""
     assert cap_route.calls.last.request.headers["PayPal-Request-Id"] == "tk:abcdefgh:c1x2y3:setup:asha"
@@ -162,8 +204,16 @@ async def test_vault_with_purchase_order_shape_and_approve_link(gateway, paypal_
         "id": "7WH94211LK834082R",
         "status": "PAYER_ACTION_REQUIRED",
         "links": [
-            {"href": "https://api-m.sandbox.paypal.com/v2/checkout/orders/7WH94211LK834082R", "rel": "self", "method": "GET"},
-            {"href": "https://www.sandbox.paypal.com/checkoutnow?token=7WH94211LK834082R", "rel": "payer-action", "method": "GET"},
+            {
+                "href": "https://api-m.sandbox.paypal.com/v2/checkout/orders/7WH94211LK834082R",
+                "rel": "self",
+                "method": "GET",
+            },
+            {
+                "href": "https://www.sandbox.paypal.com/checkoutnow?token=7WH94211LK834082R",
+                "rel": "payer-action",
+                "method": "GET",
+            },
         ],
     }
     route = paypal_mock.post("/v2/checkout/orders").mock(return_value=httpx.Response(201, json=created))
@@ -200,12 +250,23 @@ async def test_create_setup_token_shape_and_approve_link(gateway, paypal_mock):
         "id": "5C991763VB2781612",
         "status": "PAYER_ACTION_REQUIRED",
         "links": [
-            {"href": "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens/5C991763VB2781612", "rel": "self", "method": "GET"},
-            {"href": "https://www.sandbox.paypal.com/agreements/approve?approval_session_id=5C991763VB2781612", "rel": "approve", "method": "GET"},
+            {
+                "href": "https://api-m.sandbox.paypal.com/v3/vault/setup-tokens/5C991763VB2781612",
+                "rel": "self",
+                "method": "GET",
+            },
+            {
+                "href": "https://www.sandbox.paypal.com/agreements/approve?approval_session_id=5C991763VB2781612",
+                "rel": "approve",
+                "method": "GET",
+            },
         ],
     }
     route = paypal_mock.post("/v3/vault/setup-tokens").mock(return_value=httpx.Response(201, json=created))
-    plan = {"name": "Temple Circle A", "billing_cycles": [{"tenure_type": "REGULAR", "sequence": 1, "total_cycles": 6}]}
+    plan = {
+        "name": "Temple Circle A",
+        "billing_cycles": [{"tenure_type": "REGULAR", "sequence": 1, "total_cycles": 6}],
+    }
     data = await vault.create_setup_token(
         gateway,
         request_id="tk:abcdefgh:c1x2y3:setup:asha",
@@ -214,7 +275,10 @@ async def test_create_setup_token_shape_and_approve_link(gateway, paypal_mock):
         return_url="https://example.test/join/t/return",
         cancel_url="https://example.test/join/t/cancel",
     )
-    assert vault.approve_link(data) == "https://www.sandbox.paypal.com/agreements/approve?approval_session_id=5C991763VB2781612"
+    assert (
+        vault.approve_link(data)
+        == "https://www.sandbox.paypal.com/agreements/approve?approval_session_id=5C991763VB2781612"
+    )
     body = body_of(route)
     paypal = body["payment_source"]["paypal"]
     assert paypal["usage_type"] == "MERCHANT"
@@ -233,7 +297,9 @@ async def test_create_setup_token_shape_and_approve_link(gateway, paypal_mock):
 
 
 async def test_setup_token_without_plan_and_with_customer(gateway, paypal_mock):
-    route = paypal_mock.post("/v3/vault/setup-tokens").mock(return_value=httpx.Response(201, json={"id": "S1", "links": []}))
+    route = paypal_mock.post("/v3/vault/setup-tokens").mock(
+        return_value=httpx.Response(201, json={"id": "S1", "links": []})
+    )
     data = await vault.create_setup_token(
         gateway,
         request_id="tk:a:b:setup:m",
@@ -255,15 +321,28 @@ async def test_setup_token_without_plan_and_with_customer(gateway, paypal_mock):
 
 async def test_payment_token_lifecycle(gateway, paypal_mock):
     create = paypal_mock.post("/v3/vault/payment-tokens").mock(
-        return_value=httpx.Response(201, json={"id": "8kk8451t", "customer": {"id": "customer_4029352050"}, "payment_source": {"paypal": {}}})
+        return_value=httpx.Response(
+            201,
+            json={
+                "id": "8kk8451t",
+                "customer": {"id": "customer_4029352050"},
+                "payment_source": {"paypal": {}},
+            },
+        )
     )
-    data = await vault.create_payment_token(gateway, setup_token_id="5C991763VB2781612", request_id="tk:a:b:setup:m")
-    assert body_of(create) == {"payment_source": {"token": {"id": "5C991763VB2781612", "type": "SETUP_TOKEN"}}}
+    data = await vault.create_payment_token(
+        gateway, setup_token_id="5C991763VB2781612", request_id="tk:a:b:setup:m"
+    )
+    assert body_of(create) == {
+        "payment_source": {"token": {"id": "5C991763VB2781612", "type": "SETUP_TOKEN"}}
+    }
     assert vault.vault_id_of(data) == "8kk8451t"
     assert vault.customer_id_of(data) == "customer_4029352050"
 
     listing = paypal_mock.get("/v3/vault/payment-tokens").mock(
-        return_value=httpx.Response(200, json={"payment_tokens": [{"id": "8kk8451t"}], "customer": {"id": "customer_4029352050"}})
+        return_value=httpx.Response(
+            200, json={"payment_tokens": [{"id": "8kk8451t"}], "customer": {"id": "customer_4029352050"}}
+        )
     )
     tokens = await vault.list_payment_tokens(gateway, customer_id="customer_4029352050")
     assert tokens["payment_tokens"][0]["id"] == "8kk8451t"
@@ -274,7 +353,9 @@ async def test_payment_token_lifecycle(gateway, paypal_mock):
     assert await vault.delete_payment_token(gateway, token_id="8kk8451t") is None
     assert delete.called
 
-    get = paypal_mock.get("/v3/vault/setup-tokens/5C991763VB2781612").mock(return_value=httpx.Response(200, json={"status": "APPROVED"}))
+    get = paypal_mock.get("/v3/vault/setup-tokens/5C991763VB2781612").mock(
+        return_value=httpx.Response(200, json={"status": "APPROVED"})
+    )
     assert (await vault.get_setup_token(gateway, setup_token_id="5C991763VB2781612"))["status"] == "APPROVED"
     assert get.called
     with pytest.raises(ValueError):
@@ -285,7 +366,12 @@ async def test_payment_token_lifecycle(gateway, paypal_mock):
 
 
 def test_payout_item_wire_shape_and_validation():
-    item = payouts.PayoutItem(receiver="meena@example.com", amount=Decimal("1155.18"), note="Temple Circle A - Round 3 pot", sender_item_id="abcdefghc1x2y33meena")
+    item = payouts.PayoutItem(
+        receiver="meena@example.com",
+        amount=Decimal("1155.18"),
+        note="Temple Circle A - Round 3 pot",
+        sender_item_id="abcdefghc1x2y33meena",
+    )
     assert item.to_wire() == {
         "recipient_type": "EMAIL",
         "receiver": "meena@example.com",
@@ -294,7 +380,13 @@ def test_payout_item_wire_shape_and_validation():
         "sender_item_id": "abcdefghc1x2y33meena",
         "note": "Temple Circle A - Round 3 pot",
     }
-    venmo = payouts.PayoutItem(recipient_type="PHONE", receiver="+15551234567", wallet="VENMO", amount=Decimal("5"), sender_item_id="x")
+    venmo = payouts.PayoutItem(
+        recipient_type="PHONE",
+        receiver="+15551234567",
+        wallet="VENMO",
+        amount=Decimal("5"),
+        sender_item_id="x",
+    )
     assert venmo.to_wire()["recipient_wallet"] == "VENMO" and venmo.to_wire()["amount"]["value"] == "5.00"
     assert "note" not in venmo.to_wire()
     with pytest.raises(ValidationError):
@@ -306,14 +398,30 @@ def test_payout_item_wire_shape_and_validation():
 
 
 async def test_create_payout_body_and_idempotency(gateway, paypal_mock):
-    created = {"batch_header": {"payout_batch_id": "5MX67483MC6894821", "batch_status": "PENDING", "sender_batch_header": {"sender_batch_id": "tk:abcdefgh:c1x2y3:3:r1"}}}
+    created = {
+        "batch_header": {
+            "payout_batch_id": "5MX67483MC6894821",
+            "batch_status": "PENDING",
+            "sender_batch_header": {"sender_batch_id": "tk:abcdefgh:c1x2y3:3:r1"},
+        }
+    }
     route = paypal_mock.post("/v1/payments/payouts").mock(return_value=httpx.Response(201, json=created))
-    item = payouts.PayoutItem(receiver="meena@example.com", amount=Decimal("1155.18"), sender_item_id="abcdefghc1x2y33meena")
-    data = await payouts.create_payout(gateway, sender_batch_id="tk:abcdefgh:c1x2y3:3:r1", items=[item], email_subject="Your circle pot is here")
+    item = payouts.PayoutItem(
+        receiver="meena@example.com", amount=Decimal("1155.18"), sender_item_id="abcdefghc1x2y33meena"
+    )
+    data = await payouts.create_payout(
+        gateway,
+        sender_batch_id="tk:abcdefgh:c1x2y3:3:r1",
+        items=[item],
+        email_subject="Your circle pot is here",
+    )
     assert payouts.batch_id_of(data) == "5MX67483MC6894821"
     assert payouts.batch_status(data) == "PENDING"
     body = body_of(route)
-    assert body["sender_batch_header"] == {"sender_batch_id": "tk:abcdefgh:c1x2y3:3:r1", "email_subject": "Your circle pot is here"}
+    assert body["sender_batch_header"] == {
+        "sender_batch_id": "tk:abcdefgh:c1x2y3:3:r1",
+        "email_subject": "Your circle pot is here",
+    }
     assert body["items"] == [item.to_wire()]
     assert route.calls.last.request.headers["PayPal-Request-Id"] == "tk:abcdefgh:c1x2y3:3:r1"
     with pytest.raises(ValueError):
@@ -324,9 +432,18 @@ async def test_create_payout_body_and_idempotency(gateway, paypal_mock):
 
 async def test_payout_status_helpers(gateway, paypal_mock):
     batch = {
-        "batch_header": {"payout_batch_id": "B1", "batch_status": "SUCCESS", "fees": {"currency": "USD", "value": "0.25"}},
+        "batch_header": {
+            "payout_batch_id": "B1",
+            "batch_status": "SUCCESS",
+            "fees": {"currency": "USD", "value": "0.25"},
+        },
         "items": [
-            {"payout_item_id": "I1", "transaction_status": "UNCLAIMED", "payout_item_fee": {"currency": "USD", "value": "0.25"}, "payout_item": {"receiver": "nobody@example.com"}}
+            {
+                "payout_item_id": "I1",
+                "transaction_status": "UNCLAIMED",
+                "payout_item_fee": {"currency": "USD", "value": "0.25"},
+                "payout_item": {"receiver": "nobody@example.com"},
+            }
         ],
     }
     paypal_mock.get("/v1/payments/payouts/B1").mock(return_value=httpx.Response(200, json=batch))
@@ -338,7 +455,9 @@ async def test_payout_status_helpers(gateway, paypal_mock):
     assert payouts.batch_fees(data) == Decimal("0.25")
     assert payouts.first_item({"items": []}) is None and payouts.item_status(None) == "UNKNOWN"
 
-    paypal_mock.get("/v1/payments/payouts-item/I1").mock(return_value=httpx.Response(200, json=batch["items"][0]))
+    paypal_mock.get("/v1/payments/payouts-item/I1").mock(
+        return_value=httpx.Response(200, json=batch["items"][0])
+    )
     assert payouts.item_status(await payouts.get_payout_item(gateway, item_id="I1")) == "UNCLAIMED"
     cancel = paypal_mock.post("/v1/payments/payouts-item/I1/cancel").mock(
         return_value=httpx.Response(200, json={**batch["items"][0], "transaction_status": "RETURNED"})
@@ -353,7 +472,13 @@ async def test_payout_status_helpers(gateway, paypal_mock):
 async def test_balances_request_and_available_amount(gateway, paypal_mock):
     payload = {
         "balances": [
-            {"currency": "USD", "primary": True, "total_balance": {"currency_code": "USD", "value": "5000.00"}, "available_balance": {"currency_code": "USD", "value": "4321.09"}, "withheld_balance": {"currency_code": "USD", "value": "0.00"}}
+            {
+                "currency": "USD",
+                "primary": True,
+                "total_balance": {"currency_code": "USD", "value": "5000.00"},
+                "available_balance": {"currency_code": "USD", "value": "4321.09"},
+                "withheld_balance": {"currency_code": "USD", "value": "0.00"},
+            }
         ],
         "account_id": "X5QHQ3P4V3EGW",
         "as_of_time": "2026-10-22T10:00:00Z",
@@ -376,10 +501,14 @@ async def test_refund_capture_full_and_partial(gateway, paypal_mock):
     route = paypal_mock.post("/v2/payments/captures/3C679366HH908993F/refund").mock(
         return_value=httpx.Response(201, json={"id": "R1", "status": "COMPLETED"})
     )
-    data = await refunds.refund_capture(gateway, capture_id="3C679366HH908993F", request_id="tk:abcdefgh:c1x2y3:3:asha:a1")
+    data = await refunds.refund_capture(
+        gateway, capture_id="3C679366HH908993F", request_id="tk:abcdefgh:c1x2y3:3:asha:a1"
+    )
     assert refunds.refund_status(data) == "COMPLETED"
     assert body_of(route) == {}
-    await refunds.refund_capture(gateway, capture_id="3C679366HH908993F", request_id="tk:x", amount=Decimal("1"), note="canary")
+    await refunds.refund_capture(
+        gateway, capture_id="3C679366HH908993F", request_id="tk:x", amount=Decimal("1"), note="canary"
+    )
     assert body_of(route) == {"amount": {"currency_code": "USD", "value": "1.00"}, "note_to_payer": "canary"}
     assert route.calls.last.request.headers["PayPal-Request-Id"] == "tk:x"
 
@@ -401,7 +530,9 @@ async def test_verify_signature_payload_shape(gateway, paypal_mock):
     route = paypal_mock.post("/v1/notifications/verify-webhook-signature").mock(
         return_value=httpx.Response(200, json={"verification_status": "SUCCESS"})
     )
-    ok = await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST")
+    ok = await webhooks.verify_signature(
+        gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST"
+    )
     assert ok is True
     assert body_of(route) == {
         "auth_algo": "SHA256withRSA",
@@ -418,34 +549,78 @@ async def test_verify_signature_failure_paths(gateway, paypal_mock):
     route = paypal_mock.post("/v1/notifications/verify-webhook-signature").mock(
         return_value=httpx.Response(200, json={"verification_status": "FAILURE"})
     )
-    assert await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST") is False
+    assert (
+        await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST")
+        is False
+    )
     assert route.call_count == 1
     incomplete = {k: v for k, v in EVENT_HEADERS.items() if k != "PAYPAL-TRANSMISSION-SIG"}
-    assert await webhooks.verify_signature(gateway, headers=incomplete, body=EVENT_BODY, webhook_id="WH-TEST") is False
-    assert await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=b"not json", webhook_id="WH-TEST") is False
-    assert await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="") is False
+    assert (
+        await webhooks.verify_signature(gateway, headers=incomplete, body=EVENT_BODY, webhook_id="WH-TEST")
+        is False
+    )
+    assert (
+        await webhooks.verify_signature(
+            gateway, headers=EVENT_HEADERS, body=b"not json", webhook_id="WH-TEST"
+        )
+        is False
+    )
+    assert (
+        await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="")
+        is False
+    )
     assert route.call_count == 1  # nothing was sent for the three unverifiable cases
     route.mock(return_value=httpx.Response(400, json={"name": "VALIDATION_ERROR"}))
-    assert await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST") is False
+    assert (
+        await webhooks.verify_signature(gateway, headers=EVENT_HEADERS, body=EVENT_BODY, webhook_id="WH-TEST")
+        is False
+    )
     with pytest.raises(ValueError, match="missing webhook signature headers: PAYPAL-TRANSMISSION-SIG"):
         webhooks.verify_payload(incomplete, EVENT_BODY, "WH-TEST")
 
 
 async def test_register_and_list_webhooks(gateway, paypal_mock):
-    created = {"id": "0EH40505U7160970P", "url": "https://turnkeeper.example/webhooks/paypal", "event_types": [{"name": n} for n in webhooks.WEBHOOK_EVENTS]}
-    route = paypal_mock.post("/v1/notifications/webhooks").mock(return_value=httpx.Response(201, json=created))
-    data = await webhooks.register_webhook(gateway, url="https://turnkeeper.example/webhooks/paypal", event_types=webhooks.WEBHOOK_EVENTS)
+    created = {
+        "id": "0EH40505U7160970P",
+        "url": "https://turnkeeper.example/webhooks/paypal",
+        "event_types": [{"name": n} for n in webhooks.WEBHOOK_EVENTS],
+    }
+    route = paypal_mock.post("/v1/notifications/webhooks").mock(
+        return_value=httpx.Response(201, json=created)
+    )
+    data = await webhooks.register_webhook(
+        gateway, url="https://turnkeeper.example/webhooks/paypal", event_types=webhooks.WEBHOOK_EVENTS
+    )
     assert data["id"] == "0EH40505U7160970P"
-    assert body_of(route) == {"url": "https://turnkeeper.example/webhooks/paypal", "event_types": [{"name": n} for n in webhooks.WEBHOOK_EVENTS]}
+    assert body_of(route) == {
+        "url": "https://turnkeeper.example/webhooks/paypal",
+        "event_types": [{"name": n} for n in webhooks.WEBHOOK_EVENTS],
+    }
     assert len(webhooks.WEBHOOK_EVENTS) == 10 and "PAYMENT.CAPTURE.COMPLETED" in webhooks.WEBHOOK_EVENTS
-    paypal_mock.get("/v1/notifications/webhooks").mock(return_value=httpx.Response(200, json={"webhooks": [created]}))
+    paypal_mock.get("/v1/notifications/webhooks").mock(
+        return_value=httpx.Response(200, json={"webhooks": [created]})
+    )
     listing = await webhooks.list_webhooks(gateway)
-    assert webhooks.find_webhook_by_url(listing, "https://turnkeeper.example/webhooks/paypal")["id"] == "0EH40505U7160970P"
+    assert (
+        webhooks.find_webhook_by_url(listing, "https://turnkeeper.example/webhooks/paypal")["id"]
+        == "0EH40505U7160970P"
+    )
     assert webhooks.find_webhook_by_url(listing, "https://other") is None
     paypal_mock.get("/v1/notifications/webhooks-event-types").mock(
-        return_value=httpx.Response(200, json={"event_types": [{"name": "PAYMENT.CAPTURE.COMPLETED"}, {"name": "VAULT.PAYMENT-TOKEN.CREATED"}]})
+        return_value=httpx.Response(
+            200,
+            json={
+                "event_types": [
+                    {"name": "PAYMENT.CAPTURE.COMPLETED"},
+                    {"name": "VAULT.PAYMENT-TOKEN.CREATED"},
+                ]
+            },
+        )
     )
-    assert await webhooks.list_event_types(gateway) == ["PAYMENT.CAPTURE.COMPLETED", "VAULT.PAYMENT-TOKEN.CREATED"]
+    assert await webhooks.list_event_types(gateway) == [
+        "PAYMENT.CAPTURE.COMPLETED",
+        "VAULT.PAYMENT-TOKEN.CREATED",
+    ]
     assert webhooks.event_summary(json.loads(EVENT_BODY)) == {
         "id": "WH-2WR32451HC0233532-67976317FL4543714",
         "event_type": "PAYMENT.CAPTURE.COMPLETED",

@@ -11,9 +11,9 @@ import hashlib
 import hmac
 import importlib
 import logging
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlmodel import select
 
@@ -21,7 +21,10 @@ from app.config import get_settings
 from app.db import session_scope
 from app.engine import sessions, state
 from app.engine.common import money_str
-from app.models import MemberRow
+from app.engine.sessions import require_session
+from app.models import MemberRow, Session
+
+CurrentSession = Annotated[Session, Depends(require_session)]
 
 log = logging.getLogger("turnkeeper.routes.join")
 

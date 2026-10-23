@@ -14,7 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bryntum/scheduler": "npm:@bryntum/scheduler-trial@^7.3.7",
+    "@bryntum/scheduler": "npm:@bryntum/scheduler-trial@7.3.7",
+    "@bryntum/scheduler-react": "7.3.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

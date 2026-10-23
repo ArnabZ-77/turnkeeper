@@ -173,6 +173,19 @@ Cover: token caching + 401 refresh, 429 retry, 4xx no-retry + PayPalError.issue_
 FIFO ordering and bucket spacing (use a tiny rate and `asyncio` timing), key lengths, capture_summary parsing,
 mock-decline header, verify_signature payload shape, toolkit adapter token injection (monkeypatch `requests`).
 
+**B1 implementation notes (2026-10-23, additive):**
+- `PayPalError.message` is never empty: PayPal `message` -> OAuth `error_description` -> a non-JSON body (`raw["_text"]`)
+  -> the HTTP reason phrase (`client.http_reason(404) == "Not Found"`, or `"HTTP <status>"`).
+- Smoke scripts share `scripts/smoke/_common.py` (`emit()` JSON lines with token-like keys redacted, `run()` ->
+  PASS/FAIL + exit 0/1, 2 = no sandbox credentials, 130 = interrupted; `SmokeGateway` = client + gateway + a `calls`
+  summary line). `scripts/` and `scripts/smoke/` are packages; each script inserts the repo root into `sys.path` and
+  `_common` chdirs to the repo root so `.env` is found under `python -I` from any cwd.
+- Extra flags beyond the contract: `d_payouts.py --unclaimed-receiver <email> --poll <s> --skip-dedupe` (dedupe
+  PASSes on "same batch id returned" or a 4xx rejection); `f_webhook.py --vault-id` (triggers a $1.00 capture so a
+  real PAYMENT.CAPTURE.COMPLETED arrives) and `--allow-unverified`; `a_setup_token.py --no-billing-plan --list`;
+  `register_webhook.py --list | --delete <id>` (never edits `.env`). `tests/paypal/test_smoke_scripts.py` runs
+  b/c/e against respx.
+
 ---
 
 ## B2 · `app/domain/*` (pure logic, no I/O)
@@ -487,6 +500,22 @@ Tests (B4): session isolation (two cookies -> two circles, different run_ids), f
 collect_round against a mocked Gateway (respx) incl. the mocked decline path, webhook handler dedupe + verification
 branch, SSE endpoint yields a published event, BoardModel shape.
 
+**B4 implementation notes (2026-10-23, additive):**
+- Routes share one `CurrentSession = Annotated[Session, Depends(require_session)]` (401 without the `tk_sid`
+  cookie; `GET /api/session` creates it). Collect/payout answer `202 {"task_id", "kind", "circle_id", "round_n",
+  "agent"}`; `GET /api/tasks/{task_id}` reports the background run (`done`, `ok`, `mode`, `summary`, `error`). A
+  second run on the same circle is `409` with the running `task_id`. The run is `asyncio` task
+  `app.engine.tasks._run` -> `app.agent.treasurer.run_task(AgentTask(...), publish=<session publisher>)`; every
+  `trace` event is also persisted as an `AgentTrace` row. Judge `run_round` falls back to the engine when the agent
+  package is missing (`mode="engine"`).
+- `BoardModel.circle` additionally carries `frozen` and `is_fixture_clone`; `ticker` follows the highest round with a
+  capture (replayed rounds carry virtual timestamps that may lie after the wall clock).
+- `app.engine.rounds` reaches PayPal only through `_gateway()/_orders()/_payouts()/_balances()/_toolkit()`; tests
+  monkeypatch those (`tests/engine/fakes.py: FakePayPal`) and never use the network. `tests/conftest.py` sets
+  `TK_DB_PATH=:memory:` and `app.db` uses a `StaticPool` so the TestClient thread and background tasks share it.
+- SSE: Starlette's `TestClient` buffers responses until the app returns, so `tests/routes/test_events_route.py`
+  drives the ASGI app directly (publish on the bus, read the frame, send `http.disconnect`).
+
 ---
 
 ## B5 · `web/` (Vite + React + TypeScript)
@@ -503,6 +532,27 @@ branch, SSE endpoint yields a published event, BoardModel shape.
   with reconnect; on `board` refetch the BoardModel.
 - Light/dark via CSS tokens; phone-width layout for `/join` later. No external fonts or CDNs; all assets bundled.
 - `npm run build` must succeed on Node 20 with no network at build time other than npm install.
+
+**B5 implementation notes (2026-10-23, additive; recorded by the integrator on F5's behalf):**
+- The Bryntum React wrapper is `@bryntum/scheduler-react@7.3.7` (exact; no `-trial` variant of the wrapper
+  exists) next to the aliased `@bryntum/scheduler-trial@7.3.7`; `web/.npmrc` pins the `@bryntum` registry.
+- `RotationBoard` lives in `web/src/board/` (`mapping.ts` pure + tested, `SchedulerBoard.tsx` Bryntum,
+  `GridBoard.tsx` CSS-grid fallback, `RotationBoard.tsx` dynamic import + error boundary), not `src/components/`.
+- The trial watermark is expected; if the trial throws at runtime the grid fallback takes over automatically.
+
+---
+
+## Integration notes (2026-10-23, additive)
+
+- `app/db.py: upgrade_schema()` runs inside `init_db()`: columns the models gained since a file database was
+  created are added with `ALTER TABLE ... ADD COLUMN` (nullable, additive only). A stale `data/turnkeeper.db`
+  (missing `contributions.last_attempt_at`) therefore no longer 500s on `/api/session`; no manual delete needed.
+- `tests/integration/test_m1_flow.py` drives the real app through `TestClient` with the sandbox mocked by respx
+  (token, orders create/get, balances, payouts create/batch/item) in rules mode. The toolkit's `get_order_details`
+  (sync `requests`, invisible to respx) is replaced there by a shim that performs the same GET through the gateway's
+  httpx path and returns the toolkit's own `{"message","status","amount"}` shape. Note that a rules-mode
+  `collect_round` run already pays the pot when every member is COMPLETED, so a following `POST .../payout` is
+  accepted (202), runs, and is refused with "round 3 is already paid" without a second Payouts call.
 
 ---
 

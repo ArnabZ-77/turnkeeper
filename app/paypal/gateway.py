@@ -65,7 +65,9 @@ class Gateway:
             raise ValueError("rate_per_min must be >= 1")
         self.client = client
         self.rate_per_min = int(rate_per_min)
-        self.min_gap_s = float(min_gap_s) if min_gap_s is not None else min(DEFAULT_MIN_GAP_S, WINDOW_S / rate_per_min)
+        self.min_gap_s = (
+            float(min_gap_s) if min_gap_s is not None else min(DEFAULT_MIN_GAP_S, WINDOW_S / rate_per_min)
+        )
         self.record = record
         self._queue: asyncio.Queue[_Job] | None = None
         self._worker: asyncio.Task[None] | None = None
@@ -129,7 +131,9 @@ class Gateway:
         headers: dict | None = None,
         request_id: str | None = None,
     ) -> PayPalResponse:
-        job = self._enqueue(method.upper(), path, json=json, params=params, headers=headers, request_id=request_id)
+        job = self._enqueue(
+            method.upper(), path, json=json, params=params, headers=headers, request_id=request_id
+        )
         return await job.future
 
     async def run_sync(self, fn: Callable[[], T], *, method: str = SYNC_METHOD, path: str = "") -> T:
@@ -184,7 +188,13 @@ class Gateway:
                 self._sent.append(now)
                 return
             self.stats["throttled_s"] += wait
-            log.debug("throttling %.3fs (window %d/%d per %.0fs)", wait, len(self._sent), self.rate_per_min, WINDOW_S)
+            log.debug(
+                "throttling %.3fs (window %d/%d per %.0fs)",
+                wait,
+                len(self._sent),
+                self.rate_per_min,
+                WINDOW_S,
+            )
             await self._sleep(wait)
 
     async def _execute(self, job: _Job) -> None:
@@ -198,14 +208,21 @@ class Gateway:
                 status = 200
             else:
                 result = await self.client.request(
-                    job.method, job.path, json=job.json, params=job.params, headers=job.headers, request_id=job.request_id
+                    job.method,
+                    job.path,
+                    json=job.json,
+                    params=job.params,
+                    headers=job.headers,
+                    request_id=job.request_id,
                 )
                 status = result.status
         except PayPalError as e:
             self.stats["errors"] += 1
             if e.status == 429:
                 self.stats["rate_limited"] += 1
-                log.warning("PayPal 429 RATE_LIMIT at %s on %s %s (debug_id=%s)", ts, job.method, job.path, e.debug_id)
+                log.warning(
+                    "PayPal 429 RATE_LIMIT at %s on %s %s (debug_id=%s)", ts, job.method, job.path, e.debug_id
+                )
             self._emit(ts, job, e.status, started)
             if not job.future.done():
                 job.future.set_exception(e)

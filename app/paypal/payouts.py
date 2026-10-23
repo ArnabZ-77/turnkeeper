@@ -83,7 +83,10 @@ async def create_payout(
     if not items:
         raise ValueError("a payout needs at least one item")
     check_len(sender_batch_id, MAX_SENDER_BATCH_ID_LEN, "sender_batch_id")
-    header: dict = {"sender_batch_id": sender_batch_id, "email_subject": check_len(email_subject, 255, "email_subject")}
+    header: dict = {
+        "sender_batch_id": sender_batch_id,
+        "email_subject": check_len(email_subject, 255, "email_subject"),
+    }
     if email_message:
         header["email_message"] = check_len(email_message, 1000, "email_message")
     body = {"sender_batch_header": header, "items": [item.to_wire() for item in items]}

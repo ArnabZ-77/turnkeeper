@@ -32,7 +32,9 @@ from app.paypal.gateway import SYNC_METHOD, Gateway
 
 log = logging.getLogger("turnkeeper.paypal.toolkit")
 
-_request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("tk_paypal_request_id", default=None)
+_request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "tk_paypal_request_id", default=None
+)
 
 # The toolkit registry spells two invoice actions "generateQRC" and "sendReminder"; the contract's snake_case
 # spellings are accepted too and normalised by `normalize_actions`, so both forms enable the tools.
@@ -88,14 +90,18 @@ def _error_from_requests(e: requests.exceptions.HTTPError, method: str) -> PayPa
 class CachedTokenClient(ToolkitClient):
     """Toolkit client that reuses our cached OAuth token and adds PayPal-Request-Id from the run() contextvar."""
 
-    def __init__(self, client_id: str, secret: str, context: Context, token_provider: Callable[[], str | None]) -> None:
+    def __init__(
+        self, client_id: str, secret: str, context: Context, token_provider: Callable[[], str | None]
+    ) -> None:
         super().__init__(client_id, secret, context)
         self._token_provider = token_provider
 
     def get_access_token(self) -> str:
         token = self._token_provider()
         if not token:
-            raise RuntimeError("no fresh PayPal token cached: await ToolkitAdapter.prepare() before running a tool")
+            raise RuntimeError(
+                "no fresh PayPal token cached: await ToolkitAdapter.prepare() before running a tool"
+            )
         return token
 
     def build_headers(self) -> dict:
@@ -120,7 +126,9 @@ class ToolkitAdapter:
         self._gw = gw
         self._client = client
         self.context = Context(sandbox=True)
-        self.config = Configuration(actions=normalize_actions(actions or DEFAULT_ACTIONS), context=self.context)
+        self.config = Configuration(
+            actions=normalize_actions(actions or DEFAULT_ACTIONS), context=self.context
+        )
         self.api = PayPalAPI(settings.paypal_client_id, settings.paypal_client_secret, self.context)
         self.sync_client = CachedTokenClient(
             settings.paypal_client_id, settings.paypal_client_secret, self.context, client.cached_token
@@ -140,7 +148,12 @@ class ToolkitAdapter:
     def tool_specs(self) -> list[dict]:
         """Registry entries for the enabled tools: method, name, description and the pydantic args_schema."""
         return [
-            {"method": t["method"], "name": t["name"], "description": t["description"], "args_schema": t["args_schema"]}
+            {
+                "method": t["method"],
+                "name": t["name"],
+                "description": t["description"],
+                "args_schema": t["args_schema"],
+            }
             for t in self._tools
         ]
 
@@ -153,7 +166,10 @@ class ToolkitAdapter:
                 raise _error_from_requests(e, method) from e
             except requests.exceptions.RequestException as e:
                 raise PayPalError(
-                    0, {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"}, method=SYNC_METHOD, path=method
+                    0,
+                    {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"},
+                    method=SYNC_METHOD,
+                    path=method,
                 ) from e
             finally:
                 _request_id_var.reset(token)
@@ -166,13 +182,17 @@ class ToolkitAdapter:
             raise ValueError(f"toolkit tool {method!r} is not enabled; enabled: {self.tool_names()}")
         await self.prepare()
         try:
-            raw = await self._gw.run_sync(self._invoker(method, params, request_id), method=SYNC_METHOD, path=method)
+            raw = await self._gw.run_sync(
+                self._invoker(method, params, request_id), method=SYNC_METHOD, path=method
+            )
         except PayPalError as e:
             if e.status != 401:
                 raise
             log.info("toolkit %s -> 401; refreshing token and retrying once", method)
             await self._client.get_token(force=True)
-            raw = await self._gw.run_sync(self._invoker(method, params, request_id), method=SYNC_METHOD, path=method)
+            raw = await self._gw.run_sync(
+                self._invoker(method, params, request_id), method=SYNC_METHOD, path=method
+            )
         return parse_toolkit_result(raw)
 
     async def order_details(self, order_id: str) -> dict:

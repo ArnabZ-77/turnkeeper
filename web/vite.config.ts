@@ -9,6 +9,9 @@ const BACKEND = "http://localhost:8000";
 export default defineConfig({
   plugins: [react()],
   base: "/",
+  optimizeDeps: {
+    include: ["@bryntum/scheduler", "@bryntum/scheduler-react"],
+  },
   build: {
     outDir: "../app/static",
     emptyOutDir: true,
@@ -18,8 +21,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          bryntum: ["@bryntum/scheduler"],
-          react: ["react", "react-dom"],
+          bryntum: ["@bryntum/scheduler", "@bryntum/scheduler-react"],
         },
       },
     },

@@ -16,9 +16,9 @@ from app.engine.common import iso
 from app.engine.events import get_event_bus
 from app.engine.sessions import require_session
 from app.models import Session
+from app.routes.circles import session_shape, start_round_task
 
 CurrentSession = Annotated[Session, Depends(require_session)]
-from app.routes.circles import session_shape, start_round_task
 
 log = logging.getLogger("turnkeeper.routes.judge")
 

@@ -55,7 +55,13 @@ async def healthz() -> JSONResponse:
 def _include_routers() -> None:
     import importlib
 
-    for mod in ("app.routes.circles", "app.routes.judge", "app.routes.join", "app.routes.webhooks", "app.routes.events"):
+    for mod in (
+        "app.routes.circles",
+        "app.routes.judge",
+        "app.routes.join",
+        "app.routes.webhooks",
+        "app.routes.events",
+    ):
         try:
             m = importlib.import_module(mod)
         except ModuleNotFoundError as e:  # router not built yet
@@ -78,9 +84,13 @@ _include_routers()
 if os.path.isdir(STATIC_DIR):
     app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
 
+    _STATIC_ROOT = os.path.realpath(STATIC_DIR)
+
     @app.get("/{full_path:path}")
     async def spa(full_path: str) -> FileResponse:
-        candidate = os.path.join(STATIC_DIR, full_path)
-        if full_path and os.path.isfile(candidate):
+        # Only serve real files that resolve inside app/static; everything else gets the SPA shell.
+        candidate = os.path.realpath(os.path.join(_STATIC_ROOT, full_path))
+        inside = os.path.commonpath([_STATIC_ROOT, candidate]) == _STATIC_ROOT
+        if full_path and inside and os.path.isfile(candidate):
             return FileResponse(candidate)
-        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+        return FileResponse(os.path.join(_STATIC_ROOT, "index.html"))

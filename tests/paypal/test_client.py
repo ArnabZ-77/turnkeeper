@@ -13,14 +13,19 @@ DECLINE_BODY = {
     "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
     "debug_id": "d3b0e5f1a2c34",
     "details": [
-        {"issue": "INSTRUMENT_DECLINED", "description": "The instrument presented was either declined by the processor or bank, or it can't be used for this payment."}
+        {
+            "issue": "INSTRUMENT_DECLINED",
+            "description": "The instrument presented was either declined by the processor or bank, or it can't be used for this payment.",
+        }
     ],
     "links": [],
 }
 
 
 async def test_token_is_cached_across_requests(client, paypal_mock):
-    route = paypal_mock.get("/v2/checkout/orders/ABC").mock(return_value=httpx.Response(200, json={"id": "ABC"}))
+    route = paypal_mock.get("/v2/checkout/orders/ABC").mock(
+        return_value=httpx.Response(200, json={"id": "ABC"})
+    )
     first = await client.request("GET", "/v2/checkout/orders/ABC")
     second = await client.request("GET", "/v2/checkout/orders/ABC")
     assert first.status == 200 and second.data == {"id": "ABC"}
@@ -61,7 +66,10 @@ async def test_short_lived_token_is_not_cached_as_expired(client, paypal_mock):
 async def test_401_refreshes_token_once_and_retries(client, paypal_mock):
     paypal_mock["token"].side_effect = [token_response("tok-1"), token_response("tok-2")]
     route = paypal_mock.get("/v2/checkout/orders/X").mock(
-        side_effect=[httpx.Response(401, json={"error": "invalid_token"}), httpx.Response(200, json={"id": "X"})]
+        side_effect=[
+            httpx.Response(401, json={"error": "invalid_token"}),
+            httpx.Response(200, json={"id": "X"}),
+        ]
     )
     resp = await client.request("GET", "/v2/checkout/orders/X")
     assert resp.data == {"id": "X"}
@@ -74,7 +82,9 @@ async def test_401_refreshes_token_once_and_retries(client, paypal_mock):
 
 async def test_persistent_401_raises_after_one_refresh(client, paypal_mock):
     route = paypal_mock.get("/v2/checkout/orders/X").mock(
-        return_value=httpx.Response(401, json={"error": "invalid_token", "error_description": "Token signature failed"})
+        return_value=httpx.Response(
+            401, json={"error": "invalid_token", "error_description": "Token signature failed"}
+        )
     )
     with pytest.raises(PayPalError) as exc:
         await client.request("GET", "/v2/checkout/orders/X")
@@ -119,7 +129,9 @@ async def test_5xx_exhausts_three_retries_then_raises(client, paypal_mock):
 async def test_business_4xx_is_never_retried_and_exposes_issue_codes(client, paypal_mock):
     route = paypal_mock.post("/v2/checkout/orders").mock(return_value=httpx.Response(422, json=DECLINE_BODY))
     with pytest.raises(PayPalError) as exc:
-        await client.request("POST", "/v2/checkout/orders", json={"intent": "CAPTURE"}, request_id="tk:r:c:3:ravi:a1")
+        await client.request(
+            "POST", "/v2/checkout/orders", json={"intent": "CAPTURE"}, request_id="tk:r:c:3:ravi:a1"
+        )
     err = exc.value
     assert route.call_count == 1
     assert client.sleeps == []
@@ -181,7 +193,9 @@ async def test_non_object_json_is_wrapped(client, paypal_mock):
 
 async def test_token_endpoint_failure_raises_paypal_error(client, paypal_mock):
     paypal_mock["token"].mock(
-        return_value=httpx.Response(401, json={"error": "invalid_client", "error_description": "Client Authentication failed"})
+        return_value=httpx.Response(
+            401, json={"error": "invalid_client", "error_description": "Client Authentication failed"}
+        )
     )
     with pytest.raises(PayPalError) as exc:
         await client.get_token()
@@ -206,7 +220,9 @@ async def test_transport_error_retried_only_when_safe(client, paypal_mock):
 
     post_route = paypal_mock.post("/v2/checkout/orders").mock(side_effect=httpx.ReadTimeout("slow"))
     with pytest.raises(PayPalError) as exc:
-        await client.request("POST", "/v2/checkout/orders", json={})  # no request id -> never repeat a money POST
+        await client.request(
+            "POST", "/v2/checkout/orders", json={}
+        )  # no request id -> never repeat a money POST
     assert exc.value.status == 0 and exc.value.name == "TRANSPORT_ERROR"
     assert post_route.call_count == 1
 

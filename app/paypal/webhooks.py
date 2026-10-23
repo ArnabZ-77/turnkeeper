@@ -67,7 +67,9 @@ async def delete_webhook(gw: Gateway, *, webhook_id: str) -> None:
 async def list_event_types(gw: Gateway) -> list[str]:
     """Names of every event type the account can subscribe to (used to validate WEBHOOK_EVENTS at registration)."""
     resp = await gw.call("GET", EVENT_TYPES_PATH)
-    return [str(e["name"]) for e in resp.data.get("event_types") or [] if isinstance(e, dict) and e.get("name")]
+    return [
+        str(e["name"]) for e in resp.data.get("event_types") or [] if isinstance(e, dict) and e.get("name")
+    ]
 
 
 def verify_payload(headers: Mapping[str, str], body: bytes, webhook_id: str) -> dict:
@@ -109,7 +111,11 @@ async def verify_signature(gw: Gateway, *, headers: Mapping[str, str], body: byt
         return False
     status = resp.data.get("verification_status")
     if status != "SUCCESS":
-        log.warning("webhook signature verification_status=%s for event %s", status, payload["webhook_event"].get("id"))
+        log.warning(
+            "webhook signature verification_status=%s for event %s",
+            status,
+            payload["webhook_event"].get("id"),
+        )
     return status == "SUCCESS"
 
 

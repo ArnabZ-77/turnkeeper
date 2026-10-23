@@ -55,7 +55,7 @@ export function receiptFrom(payout: PayoutEvent | null, rounds: RoundInfo[]): Re
 export function statusTone(status: string): "good" | "warn" | "critical" | "pending" {
   const s = status.toUpperCase();
   if (s === "SUCCESS" || s === "PAID") return "good";
-  if (s === "UNCLAIMED" || s === "PENDING" | s === "ONHOLD" || s === "NEW" || s === "PROCESSING") return "warn";
+  if (s === "UNCLAIMED" || s === "PENDING" || s === "ONHOLD" || s === "NEW" || s === "PROCESSING") return "warn";
   if (s === "FAILED" || s === "BLOCKED" || s === "RETURNED" || s === "CANCELED" || s === "DENIED" || s === "REFUNDED") {
     return "critical";
   }

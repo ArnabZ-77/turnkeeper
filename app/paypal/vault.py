@@ -80,7 +80,12 @@ async def get_payment_token(gw: Gateway, *, token_id: str) -> dict:
 
 async def list_payment_tokens(gw: Gateway, *, customer_id: str, page_size: int = 5, page: int = 1) -> dict:
     """GET /v3/vault/payment-tokens?customer_id=... -> {"payment_tokens": [...], "customer": {...}, ...}."""
-    params = {"customer_id": customer_id, "page_size": min(max(page_size, 1), 5), "page": max(page, 1), "total_required": "true"}
+    params = {
+        "customer_id": customer_id,
+        "page_size": min(max(page_size, 1), 5),
+        "page": max(page, 1),
+        "total_required": "true",
+    }
     resp = await gw.call("GET", PAYMENT_TOKENS_PATH, params=params)
     return resp.data
 

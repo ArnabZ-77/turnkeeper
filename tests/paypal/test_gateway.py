@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
+from itertools import pairwise
 
 import httpx
 import pytest
@@ -14,26 +15,65 @@ from app.paypal.gateway import Gateway, get_gateway, set_gateway
 
 
 async def test_three_concurrent_calls_run_fifo_and_spaced(client, paypal_mock):
-    gw = Gateway(client, rate_per_min=600)  # 100 ms minimum gap
-    assert gw.min_gap_s == pytest.approx(0.1)
+    gap_s = 0.2  # rate 300/min -> min(0.3, 60/300) = 200 ms; generous enough for Windows timer granularity
+    gw = Gateway(client, rate_per_min=300)
+    assert gw.min_gap_s == pytest.approx(gap_s)
     order: list[str] = []
-    stamps: list[float] = []
+    started: list[float] = []
+    completed: list[tuple[str, float]] = []
 
     def handler(request, name):
         order.append(name)
-        stamps.append(time.perf_counter())
+        started.append(time.perf_counter())
         return httpx.Response(200, json={"name": name})
+
+    async def call(name: str):
+        resp = await gw.call("GET", f"/t/{name}")
+        completed.append((name, time.perf_counter()))
+        return resp
 
     paypal_mock.get(path__regex=r"/t/(?P<name>[abc])$").mock(side_effect=handler)
     try:
-        results = await asyncio.gather(gw.call("GET", "/t/a"), gw.call("GET", "/t/b"), gw.call("GET", "/t/c"))
+        results = await asyncio.wait_for(asyncio.gather(call("a"), call("b"), call("c")), timeout=5.0)
     finally:
         await gw.stop()
     assert order == ["a", "b", "c"]
+    assert [name for name, _ in completed] == ["a", "b", "c"]
     assert [r.data["name"] for r in results] == ["a", "b", "c"]
-    gaps = [b - a for a, b in zip(stamps, stamps[1:], strict=True)]
-    assert all(gap >= 0.1 - 0.03 for gap in gaps), gaps  # Windows timer granularity ~15 ms
+    completion_ts = [ts for _, ts in completed]
+    assert completion_ts == sorted(completion_ts)
+    gaps = [b - a for a, b in pairwise(started)]
+    assert len(gaps) == 2
+    assert all(gap >= gap_s - 0.05 for gap in gaps), gaps  # never tighter than 50 ms on wall-clock timing
     assert gw.stats["calls"] == 3 and gw.stats["errors"] == 0
+
+
+async def test_spacing_is_exactly_min_gap_with_a_fake_clock(client, paypal_mock):
+    """Deterministic twin of the test above: the worker sleeps exactly min_gap between consecutive calls."""
+    gw = Gateway(client, rate_per_min=300)
+    now = [1000.0]
+    sleeps: list[float] = []
+    gw._clock = lambda: now[0]
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    gw._sleep = fake_sleep
+    order: list[str] = []
+    paypal_mock.get(path__regex=r"/t/(?P<name>[abc])$").mock(
+        side_effect=lambda request, name: (order.append(name), httpx.Response(200, json={"name": name}))[1]
+    )
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(gw.call("GET", "/t/a"), gw.call("GET", "/t/b"), gw.call("GET", "/t/c")),
+            timeout=5.0,
+        )
+    finally:
+        await gw.stop()
+    assert order == ["a", "b", "c"]
+    assert sleeps == [pytest.approx(0.2), pytest.approx(0.2)]
+    assert gw.stats["throttled_s"] == pytest.approx(0.4)
 
 
 async def test_rolling_window_blocks_the_call_over_budget(client, paypal_mock):
@@ -89,7 +129,9 @@ async def test_record_callback_receives_every_call(client, paypal_mock):
     paypal_mock.post("/v2/checkout/orders").mock(
         side_effect=[
             httpx.Response(201, json={"id": "O1"}),
-            httpx.Response(422, json={"name": "UNPROCESSABLE_ENTITY", "details": [{"issue": "INSTRUMENT_DECLINED"}]}),
+            httpx.Response(
+                422, json={"name": "UNPROCESSABLE_ENTITY", "details": [{"issue": "INSTRUMENT_DECLINED"}]}
+            ),
         ]
     )
     try:
@@ -139,7 +181,9 @@ async def test_run_sync_runs_in_a_thread_in_queue_order(client, paypal_mock):
         await gw.stop()
     assert seen == ["A", "B", "C"]
     assert b is True
-    assert records[1]["method"] == "TOOLKIT" and records[1]["path"] == "blocking" and records[1]["status"] == 200
+    assert (
+        records[1]["method"] == "TOOLKIT" and records[1]["path"] == "blocking" and records[1]["status"] == 200
+    )
 
 
 async def test_run_sync_propagates_exceptions_and_records_status(client):

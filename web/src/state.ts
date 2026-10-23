@@ -57,6 +57,8 @@ export type UiAction =
   | { type: "toast"; level: ToastLevel; text: string }
   | { type: "dismissToast"; id: number }
   | { type: "clearTrace" }
+  /** Judge "reset": the circle is re-cloned, so everything derived from the old run is dropped. */
+  | { type: "resetRun" }
   | { type: "connection"; state: ConnectionState }
   | { type: "busy"; busy: boolean }
   | { type: "waitlist"; on: boolean }
@@ -213,6 +215,16 @@ export function reducer(state: UiState, action: UiAction): UiState {
       return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
     case "clearTrace":
       return { ...state, trace: [] };
+    case "resetRun":
+      return {
+        ...state,
+        board: null,
+        trace: [],
+        payout: null,
+        ticker: initialState.ticker,
+        queuePosition: 0,
+        error: null,
+      };
     case "connection":
       return { ...state, connection: action.state };
     case "busy":

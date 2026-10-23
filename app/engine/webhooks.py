@@ -368,6 +368,20 @@ async def handle_event(headers: Mapping[str, str], body: bytes, *, publish_for: 
         }
     log.info("webhook %s %s verified=%s", event_type, event_id, verified)
 
+    if webhook_id and not verified:
+        # A webhook id is configured, so an event that fails verification is untrusted: store it for the
+        # debug view but never let it change contributions, payouts or vault state.
+        log.warning("webhook %s %s failed verification; not dispatched", event_type, event_id)
+        return {
+            "ok": True,
+            "duplicate": False,
+            "event_id": event_id,
+            "event_type": event_type,
+            "verified": False,
+            "handled": False,
+            "rejected": "signature verification failed",
+        }
+
     result: dict[str, Any] = {
         "ok": True,
         "duplicate": False,

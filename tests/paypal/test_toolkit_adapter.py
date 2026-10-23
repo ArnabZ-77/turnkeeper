@@ -9,11 +9,28 @@ import requests
 
 from app.paypal.client import PayPalError
 from app.paypal.gateway import Gateway
-from app.paypal.toolkit_adapter import DEFAULT_ACTIONS, ToolkitAdapter, normalize_actions, parse_toolkit_result
+from app.paypal.toolkit_adapter import (
+    DEFAULT_ACTIONS,
+    ToolkitAdapter,
+    normalize_actions,
+    parse_toolkit_result,
+)
 
 BASE = "https://api-m.sandbox.paypal.com"
 ORDER_ID = "5O190127TN364715T"
-ORDER = {"id": ORDER_ID, "status": "COMPLETED", "purchase_units": [{"payments": {"captures": [{"id": "C1", "status": "COMPLETED", "amount": {"currency_code": "USD", "value": "200.00"}}]}}]}
+ORDER = {
+    "id": ORDER_ID,
+    "status": "COMPLETED",
+    "purchase_units": [
+        {
+            "payments": {
+                "captures": [
+                    {"id": "C1", "status": "COMPLETED", "amount": {"currency_code": "USD", "value": "200.00"}}
+                ]
+            }
+        }
+    ],
+}
 
 
 class FakeResponse:
@@ -55,7 +72,16 @@ def toolkit_http(monkeypatch):
 async def test_default_actions_enable_the_contract_tools(client, gateway):
     adapter = ToolkitAdapter(gateway, client)
     names = adapter.tool_names()
-    assert {"get_order_details", "create_invoice", "send_invoice", "generate_invoice_qr_code", "send_invoice_reminder", "get_invoice", "list_disputes", "list_transactions"} <= set(names)
+    assert {
+        "get_order_details",
+        "create_invoice",
+        "send_invoice",
+        "generate_invoice_qr_code",
+        "send_invoice_reminder",
+        "get_invoice",
+        "list_disputes",
+        "list_transactions",
+    } <= set(names)
     assert "create_order" not in names and "pay_order" not in names
     assert normalize_actions(DEFAULT_ACTIONS)["invoices"]["generateQRC"] is True
     assert normalize_actions(DEFAULT_ACTIONS)["invoices"]["sendReminder"] is True
@@ -72,7 +98,9 @@ async def test_run_injects_cached_token_and_request_id(client, gateway, paypal_m
     adapter = ToolkitAdapter(gateway, client)
     await adapter.prepare()
     assert paypal_mock["token"].call_count == 1
-    result = await adapter.run("get_order_details", {"order_id": ORDER_ID}, request_id="tk:abcdefgh:c1x2y3:3:asha:a1")
+    result = await adapter.run(
+        "get_order_details", {"order_id": ORDER_ID}, request_id="tk:abcdefgh:c1x2y3:3:asha:a1"
+    )
     assert result["status"] == "COMPLETED"
     assert result["raw"]["id"] == ORDER_ID
     assert len(toolkit_http["calls"]) == 1
@@ -82,7 +110,11 @@ async def test_run_injects_cached_token_and_request_id(client, gateway, paypal_m
     assert call["headers"]["PayPal-Request-Id"] == "tk:abcdefgh:c1x2y3:3:asha:a1"
     assert call["headers"]["Content-Type"] == "application/json"
     assert paypal_mock["token"].call_count == 1  # the sync client never fetched its own token
-    assert records[-1]["method"] == "TOOLKIT" and records[-1]["path"] == "get_order_details" and records[-1]["status"] == 200
+    assert (
+        records[-1]["method"] == "TOOLKIT"
+        and records[-1]["path"] == "get_order_details"
+        and records[-1]["status"] == 200
+    )
     # order_details() unwraps the toolkit envelope
     assert (await adapter.order_details(ORDER_ID))["id"] == ORDER_ID
     assert "PayPal-Request-Id" not in toolkit_http["calls"][1]["headers"]
@@ -100,7 +132,16 @@ async def test_run_refreshes_token_when_none_is_cached(client, gateway, paypal_m
 async def test_http_error_becomes_paypal_error(client, gateway, toolkit_http):
     adapter = ToolkitAdapter(gateway, client)
     toolkit_http["answers"].append(
-        FakeResponse(404, {"name": "RESOURCE_NOT_FOUND", "message": "The specified resource does not exist.", "debug_id": "x1", "details": [{"issue": "INVALID_RESOURCE_ID"}]}, {})
+        FakeResponse(
+            404,
+            {
+                "name": "RESOURCE_NOT_FOUND",
+                "message": "The specified resource does not exist.",
+                "debug_id": "x1",
+                "details": [{"issue": "INVALID_RESOURCE_ID"}],
+            },
+            {},
+        )
     )
     with pytest.raises(PayPalError) as exc:
         await adapter.run("get_order_details", {"order_id": ORDER_ID})
@@ -126,7 +167,9 @@ async def test_disabled_tool_and_bad_params_are_rejected(client, gateway, toolki
     assert adapter.tool_names() == ["get_order_details"]
     with pytest.raises(ValueError, match="not enabled"):
         await adapter.run("create_invoice", {})
-    with pytest.raises(Exception):  # pydantic validation inside the toolkit (bad order id pattern)
+    with pytest.raises(
+        ValueError
+    ):  # pydantic ValidationError (a ValueError) inside the toolkit: bad order id pattern
         await adapter.run("get_order_details", {"order_id": "not an order id"})
     assert toolkit_http["calls"] == []
 
@@ -138,11 +181,17 @@ async def test_toolkit_calls_share_the_fifo_queue(client, paypal_mock, toolkit_h
 
     seen: list[str] = []
     gw = Gateway(client, rate_per_min=600, min_gap_s=0.0)
-    paypal_mock.get("/t/A").mock(side_effect=lambda request: (seen.append("A"), httpx.Response(200, json={}))[1])
+    paypal_mock.get("/t/A").mock(
+        side_effect=lambda request: (seen.append("A"), httpx.Response(200, json={}))[1]
+    )
     adapter = ToolkitAdapter(gw, client)
     await adapter.prepare()
     try:
-        await asyncio.gather(gw.call("GET", "/t/A"), adapter.run("get_order_details", {"order_id": ORDER_ID}), gw.call("GET", "/t/A"))
+        await asyncio.gather(
+            gw.call("GET", "/t/A"),
+            adapter.run("get_order_details", {"order_id": ORDER_ID}),
+            gw.call("GET", "/t/A"),
+        )
     finally:
         await gw.stop()
     assert seen == ["A", "A"] and len(toolkit_http["calls"]) == 1

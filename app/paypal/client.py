@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from http import HTTPStatus
 from typing import Any
 
 import httpx
@@ -29,6 +30,15 @@ TOKEN_REFRESH_MARGIN_S = 300
 RETRY_BACKOFF_S: tuple[float, ...] = (1.0, 2.0, 4.0)
 DEFAULT_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "DELETE", "PUT"})
+
+
+def http_reason(status: int) -> str:
+    """ "Not Found" for 404 and so on; "HTTP <status>" when the code has no standard phrase (or is 0)."""
+    try:
+        phrase = HTTPStatus(int(status)).phrase
+    except ValueError:
+        phrase = ""
+    return phrase or f"HTTP {int(status)}"
 
 
 class PayPalError(Exception):
@@ -50,11 +60,21 @@ class PayPalError(Exception):
         self.status: int = int(status)
         self.raw: dict = raw if isinstance(raw, dict) else {}
         self.name: str = str(self.raw.get("name") or self.raw.get("error") or f"HTTP_{self.status}")
-        self.message: str = str(self.raw.get("message") or self.raw.get("error_description") or text or "")
+        # Always non-empty: PayPal's message, OAuth's error_description, a non-JSON body (parse_body puts it under
+        # "_text"), the caller's text, then the HTTP reason phrase ("Not Found") or "HTTP <status>".
+        self.message: str = str(
+            self.raw.get("message")
+            or self.raw.get("error_description")
+            or self.raw.get("_text")
+            or text
+            or http_reason(self.status)
+        )
         debug_id = self.raw.get("debug_id")
         self.debug_id: str | None = str(debug_id) if debug_id else None
         details = self.raw.get("details")
-        self.details: list[dict] = [d for d in details if isinstance(d, dict)] if isinstance(details, list) else []
+        self.details: list[dict] = (
+            [d for d in details if isinstance(d, dict)] if isinstance(details, list) else []
+        )
         self.method = method
         self.path = path
         super().__init__(
@@ -167,13 +187,18 @@ class PayPalClient:
                     await self._sleep(delay)
                     continue
                 raise PayPalError(
-                    0, {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"}, method="POST", path=TOKEN_PATH
+                    0,
+                    {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"},
+                    method="POST",
+                    path=TOKEN_PATH,
                 ) from e
             status = resp.status_code
             if (status == 429 or status >= 500) and retries < len(RETRY_BACKOFF_S):
                 delay = RETRY_BACKOFF_S[retries]
                 retries += 1
-                log.warning("token fetch -> %s; retry %d/%d in %.0fs", status, retries, len(RETRY_BACKOFF_S), delay)
+                log.warning(
+                    "token fetch -> %s; retry %d/%d in %.0fs", status, retries, len(RETRY_BACKOFF_S), delay
+                )
                 await self._sleep(delay)
                 continue
             body = parse_body(resp)
@@ -182,8 +207,10 @@ class PayPalClient:
             token = body.get("access_token")
             if not token:
                 raise PayPalError(
-                    status, {"name": "NO_ACCESS_TOKEN", "message": "token response had no access_token"},
-                    method="POST", path=TOKEN_PATH,
+                    status,
+                    {"name": "NO_ACCESS_TOKEN", "message": "token response had no access_token"},
+                    method="POST",
+                    path=TOKEN_PATH,
                 )
             try:
                 expires_in = int(body.get("expires_in") or 0)
@@ -239,11 +266,16 @@ class PayPalClient:
                 if safe and retries < len(RETRY_BACKOFF_S):
                     delay = RETRY_BACKOFF_S[retries]
                     retries += 1
-                    log.warning("%s %s transport error (%s); retry in %.0fs", method, path, type(e).__name__, delay)
+                    log.warning(
+                        "%s %s transport error (%s); retry in %.0fs", method, path, type(e).__name__, delay
+                    )
                     await self._sleep(delay)
                     continue
                 raise PayPalError(
-                    0, {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"}, method=method, path=path
+                    0,
+                    {"name": "TRANSPORT_ERROR", "message": f"{type(e).__name__}: {e}"},
+                    method=method,
+                    path=path,
                 ) from e
             status = resp.status_code
             ms = int((self._clock() - started) * 1000)
@@ -257,16 +289,30 @@ class PayPalClient:
                 retries += 1
                 log.warning(
                     "%s %s -> %s; retry %d/%d in %.0fs (retry-after=%s)",
-                    method, path, status, retries, len(RETRY_BACKOFF_S), delay, resp.headers.get("Retry-After"),
+                    method,
+                    path,
+                    status,
+                    retries,
+                    len(RETRY_BACKOFF_S),
+                    delay,
+                    resp.headers.get("Retry-After"),
                 )
                 await self._sleep(delay)
                 continue
             data = parse_body(resp)
             if status >= 400:
-                err = PayPalError(status, data, method=method, path=path, text="" if data else resp.text[:300])
+                err = PayPalError(
+                    status, data, method=method, path=path, text="" if data else resp.text[:300]
+                )
                 log.warning(
                     "%s %s -> %s %s debug_id=%s issues=%s ms=%d",
-                    method, path, status, err.name, err.debug_id, err.issue_codes, ms,
+                    method,
+                    path,
+                    status,
+                    err.name,
+                    err.debug_id,
+                    err.issue_codes,
+                    ms,
                 )
                 raise err
             log.debug("%s %s -> %s ms=%d request_id=%s", method, path, status, ms, request_id)

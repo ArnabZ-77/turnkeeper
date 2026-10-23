@@ -58,8 +58,35 @@ def _make_engine(db_path: str) -> Engine:
 engine: Engine = _make_engine(get_settings().db_path)
 
 
+def upgrade_schema(eng: Engine | None = None) -> list[str]:
+    """Add columns the models gained since the file database was created (SQLite ALTER TABLE ADD COLUMN).
+
+    Additive only: a new column is added nullable with its compiled type and no constraints. Dropped or
+    retyped columns are not handled (there is no schema migration tool in this project yet). Returns the
+    "table.column" names that were added.
+    """
+    import app.models  # noqa: F401
+
+    eng = eng or engine
+    added: list[str] = []
+    with eng.begin() as conn:
+        for table in SQLModel.metadata.sorted_tables:
+            present = {row[1] for row in conn.exec_driver_sql(f'PRAGMA table_info("{table.name}")')}
+            if not present:  # create_all handles new tables
+                continue
+            for col in table.columns:
+                if col.name in present:
+                    continue
+                col_type = col.type.compile(dialect=eng.dialect)
+                conn.exec_driver_sql(f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {col_type}')
+                added.append(f"{table.name}.{col.name}")
+    if added:
+        log.info("database schema upgraded: added %s", ", ".join(added))
+    return added
+
+
 def init_db() -> None:
-    """Create all tables once per process (safe to call repeatedly)."""
+    """Create all tables once per process and add any missing columns (safe to call repeatedly)."""
     global _initialized
     if _initialized:
         return
@@ -69,6 +96,7 @@ def init_db() -> None:
         import app.models  # noqa: F401  (registers the tables on SQLModel.metadata)
 
         SQLModel.metadata.create_all(engine)
+        upgrade_schema(engine)
         _initialized = True
         log.info("database ready at %s", get_settings().db_path)
 

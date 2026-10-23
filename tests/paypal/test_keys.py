@@ -25,7 +25,11 @@ def test_lengths_are_within_documented_maxima():
     assert len(keys.setup_request_id(RUN, CIRCLE, longest_handle)) <= keys.MAX_REQUEST_ID_LEN
     assert len(keys.payout_batch_id(RUN, CIRCLE, 999, 99)) <= keys.MAX_SENDER_BATCH_ID_LEN
     assert len(keys.payout_item_id(RUN, CIRCLE, 999, longest_handle)) <= keys.MAX_SENDER_ITEM_ID_LEN
-    assert (keys.MAX_REQUEST_ID_LEN, keys.MAX_SENDER_BATCH_ID_LEN, keys.MAX_SENDER_ITEM_ID_LEN) == (108, 30, 63)
+    assert (keys.MAX_REQUEST_ID_LEN, keys.MAX_SENDER_BATCH_ID_LEN, keys.MAX_SENDER_ITEM_ID_LEN) == (
+        108,
+        30,
+        63,
+    )
 
 
 def test_too_long_keys_are_rejected():

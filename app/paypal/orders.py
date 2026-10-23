@@ -127,8 +127,14 @@ def capture_summary(order: dict) -> CaptureSummary:
     amount = cap.get("amount") or {}
     gross = to_decimal(breakdown.get("gross_amount")) or to_decimal(amount)
     currency = (
-        (breakdown.get("gross_amount") or {}).get("currency_code") if isinstance(breakdown.get("gross_amount"), dict) else None
-    ) or amount.get("currency_code") or "USD"
+        (
+            (breakdown.get("gross_amount") or {}).get("currency_code")
+            if isinstance(breakdown.get("gross_amount"), dict)
+            else None
+        )
+        or amount.get("currency_code")
+        or "USD"
+    )
     return CaptureSummary(
         order_id=str(order.get("id") or ""),
         capture_id=str(cap["id"]) if cap.get("id") else None,

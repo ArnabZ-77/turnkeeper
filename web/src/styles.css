@@ -356,7 +356,12 @@ button.tk-chip {
   flex: 1;
   min-height: 0;
 }
+/* The React wrapper adds a container div; the chain needs explicit heights or the scheduler collapses. */
+.tk-board-host > .b-react-scheduler-base-container,
 .tk-board-host > .tk-scheduler {
+  height: 100%;
+}
+.tk-board-host .b-react-scheduler-base-container > .tk-scheduler {
   height: 100%;
 }
 .tk-board-empty {

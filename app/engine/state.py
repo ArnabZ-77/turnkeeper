@@ -281,11 +281,11 @@ def member_history(circle_id: str, member: str) -> dict[str, Any]:
 
 
 def _ticker(rounds: list[Round]) -> dict[str, Any]:
+    # The highest round with a capture is the one the UI is watching. (Replayed rounds carry virtual
+    # timestamps that may lie after the wall clock, so "latest by timestamp" would pick the wrong round.)
     latest = None
     for r in rounds:
-        if r.last_capture_at is not None and (
-            latest is None or as_utc(r.last_capture_at) > as_utc(latest.last_capture_at)
-        ):
+        if r.last_capture_at is not None and (latest is None or r.n > latest.n):
             latest = r
     if latest is None:
         return {"last_capture_at": None, "paid_at": None, "seconds": None}
