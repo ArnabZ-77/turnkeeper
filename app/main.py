@@ -110,6 +110,7 @@ def _include_routers() -> None:
         "app.routes.recovery",  # before judge: its fixed /api/judge/* recovery actions win
         "app.routes.judge",
         "app.routes.join",
+        "app.routes.compile",  # charter compiler + freeze (builder B)
         "app.routes.webhooks",
         "app.routes.events",
     ):

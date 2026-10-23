@@ -348,6 +348,9 @@ def board_model(circle_id: str) -> dict[str, Any]:
         )
     circle_available, buffer_balance = ledger_totals(circle_id)
     rotation = [r.recipient_handle for r in rounds] or list(charter.rotation)
+    attempts_by_round: dict[int, list[Any]] = {}
+    for a in payout_attempts(circle_id):
+        attempts_by_round.setdefault(a.round_n, []).append(a)
     recovery_block, labels = _recovery_extras(circle_id)
     return {
         "circle": {
@@ -368,6 +371,8 @@ def board_model(circle_id: str) -> dict[str, Any]:
             "flags": get_flags(circle),
             "frozen": is_frozen(circle),
             "is_fixture_clone": circle.is_fixture_clone,
+            # D1: account-wide, lags ~2.5 h in the sandbox; context only (the ledger above is binding)
+            "paypal_balance": paypal_balance_view(charter.currency),
         },
         "members": [
             {
@@ -398,6 +403,10 @@ def board_model(circle_id: str) -> dict[str, Any]:
                     else None
                 ),
                 "paid_at": iso(r.paid_at),
+                # D1 UNCLAIMED path: every batch sent for the round and any funds still "pending return"
+                "payout_rev": r.rev,
+                "payout_attempts": [_attempt_view(a) for a in attempts_by_round.get(r.n, [])],
+                "pending_return": pending_return_of(attempts_by_round.get(r.n, [])),
             }
             for r in rounds
         ],
@@ -423,7 +432,19 @@ def board_model(circle_id: str) -> dict[str, Any]:
         "counters": get_counters(circle),
         "ticker": _ticker(rounds),
         "recovery": recovery_block,
+        "forecasts": _forecast_extras(circle_id),
     }
+
+
+def _forecast_extras(circle_id: str) -> list[dict[str, Any]]:
+    """BoardModel.forecasts from app.engine.forecast_job (builder C, M3); empty when it is unavailable."""
+    try:
+        from app.engine import forecast_job
+
+        return forecast_job.forecasts_view(circle_id)
+    except Exception as e:  # noqa: BLE001 - the board must render without the forecaster
+        log.warning("forecasts unavailable: %s", type(e).__name__)
+        return []
 
 
 def _recovery_extras(circle_id: str) -> tuple[dict[str, Any] | None, dict[str, str]]:
@@ -435,6 +456,76 @@ def _recovery_extras(circle_id: str) -> tuple[dict[str, Any] | None, dict[str, s
     except Exception as e:  # noqa: BLE001 - the board must render without the recovery path
         log.warning("recovery block unavailable: %s", type(e).__name__)
         return None, {}
+
+
+# --- PayPal Balances (context only; D1: sandbox Balances lags ~2.5 h) ---------------------------------
+
+# Account-wide, so one reading per currency serves every circle. Process memory only: the board never calls
+# PayPal itself, it shows the last reading taken by a balance check (rounds.available_balance).
+_PAYPAL_BALANCE: dict[str, dict[str, Any]] = {}
+
+
+def remember_paypal_balance(currency: str, context: dict[str, Any]) -> None:
+    _PAYPAL_BALANCE[currency] = {**context, "checked_at": iso(utcnow())}
+
+
+def paypal_balance_view(currency: str = "USD") -> dict[str, Any]:
+    """BoardModel.circle.paypal_balance: {value, last_refreshed, source, stale, checked_at}; nulls before a check."""
+    ctx = _PAYPAL_BALANCE.get(currency) or {}
+    return {
+        "value": ctx.get("available"),
+        "last_refreshed": ctx.get("last_refresh_time"),
+        "source": "paypal_balances",
+        "stale": ctx.get("stale"),
+        "checked_at": ctx.get("checked_at"),
+    }
+
+
+def clear_paypal_balance() -> None:
+    _PAYPAL_BALANCE.clear()
+
+
+# --- payout attempts (UNCLAIMED re-route, D1) ---------------------------------------------------------
+
+
+def payout_attempts(circle_id: str, round_n: int | None = None) -> list[Any]:
+    from app.models import PayoutAttempt
+
+    with session_scope() as db:
+        q = select(PayoutAttempt).where(PayoutAttempt.circle_id == circle_id)
+        if round_n is not None:
+            q = q.where(PayoutAttempt.round_n == round_n)
+        return list(db.exec(q.order_by(PayoutAttempt.round_n, PayoutAttempt.rev)).all())
+
+
+def _attempt_view(a: Any) -> dict[str, Any]:
+    return {
+        "rev": a.rev,
+        "batch_id": a.batch_id,
+        "item_id": a.item_id,
+        "status": a.status,
+        "amount": a.amount,
+        "wallet": a.wallet,
+        "receiver_kind": a.receiver_kind,
+        "funding": a.funding,
+        "cancel_status": a.cancel_status,
+        "return_status": a.return_status,
+        "superseded_by_rev": a.superseded_by_rev,
+        "label": a.label,
+    }
+
+
+def pending_return_of(attempts: list[Any]) -> dict[str, Any] | None:
+    """The UNCLAIMED item whose cancel failed: its funds are not back until a cancel (or RETURNED) succeeds."""
+    pending = [a for a in attempts if a.return_status == "pending_return"]
+    if not pending:
+        return None
+    total = sum((money(a.amount) for a in pending), Decimal("0.00"))
+    return {
+        "amount": money_str(total),
+        "items": [{"rev": a.rev, "item_id": a.item_id, "amount": a.amount} for a in pending],
+        "label": "pending return",
+    }
 
 
 # --- gateway call log ---------------------------------------------------------------------------

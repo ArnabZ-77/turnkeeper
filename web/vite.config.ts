@@ -32,6 +32,8 @@ export default defineConfig({
       "/api": { target: BACKEND, changeOrigin: false },
       "/webhooks": { target: BACKEND, changeOrigin: false },
       "/mcp": { target: BACKEND, changeOrigin: false },
+      // PayPal returns to these server routes (they answer 303 to the SPA's /join/{invite}?status=...).
+      "^/join/[^/]+/(return|cancel)": { target: BACKEND, changeOrigin: false },
     },
   },
   test: {

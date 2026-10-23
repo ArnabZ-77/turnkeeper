@@ -16,6 +16,7 @@ export type ResolvedTheme = "light" | "dark";
 
 const STORAGE_KEY = "tk-theme";
 const STYLE_ID = "tk-bryntum-theme";
+export const DEFAULT_PREFERENCE: ThemePreference = "light";
 
 export function readPreference(): ThemePreference {
   try {
@@ -24,7 +25,8 @@ export function readPreference(): ThemePreference {
   } catch {
     /* storage unavailable */
   }
-  return "system";
+  // Light is the default (screen recordings, projectors); dark is one toggle away and remembered.
+  return DEFAULT_PREFERENCE;
 }
 
 function systemTheme(): ResolvedTheme {

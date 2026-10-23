@@ -32,6 +32,17 @@ export interface CircleInfo {
   rotation: string[];
   mandate_present: boolean;
   flags: CircleFlags;
+  /** Builder E (D1): the last PayPal Balances reading. Context only; the circle ledger is the binding gate. */
+  paypal_balance?: PayPalBalanceInfo | null;
+}
+
+/** `circle.paypal_balance`: account-wide, lags in the sandbox; all fields null before any balance check. */
+export interface PayPalBalanceInfo {
+  value: string | null;
+  last_refreshed: string | null;
+  source?: string;
+  stale: boolean | null;
+  checked_at: string | null;
 }
 
 export interface MemberInfo {
@@ -59,6 +70,51 @@ export interface RoundInfo {
   status: RoundStatus;
   payout: PayoutInfo | null;
   paid_at: string | null;
+  /** Builder E (D1 UNCLAIMED path): current payout revision (1 = first batch, 2+ = re-routed). */
+  payout_rev?: number | null;
+  /** Every batch sent for the round (no receivers). */
+  payout_attempts?: PayoutAttemptInfo[];
+  /** Funds of a superseded UNCLAIMED item whose cancel failed; null when nothing is outstanding. */
+  pending_return?: PendingReturnInfo | null;
+}
+
+export interface PayoutAttemptInfo {
+  rev: number;
+  batch_id: string | null;
+  item_id: string | null;
+  status: string | null;
+  amount: string | null;
+  wallet: string | null;
+  receiver_kind: string | null;
+  /** ledger | refund | fronted_pending_return */
+  funding: string | null;
+  /** canceled | cancel_failed | null */
+  cancel_status: string | null;
+  /** pending_return | returned | null */
+  return_status: string | null;
+  label: string | null;
+}
+
+export interface PendingReturnInfo {
+  amount: string;
+  items: { rev: number; item_id: string | null; amount: string | null }[];
+  label: string;
+}
+
+/** Builder C (M3): one T-3 forecast row (`BoardModel.forecasts[]`). */
+export interface ForecastInfo {
+  round_n: number;
+  member: string;
+  score: number;
+  flagged: boolean;
+  reason: string | null;
+  nudge: string | null;
+  nudge_en: string | null;
+  lang: string | null;
+  /** live | replay | rules (rules = template wording) */
+  mode: string | null;
+  factors?: { factor: string; weight: number; detail: string }[];
+  as_of?: string | null;
 }
 
 export interface ContributionInfo {
@@ -99,6 +155,8 @@ export interface BoardModel {
   ticker: TickerInfo;
   /** B6 recovery block (absent on older servers). */
   recovery?: RecoveryInfo | null;
+  /** M3 forecasts (latest round first, flagged first). */
+  forecasts?: ForecastInfo[];
 }
 
 export interface SessionInfo {
@@ -270,6 +328,10 @@ export interface PayoutEvent extends EventBase {
   amount: string;
   recipient: string;
   wallet: Wallet;
+  /** Re-route (D1): the new revision, the cancel outcome and any funds still pending return. */
+  rev?: number;
+  cancel_status?: string | null;
+  pending_return?: { amount: string; item_id: string | null; label: string } | null;
 }
 
 export interface TickerEvent extends EventBase {
@@ -299,6 +361,27 @@ export interface ScheduleChangedEvent extends EventBase {
   rotation: string[];
 }
 
+export interface ForecastEvent extends EventBase {
+  type: "forecast";
+  round_n: number;
+  member: string;
+  score: number;
+  reason: string | null;
+  nudge: string | null;
+  nudge_en: string | null;
+  lang: string | null;
+  mode: string | null;
+}
+
+/** Judge Mode story marker: a step started (`phase: "start"`). */
+export interface StoryEvent extends EventBase {
+  type: "story";
+  phase: string;
+  step: string;
+  index?: number;
+  label?: string;
+}
+
 /** Anything the server sends that this build does not know (heartbeats, future event types). */
 export interface UnknownEvent extends EventBase {
   type: "unknown";
@@ -315,6 +398,8 @@ export type TurnkeeperEvent =
   | QueueEvent
   | BoardRefreshEvent
   | ScheduleChangedEvent
+  | ForecastEvent
+  | StoryEvent
   | UnknownEvent;
 
 export const KNOWN_EVENT_TYPES = [
@@ -326,4 +411,218 @@ export const KNOWN_EVENT_TYPES = [
   "queue",
   "board",
   "schedule_changed",
+  "forecast",
+  "story",
 ] as const;
+
+// ---------------------------------------------------------------------------------------------
+// Judge Mode story (docs/CONTRACTS.md "Builder E")
+// ---------------------------------------------------------------------------------------------
+
+export type StoryStepStatus = "done" | "running" | "next" | "todo";
+
+export interface StoryStep {
+  step: string;
+  label: string;
+  status: StoryStepStatus | string;
+  at: string | null;
+  mode: string | null;
+  summary: string | null;
+}
+
+export interface StoryView {
+  ok?: boolean;
+  circle_id?: string;
+  run_id?: string | null;
+  steps: StoryStep[];
+  current: string | null;
+  next: { step: string; label: string; action_label: string; index: number } | null;
+  running: { step: string; task_id: string } | null;
+  complete: boolean;
+  paypal: "live" | "simulated" | string;
+  replay_url: string | null;
+}
+
+/** `POST /api/judge/story/{step}`. */
+export interface StoryStepResult {
+  ok: boolean;
+  step: string;
+  mode?: string;
+  summary?: string;
+  task_id?: string | null;
+  session?: SessionInfo;
+  story: StoryView;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Charter compiler and join flow (docs/CONTRACTS.md "Builder B")
+// ---------------------------------------------------------------------------------------------
+
+export interface CharterMemberJson {
+  handle: string;
+  name: string;
+  lang: string;
+  email?: string | null;
+  payday_rule: string | null;
+  payout_wallet: Wallet;
+  payout_receiver?: string | null;
+  track_record_rounds: number;
+}
+
+export interface CharterJson {
+  name: string;
+  currency: string;
+  amount: string;
+  cadence: Cadence;
+  start_date: string;
+  members: CharterMemberJson[];
+  rotation: string[];
+  fee_policy: string;
+  buffer: { seed: string; source?: string; retention_pct?: number };
+  grace_days: number;
+  quorum: string;
+  remedy_menu: string[];
+  languages: string[];
+}
+
+export interface CompileResult {
+  ok: boolean;
+  mode: "live" | "replay" | "rules" | string;
+  source: "model" | "parser" | "template" | string;
+  mode_label: string;
+  lang: string;
+  charter: CharterJson | null;
+  charter_sha256: string | null;
+  explanations: Record<string, string>;
+  problems: string[];
+  notes: string[];
+  draft_id: string;
+  matches_circle: boolean;
+  live_ai_allowed?: boolean;
+}
+
+export interface FeesInfo {
+  fee_policy: string;
+  fee_estimate: string;
+  net_per_contribution: string;
+  gross_pot: string;
+  pot_estimate: string;
+  payout_fee_reserve: string;
+  line: string;
+}
+
+export interface BillingCycle {
+  tenure_type: string;
+  sequence: number;
+  total_cycles: number;
+  pricing_scheme: { pricing_model?: string; price: { value: string; currency_code: string } };
+  frequency: { interval_unit: string; interval_count: number };
+  start_date?: string;
+}
+
+export interface BillingPlan {
+  name?: string;
+  billing_cycles: BillingCycle[];
+  one_time_charges?: { total_amount?: { value: string; currency_code: string } };
+}
+
+export interface CharterSummary {
+  name: string;
+  amount: string;
+  currency: string;
+  cadence: string;
+  cycles: number;
+  start_date: string;
+  last_due_date?: string;
+  quorum: string;
+  grace_days: number;
+  buffer_seed: string;
+  remedy_menu: string[];
+  rotation?: string[];
+  languages?: string[];
+}
+
+export interface InviteRow {
+  handle: string;
+  name: string;
+  token: string;
+  url: string;
+  vaulted: boolean;
+  join_status: string;
+  expires_at: string;
+}
+
+export interface ApprovalRecord {
+  circle_id: string;
+  charter_sha256: string;
+  approved_by: string;
+  approved_at: string;
+  draft_id: string | null;
+}
+
+export interface FreezeResult {
+  ok: boolean;
+  circle_id: string;
+  draft_id: string | null;
+  matches_circle: boolean;
+  confirmed: boolean;
+  created_circle: boolean;
+  charter_sha256: string;
+  canonical_json?: string;
+  billing_plan: BillingPlan;
+  summary: CharterSummary;
+  fees: FeesInfo;
+  approval: ApprovalRecord | null;
+  invites?: InviteRow[];
+}
+
+export interface JoinCard {
+  ok: boolean;
+  circle: {
+    id: string;
+    name: string;
+    amount: string;
+    currency: string;
+    cadence: string;
+    cycles: number;
+    start_date: string;
+    fee_policy: string;
+    fee_note: string;
+    fees: FeesInfo;
+    charter_sha256: string;
+    buffer_seed: string;
+    quorum: string;
+    grace_days: number;
+    remedy_menu: string[];
+    members: { handle: string; name: string }[];
+    billing_plan: BillingPlan;
+    kind: string;
+    status: string;
+  };
+  member: { handle: string; name: string; lang: string };
+  vaulted: boolean;
+  join: {
+    handle: string;
+    name: string;
+    lang: string;
+    payout_round: number | null;
+    payout_date: string | null;
+    payout_wallet: string;
+    payout_receiver_masked: string | null;
+    join_status: string;
+    join_message: string;
+  };
+  invite: { expires_at: string };
+  paypal_ready: boolean;
+  consent: string;
+}
+
+export interface JudgeCircleResult {
+  ok: boolean;
+  circle_id: string;
+  invite: { handle: string; token: string; url: string; path: string; expires_at: string };
+  paypal_ready: boolean;
+  payee_configured: boolean;
+  notes: string[];
+}
+

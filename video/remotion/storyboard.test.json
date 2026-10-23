@@ -1,0 +1,40 @@
+{
+  "audioDir": "audio/sample",
+  "padSec": 0.6,
+  "transitionSec": 0.5,
+  "music": {"src": "audio/test-bed.wav", "volume": 0.2, "duckedVolume": 0.04},
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "title",
+      "title": "Turnkeeper",
+      "subtitle": "Toolchain smoke test",
+      "durationSec": 1.5,
+      "transition": "fade"
+    },
+    {
+      "id": "demo",
+      "type": "clip",
+      "src": "footage/test-clip.webm",
+      "durationSec": 4.0,
+      "voiceId": "en2",
+      "voiceDelaySec": 0,
+      "caption": "Each decision is logged, checked, and handed back to you in plain English.",
+      "zoom": [
+        {"t": 0, "x": 0, "y": 0, "w": 1920, "h": 1080},
+        {"t": 1.0, "x": 600, "y": 300, "w": 640, "h": 360},
+        {"t": 3.0, "x": 600, "y": 300, "w": 640, "h": 360},
+        {"t": 3.8, "x": 0, "y": 0, "w": 1920, "h": 1080}
+      ],
+      "callouts": [{"t": 1.3, "dur": 1.8, "x": 920, "y": 480, "label": "Zoomed target", "side": "left"}],
+      "transition": "slide"
+    },
+    {
+      "id": "outro",
+      "type": "slide",
+      "title": "It works",
+      "bullets": ["Playwright capture", "Kokoro voiceover", "Remotion render"],
+      "durationSec": 1.5
+    }
+  ]
+}

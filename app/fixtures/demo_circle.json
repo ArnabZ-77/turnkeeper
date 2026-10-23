@@ -107,7 +107,6 @@
       "item": "REPLAY-ITEM-{round}"
     }
   },
-  "forecast": { "predicted": { "3": ["ravi"] } },
   "history": {
     "ravi": { "late_rounds": [1, 2], "replies": ["शुक्रवार को सैलरी आएगी, तब भर दूंगा"] }
   }

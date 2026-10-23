@@ -48,6 +48,9 @@ class Circle(SQLModel, table=True):
     counters_json: str = "{}"
     # Effective payout order after approved turn swaps (JSON list of handles); None = the charter's rotation.
     rotation_json: str | None = None
+    # Builder B (join/compile): who created a non-fixture circle and what kind it is.
+    owner_sid: str | None = Field(default=None, index=True)  # session that created it (judge_mini | compiled)
+    kind: str | None = None  # None/"fixture" = the demo clone | "judge_mini" | "compiled"
 
 
 class MemberRow(SQLModel, table=True):
@@ -68,6 +71,14 @@ class MemberRow(SQLModel, table=True):
     sandbox_account: str | None = None  # never exposed on the wire
     rotation_pos: int = 0
     track_record_rounds: int = 0
+    # Builder B (join flow): last join result shown on the member's phone page.
+    # invited | pending_approval | vaulted | cancelled | action_required | declined | error
+    join_status: str | None = None
+    join_message: str | None = None
+    join_attempts: int | None = None  # setup tokens created (bumps the setup Request-Id suffix)
+    joined_at: datetime | None = None
+    # Fixer (2026-10-24): signs into the invite HMAC; rotated on VAULTED so pre-join links stop working.
+    invite_nonce: str | None = None
 
 
 class Round(SQLModel, table=True):
@@ -309,3 +320,123 @@ ALL_TABLES = (
     LlmCache,
     Metric,
 )
+
+
+class ForecastRow(SQLModel, table=True):
+    """One member's T-3 shortfall forecast for one round (app.agent.forecast, app.engine.forecast_job)."""
+
+    __tablename__ = "forecasts"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)
+    round_n: int
+    member: str
+    score: str  # "0.85" (two places)
+    flagged: bool = False
+    reason: str = ""
+    nudge: str | None = None  # in the member's language (flagged members only)
+    nudge_en: str | None = None
+    lang: str = "en"
+    mode: str = "rules"  # live | replay | rules (who wrote reason + nudge; the score is always rules)
+    factors_json: str = "[]"
+    as_of: datetime | None = None  # virtual clock when it ran
+    ts: datetime = Field(default_factory=utcnow)
+
+
+# --- Builder E (core + Judge Mode + D1 learnings, 2026-10-23): appended tables -----------------------
+
+
+class PayoutAttempt(SQLModel, table=True):
+    """One Payouts batch sent for a round (rev 1 = the original, rev 2+ = UNCLAIMED re-routes).
+
+    Never stores the receiver itself (MemberRow holds it); `receiver_kind` says which one was used.
+    `funding`: ledger (a normal pot payout) | refund (re-route after a successful cancel; a `refund` LedgerRow
+    returned the first item's amount) | fronted_pending_return (cancel failed in sandbox; the business account
+    fronts the re-route and the first item's funds are "pending return": no ledger refund is written until a
+    cancel succeeds, so nothing is ever counted twice).
+    """
+
+    __tablename__ = "payout_attempts"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)
+    round_n: int
+    rev: int = 1
+    sender_batch_id: str | None = None
+    batch_id: str | None = None
+    item_id: str | None = Field(default=None, index=True)
+    receiver_kind: str | None = None  # payout_receiver | email | unclaimed_test
+    wallet: str = "PAYPAL"
+    amount: str = "0.00"
+    fee: str | None = None
+    status: str | None = None  # PayPal's item status verbatim
+    funding: str = "ledger"  # ledger | refund | fronted_pending_return
+    cancel_status: str | None = None  # None | canceled | cancel_failed
+    cancel_error: str | None = None
+    return_status: str | None = None  # None | pending_return | returned
+    superseded_by_rev: int | None = None
+    label: str | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class JudgeStoryRow(SQLModel, table=True):
+    """Judge Mode "Next step" story progress for one circle (steps_json: list of step records)."""
+
+    __tablename__ = "judge_stories"
+
+    circle_id: str = Field(primary_key=True)
+    sid: str = Field(index=True)
+    run_id: str = ""
+    steps_json: str = "[]"
+    pending_step: str | None = None
+    pending_task_id: str | None = None
+    started_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+    completed_at: datetime | None = None
+
+
+class ReplayRecording(SQLModel, table=True):
+    """A recorded story run (events per step), served read-only at GET /api/replay when sessions are capped."""
+
+    __tablename__ = "replay_recordings"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)
+    run_id: str = ""
+    canonical: bool = False
+    paypal_mode: str = "simulated"  # live | simulated
+    json: str = "{}"
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+# --- Builder B (charter compiler + join flow), appended 2026-10-23 -----------------------------------------
+
+
+class CharterDraftRow(SQLModel, table=True):
+    """A compiled (not yet confirmed) charter draft: POST /api/circles/compile."""
+
+    __tablename__ = "charter_drafts"
+
+    id: str = Field(primary_key=True)  # cd_xxxxxxxx
+    sid: str = Field(index=True)  # the organizer session that compiled it
+    circle_id: str | None = None  # the session's circle at compile time
+    json: str = "{}"  # app.agent.charter.CompileResult
+    charter_sha256: str | None = None  # None when the draft did not validate
+    mode: str = "rules"  # live | replay | rules
+    source: str = "parser"  # model | parser | template
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class CharterApprovalRow(SQLModel, table=True):
+    """The organizer's confirmation of a frozen charter (consent type 1: charter and rotation)."""
+
+    __tablename__ = "charter_approvals"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)  # the circle the approved charter governs
+    charter_sha256: str
+    draft_id: str | None = Field(default=None, index=True)
+    approved_by: str = "priya (organizer)"
+    user_agent: str = ""
+    approved_at: datetime = Field(default_factory=utcnow)

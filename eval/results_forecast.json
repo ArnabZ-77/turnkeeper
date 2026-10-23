@@ -1,0 +1,225 @@
+{
+  "name": "forecaster backtest",
+  "seed": 20261112,
+  "member_rounds": 60,
+  "members": 20,
+  "forecast_rounds": [
+    3,
+    4,
+    5
+  ],
+  "horizon_days": 3,
+  "late_base_rate": 0.283,
+  "threshold": 0.5,
+  "hits": 11,
+  "misses": 6,
+  "false_alarms": 6,
+  "correct_rejections": 37,
+  "precision": 0.647,
+  "recall": 0.647,
+  "f1": 0.647,
+  "accuracy": 0.8,
+  "planted_late_payers": {
+    "members": 4,
+    "member_rounds": 12,
+    "late": 11,
+    "flagged": 11,
+    "late_and_flagged": 10
+  },
+  "by_persona": {
+    "chronic_late": {
+      "member_rounds": 12,
+      "late": 11,
+      "flagged": 11,
+      "hits": 10
+    },
+    "payday_gap": {
+      "member_rounds": 12,
+      "late": 2,
+      "flagged": 6,
+      "hits": 1
+    },
+    "occasional": {
+      "member_rounds": 12,
+      "late": 2,
+      "flagged": 0,
+      "hits": 0
+    },
+    "reliable": {
+      "member_rounds": 24,
+      "late": 2,
+      "flagged": 0,
+      "hits": 0
+    }
+  },
+  "threshold_sweep": [
+    {
+      "threshold": 0.3,
+      "hits": 12,
+      "misses": 5,
+      "false_alarms": 19,
+      "correct_rejections": 24,
+      "precision": 0.387,
+      "recall": 0.706,
+      "f1": 0.5,
+      "accuracy": 0.6
+    },
+    {
+      "threshold": 0.4,
+      "hits": 12,
+      "misses": 5,
+      "false_alarms": 9,
+      "correct_rejections": 34,
+      "precision": 0.571,
+      "recall": 0.706,
+      "f1": 0.631,
+      "accuracy": 0.767
+    },
+    {
+      "threshold": 0.5,
+      "hits": 11,
+      "misses": 6,
+      "false_alarms": 6,
+      "correct_rejections": 37,
+      "precision": 0.647,
+      "recall": 0.647,
+      "f1": 0.647,
+      "accuracy": 0.8
+    },
+    {
+      "threshold": 0.6,
+      "hits": 10,
+      "misses": 7,
+      "false_alarms": 3,
+      "correct_rejections": 40,
+      "precision": 0.769,
+      "recall": 0.588,
+      "f1": 0.666,
+      "accuracy": 0.833
+    },
+    {
+      "threshold": 0.7,
+      "hits": 9,
+      "misses": 8,
+      "false_alarms": 3,
+      "correct_rejections": 40,
+      "precision": 0.75,
+      "recall": 0.529,
+      "f1": 0.62,
+      "accuracy": 0.817
+    }
+  ],
+  "misses_detail": [
+    {
+      "member": "chro4",
+      "persona": "chronic_late",
+      "planted": true,
+      "round_n": 3,
+      "score": 0.4,
+      "flagged": false,
+      "late": true
+    },
+    {
+      "member": "occa2",
+      "persona": "occasional",
+      "planted": false,
+      "round_n": 3,
+      "score": 0.05,
+      "flagged": false,
+      "late": true
+    },
+    {
+      "member": "reli3",
+      "persona": "reliable",
+      "planted": false,
+      "round_n": 3,
+      "score": 0.05,
+      "flagged": false,
+      "late": true
+    },
+    {
+      "member": "reli7",
+      "persona": "reliable",
+      "planted": false,
+      "round_n": 3,
+      "score": 0.05,
+      "flagged": false,
+      "late": true
+    },
+    {
+      "member": "payd2",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 5,
+      "score": 0.2,
+      "flagged": false,
+      "late": true
+    },
+    {
+      "member": "occa4",
+      "persona": "occasional",
+      "planted": false,
+      "round_n": 5,
+      "score": 0.05,
+      "flagged": false,
+      "late": true
+    }
+  ],
+  "false_alarms_detail": [
+    {
+      "member": "payd1",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 3,
+      "score": 0.75,
+      "flagged": true,
+      "late": false
+    },
+    {
+      "member": "payd4",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 3,
+      "score": 0.55,
+      "flagged": true,
+      "late": false
+    },
+    {
+      "member": "chro1",
+      "persona": "chronic_late",
+      "planted": true,
+      "round_n": 4,
+      "score": 0.7,
+      "flagged": true,
+      "late": false
+    },
+    {
+      "member": "payd1",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 4,
+      "score": 0.75,
+      "flagged": true,
+      "late": false
+    },
+    {
+      "member": "payd4",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 4,
+      "score": 0.55,
+      "flagged": true,
+      "late": false
+    },
+    {
+      "member": "payd4",
+      "persona": "payday_gap",
+      "planted": false,
+      "round_n": 5,
+      "score": 0.55,
+      "flagged": true,
+      "late": false
+    }
+  ],
+  "method": "Synthetic members with hidden personas (chronic_late = planted, payday_gap, occasional, reliable). Outcomes come from a ground-truth model the scorer never sees (persona base rate, true payday gap with a hidden biweekly anchor, randomness); the production risk_score reads only app-visible signals. No LLM is involved: the score is rules; a model only words the reason and nudge."
+}

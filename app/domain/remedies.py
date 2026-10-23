@@ -375,7 +375,8 @@ def propose_default_remedies(
                     charter_sha256=h,
                 )
             )
-    elif "retry_on_date" in menu:
+    elif "retry_on_date" in menu and state.decline_codes.get(member) not in NEVER_RETRY_CODES:
+        # Never propose a retry the policy gates would refuse (PAYER_ACTION_REQUIRED): leave it to the organizer.
         remedies.append(
             Remedy(
                 type="retry_on_date",

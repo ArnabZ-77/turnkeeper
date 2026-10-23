@@ -94,11 +94,26 @@ def live_allowed_for(request: Any) -> bool:
         return True
 
 
+def _session_circle(sid: str) -> str | None:
+    try:
+        from app.engine.sessions import resolve_session
+
+        sess = resolve_session(sid)
+    except Exception:  # noqa: BLE001 - an unreadable session never blocks a run
+        return None
+    return sess.circle_id if sess is not None else None
+
+
 def make_publisher(sid: str, circle_id: str, run_id: str) -> Publish:
+    """Publish to the session's SSE stream and persist traces. A run on the session's main circle stops reaching
+    the stream once the session moved to another circle (story reset), so a task left running on the old circle
+    cannot write into the new board; its traces are still stored against the old circle."""
     bus = get_event_bus()
+    on_main_circle = _session_circle(sid) == circle_id
 
     async def _publish(event: dict) -> None:
-        await bus.publish(sid, event)
+        if not on_main_circle or _session_circle(sid) == circle_id:
+            await bus.publish(sid, event)
         if event.get("type") == "trace":
             try:
                 with session_scope() as db:

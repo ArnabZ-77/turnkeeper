@@ -56,12 +56,35 @@ async def get_session_route(request: Request, response: Response) -> Any:
     try:
         sess = sessions.get_or_create_session(request, response)
     except WaitlistFull as e:
+        from app.engine import story
+
         return JSONResponse(
-            {"waitlist": True, "active": e.active, "max": e.maximum, "retry_after_s": 120},
+            {
+                "waitlist": True,
+                "active": e.active,
+                "max": e.maximum,
+                "retry_after_s": 120,
+                # read-only recorded run of the Judge Mode story while every live slot is taken
+                "replay_url": story.REPLAY_URL,
+                "replay_available": story.latest_recording() is not None,
+            },
             status_code=429,
             headers={"Retry-After": "120"},
         )
     return session_shape(sess)
+
+
+@router.get("/replay")
+async def replay_route() -> Any:
+    """The last recorded canonical Judge Mode run (events per story step). Read-only, no session needed: this is
+    what a visitor past the session cap watches. 404 when nothing has been recorded or shipped yet."""
+    from app.engine import story
+
+    data = story.latest_recording()
+    if data is None:
+        raise HTTPException(status_code=404, detail="no recorded run yet")
+    data["read_only"] = True
+    return data
 
 
 @router.post("/session/reset")

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Capture test page</title>
+<style>
+  body { margin: 0; font: 20px system-ui, 'Segoe UI', sans-serif; background: #f4f7fb; color: #0b1f3a; }
+  header { background: #0b1f3a; color: #fff; padding: 24px 48px; font-size: 28px; font-weight: 700; }
+  main { padding: 64px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .card { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 6px 24px rgba(11,31,58,.08); }
+  input { font: inherit; padding: 14px 16px; width: 100%; box-sizing: border-box; border: 2px solid #c9d6e8; border-radius: 10px; }
+  button { font: inherit; font-weight: 600; margin-top: 20px; padding: 14px 28px; border: 0; border-radius: 10px; background: #0070e0; color: #fff; cursor: pointer; }
+  #result { font-size: 28px; min-height: 40px; }
+  .tag { display: inline-block; background: #f5a623; color: #0b1f3a; padding: 4px 12px; border-radius: 8px; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>Turnkeeper capture test</header>
+<main>
+  <section class="card">
+    <label for="msg">Message</label>
+    <input id="msg" placeholder="Type a request">
+    <button id="go">Run check</button>
+  </section>
+  <section class="card" aria-live="polite">
+    <h2>Result</h2>
+    <div id="result">Waiting...</div>
+  </section>
+</main>
+<script>
+  document.getElementById('go').addEventListener('click', () => {
+    const v = document.getElementById('msg').value;
+    document.getElementById('result').textContent = 'Checking...';
+    setTimeout(() => {
+      document.getElementById('result').innerHTML = '<span class="tag">Approved</span> ' + v.replace(/</g, '&lt;');
+    }, 900);
+  });
+</script>
+</body>
+</html>

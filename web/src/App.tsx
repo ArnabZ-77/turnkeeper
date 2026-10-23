@@ -6,11 +6,11 @@
  * effect below turns into a refetch. Judge buttons call `/api/judge/*` and the round routes.
  */
 
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { ApiError, api, describeError } from "./api";
 import { openEventStream } from "./events";
 import { initialState, nextRound, reducer } from "./state";
-import type { JudgeResult, SessionInfo, TaskStatus, ToastLevel } from "./types";
+import type { JudgeResult, SessionInfo, StoryStepResult, TaskStatus, ToastLevel } from "./types";
 import { MODE_HELP, hasActiveSet, modeChip, nameOf, paypalChip, recoveryButtons } from "./recovery";
 import { PhoneInbox } from "./components/PhoneInbox";
 import { RecoveryPanel } from "./components/RecoveryPanel";
@@ -25,12 +25,26 @@ import { Ticker } from "./components/Ticker";
 import { Toasts } from "./components/Toasts";
 import { IconMoon, IconSun } from "./components/icons";
 import { RotationBoard } from "./board/RotationBoard";
+import { ForecastCard } from "./components/ForecastCard";
+import { StoryBar } from "./components/StoryBar";
+import { Link } from "./components/Link";
+import { navigate } from "./routes";
 
 const WAITLIST_POLL_MS = 10_000;
 const TASK_POLL_MS = 1_500;
 const TASK_POLL_MAX = 160; // ~4 minutes
 const MOVED_HIGHLIGHT_MS = 4_000;
 const NO_MOVES: string[] = [];
+const STORY_POLL_MS = 1_500;
+const ADVANCED_KEY = "tk-advanced-open";
+
+function readAdvancedOpen(): boolean {
+  try {
+    return localStorage.getItem(ADVANCED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function taskIdOf(r: unknown): string | null {
   if (typeof r !== "object" || r === null) return null;
@@ -68,8 +82,10 @@ export default function App() {
       const session = await api.getSession();
       dispatch({ type: "session", session });
     } catch (e) {
-      if (e instanceof ApiError && e.waitlist) dispatch({ type: "waitlist", on: true });
-      else dispatch({ type: "error", message: `Could not load the session: ${describeError(e)}` });
+      if (e instanceof ApiError && e.waitlist) {
+        dispatch({ type: "waitlist", on: true });
+        dispatch({ type: "replayUrl", url: e.replayUrl });
+      } else dispatch({ type: "error", message: `Could not load the session: ${describeError(e)}` });
     }
   }, []);
 
@@ -111,6 +127,34 @@ export default function App() {
       alive = false;
     };
   }, [circleId, state.boardVersion, loadSession]);
+
+  // Judge Mode story: refreshed with the board, and polled while a background step runs.
+  const loadStory = useCallback(async () => {
+    try {
+      dispatch({ type: "story", story: await api.story.get() });
+    } catch {
+      /* older server without the story route, or a reset in flight: the advanced controls still work */
+    }
+  }, []);
+  useEffect(() => {
+    if (circleId) void loadStory();
+  }, [circleId, state.boardVersion, loadStory]);
+  const storyRunning = Boolean(state.story?.running);
+  useEffect(() => {
+    if (!storyRunning) return;
+    const id = setInterval(() => void loadStory(), STORY_POLL_MS);
+    return () => clearInterval(id);
+  }, [storyRunning, loadStory]);
+
+  const [advancedOpen, setAdvancedOpen] = useState(readAdvancedOpen);
+  const onToggleAdvanced = useCallback((open: boolean) => {
+    setAdvancedOpen(open);
+    try {
+      localStorage.setItem(ADVANCED_KEY, open ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   // The swap highlight fades after a few seconds.
   const movedSeq = state.moved?.seq ?? 0;
@@ -274,6 +318,51 @@ export default function App() {
     if (circleId) void run(() => api.judge.markInvoicePaid(circleId));
   }, [circleId, run]);
 
+  const afterStory = useCallback(
+    (r: unknown) => {
+      const res = r as StoryStepResult;
+      if (res?.session && isSessionInfo(res.session)) {
+        pollGen.current += 1;
+        dispatch({ type: "resetRun" });
+        dispatch({ type: "session", session: res.session });
+      }
+      if (res?.story) dispatch({ type: "story", story: res.story });
+      if (res?.summary && res.step !== "reset") toast(res.task_id ? "info" : "success", res.summary);
+    },
+    [toast],
+  );
+  const onStoryNext = useCallback(
+    (step: string) => {
+      void run(() => api.story.run(step) as unknown as Promise<JudgeResult>, afterStory);
+    },
+    [run, afterStory],
+  );
+  const onStoryRestart = useCallback(() => {
+    void run(() => api.story.run("reset") as unknown as Promise<JudgeResult>, afterStory);
+  }, [run, afterStory]);
+  const onReroute = useCallback(
+    (roundN: number) => {
+      if (circleId)
+        void run(
+          () => api.judge.rerouteUnclaimed(circleId, roundN),
+          () => toast("info", `Re-routing round ${roundN}: waiting for the batch (up to ~60 s), then one cancel attempt`),
+        );
+    },
+    [circleId, run, toast],
+  );
+  const onRunForecast = useCallback(() => {
+    if (circleId) void run(() => api.judge.runForecast(circleId));
+  }, [circleId, run]);
+  const onJudgeCircle = useCallback(() => {
+    void run(
+      () => api.join.judgeCircle() as unknown as Promise<JudgeResult>,
+      (r) => {
+        const path = (r as { invite?: { path?: unknown } })?.invite?.path;
+        if (typeof path === "string") navigate(path);
+      },
+    );
+  }, [run]);
+
   const onDismissToast = useCallback((id: number) => dispatch({ type: "dismissToast", id }), []);
   const onClearTrace = useCallback(() => dispatch({ type: "clearTrace" }), []);
 
@@ -289,6 +378,7 @@ export default function App() {
   const inbox = recovery?.inbox ?? [];
   const phoneMember = recovery?.member ?? inbox[0]?.member ?? null;
   const showRecovery = hasActiveSet(recovery);
+  const rerouteRound = rounds.find((r) => (r.payout?.status ?? "").toUpperCase() === "UNCLAIMED")?.n ?? null;
 
   return (
     <div className="tk-app">
@@ -323,6 +413,9 @@ export default function App() {
                 {session.frozen && <span className="tk-chip tk-chip-warn">frozen</span>}
               </>
             )}
+            <Link className="tk-chip tk-chip-nav" href="/compile" title="Paste a circle's rules and compile them into a frozen charter">
+              Charter compiler →
+            </Link>
             <button type="button" className="tk-chip" onClick={toggle} aria-label="Toggle light/dark theme">
               {resolved === "dark" ? <IconSun /> : <IconMoon />}
               {resolved === "dark" ? "light" : "dark"}
@@ -332,6 +425,12 @@ export default function App() {
         {state.waitlist && (
           <div className="tk-banner" role="status">
             All demo seats are busy right now. You are on the waitlist; this page retries every {WAITLIST_POLL_MS / 1000} s.
+            {state.replayUrl && (
+              <>
+                {" "}
+                Meanwhile, <a href={state.replayUrl}>the recorded Judge Mode run</a> is open to everyone.
+              </>
+            )}
           </div>
         )}
         {state.error && !state.waitlist && (
@@ -361,16 +460,31 @@ export default function App() {
       </main>
 
       <aside className="tk-rail">
+        <ForecastCard board={board} />
         {phoneMember && (
           <PhoneInbox memberName={nameOf(board, phoneMember)} messages={inbox} translations={state.translations} />
         )}
         <AgentTrace entries={state.trace} mode={state.lastMode} keyConfigured={Boolean(session?.live_ai)} onClear={onClearTrace} />
-        <PayoutReceipt payout={state.payout} rounds={rounds} members={members} currency={board?.circle.currency} />
+        <PayoutReceipt
+          payout={state.payout}
+          rounds={rounds}
+          members={members}
+          currency={board?.circle.currency}
+          onReroute={onReroute}
+          busy={state.busy}
+        />
         <QueueBadge position={state.queuePosition} connection={state.connection} />
       </aside>
 
       <footer className="tk-judge">
+        <StoryBar story={state.story} busy={state.busy} onNext={onStoryNext} onRestart={onStoryRestart} />
         <JudgeBar
+          open={advancedOpen}
+          onToggleOpen={onToggleAdvanced}
+          onRunForecast={onRunForecast}
+          rerouteRound={rerouteRound}
+          onReroute={onReroute}
+          onJudgeCircle={onJudgeCircle}
           circle={board?.circle ?? null}
           busy={state.busy}
           paypalLive={Boolean(session?.paypal_live)}

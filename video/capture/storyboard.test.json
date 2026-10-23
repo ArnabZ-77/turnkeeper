@@ -1,0 +1,30 @@
+{
+  "baseUrl": null,
+  "viewport": {"width": 1920, "height": 1080},
+  "fps": 30,
+  "typeDelay": 40,
+  "scenes": [
+    {
+      "id": "test-01",
+      "chapter": {"title": "Scene 1", "description": "Type a request and run the check", "duration": 1200},
+      "steps": [
+        {"goto": "test/test-page.html"},
+        {"type": {"label": "Message"}, "text": "Refund order #1042"},
+        {"click": {"role": "button", "name": "Run check"}},
+        {"waitForText": "Approved", "timeout": 10000},
+        {"zoomTarget": {"text": "Approved", "as": "result-tag"}},
+        {"pause": 800}
+      ]
+    },
+    {
+      "id": "test-02",
+      "steps": [
+        {"type": {"placeholder": "Type a request"}, "text": " again", "label": "message-box"},
+        {"click": {"text": "Run check"}},
+        {"waitForText": "Checking..."},
+        {"waitForText": "again"},
+        {"zoomTarget": {"selector": "#result", "as": "result"}}
+      ]
+    }
+  ]
+}

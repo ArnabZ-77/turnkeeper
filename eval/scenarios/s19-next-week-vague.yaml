@@ -1,0 +1,12 @@
+id: s19-next-week-vague
+title: Vague "next week" from the last-turn member
+charter: {amount: "200.00", remedy_menu: [retry_on_date, turn_swap, buffer_advance, repay_by_invoice], quorum: "4/6", buffer: {seed: "250.00"}}
+state: {round: 3, today: "2027-01-02", buffer_balance: "250.00", open_advances: {}, rotation: [meena, asha, dev, lin, ravi, tomas]}
+member_history: {tomas: {late_rounds: [2], payday_rule: "15th and 30th"}}
+decline: {member: tomas, code: INSTRUMENT_DECLINED}
+reply: {member: tomas, lang: en, text: "Next week, sorry."}
+labels:
+  legal_types: [buffer_advance, repay_by_invoice, retry_on_date]
+  must_not: [swap_moves_member_earlier]
+  preferred_top: buffer_advance+repay_by_invoice
+  commitment: null

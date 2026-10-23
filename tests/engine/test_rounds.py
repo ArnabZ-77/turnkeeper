@@ -194,6 +194,13 @@ async def test_available_balance_sources(vaulted_circle, paypal_factory):
         "buffer_balance": "250.00",
         "source": "balances",
         "note": None,
+        "paypal_balance": {
+            "available": "123.45",
+            "last_refresh_time": None,
+            "source": "paypal_balances",
+            "stale": None,
+            "age_s": None,
+        },
     }
     paypal_factory(balances_error=True)
     res = await rounds.available_balance(vaulted_circle)

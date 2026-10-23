@@ -1,0 +1,12 @@
+id: s14-small-buffer
+title: Buffer smaller than one net share
+charter: {amount: "200.00", remedy_menu: [retry_on_date, turn_swap, buffer_advance, repay_by_invoice], quorum: "4/6", buffer: {seed: "100.00"}}
+state: {round: 3, today: "2027-01-02", buffer_balance: "100.00", open_advances: {}, rotation: [meena, asha, dev, lin, ravi, tomas]}
+member_history: {ravi: {late_rounds: [1, 2], payday_rule: "every 2nd Friday"}}
+decline: {member: ravi, code: INSTRUMENT_DECLINED}
+reply: {member: ravi, lang: en, text: "Friday, promise."}
+labels:
+  legal_types: [retry_on_date, turn_swap, buffer_advance, repay_by_invoice]
+  must_not: [advance_over_buffer, advance_over_one_net, swap_without_consent]
+  preferred_top: turn_swap+buffer_advance+repay_by_invoice
+  commitment: {amount: "200.00", date_rule: "next Friday"}

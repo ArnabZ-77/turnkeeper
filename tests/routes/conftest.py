@@ -27,6 +27,9 @@ def clean_app(monkeypatch):
     reset_event_bus()
     tasks._TASKS.clear()
     monkeypatch.setattr(rounds, "_TOOLKIT", None)
+    from app.routes import join as join_routes
+
+    join_routes.SETUP_LIMITER.reset()
     yield
     get_settings.cache_clear()
 

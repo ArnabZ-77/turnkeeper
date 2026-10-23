@@ -907,3 +907,390 @@ Free-provider-first stays the default; the demo is fully walkable with no AI key
 - OpenAI-compatible client: `max_retries=0` and `timeout=20 s`, so a 429 falls back to rules mode at once.
 - `tests/conftest.py` also forces TK_SEED_VAULT_IDS, TK_LLM_MODEL and TK_LLM_BASE_URL to empty, so a developer's
   `.env` vault ids cannot leak in. Before this, `test_charge_member_without_vault_id` failed on this machine.
+
+## Builder B: charter compiler and member join flow (2026-10-23, additive)
+
+PLAN.md section 3, steps 1, 3 and 5. Both work with no LLM key and use only the sandbox.
+
+### Charter compiler (`app/agent/charter.py`, `app/agent/prompts/charter.md`)
+- `compile_charter(text, lang=None, *, provider=None, live_allowed=True) -> CompileResult` returns
+  `{ok, mode: live|replay|rules, source: model|parser|template, mode_label, lang, charter (Charter JSON),
+  charter_sha256, explanations {field: sentence}, problems [str], notes [str], draft}`.
+- The order is: the model, then the rules parser, then the template.
+  - **Model step:** one tool-free `llm.complete_text` turn, so it goes through the replay cache. The prompt holds
+    the Pydantic `CharterDraft` JSON schema, and the rules text is wrapped in `<rules_text>` (treated as data).
+  - **Assembly:** whichever step produced the draft, the same deterministic `assemble()` builds the Charter.
+    - Handles come from first names.
+    - Missing fields get stated defaults, and each default is listed as a problem.
+    - The quorum `n` is set to the member count.
+    - A rotation that breaks the collateral rule is repaired, and the repair is listed as a problem.
+  - **Labels:** `mode_label` is "live AI (Gemini)", "AI replay (Gemini, recorded)", "rules mode: parser" or
+    "rules mode: template".
+- `app/fixtures/demo_rules_en.txt` and `demo_rules_hi.txt` both parse to **exactly the fixture charter (same
+  SHA-256)**.
+- `replay_available(text, lang)` reports whether a recorded answer exists. When it does, the route spends no
+  live-AI budget; otherwise it calls `tasks.live_allowed_for` once.
+
+### Routes (`app/routes/compile.py`, registered in `app/main.py` after join)
+- `POST /api/circles/compile {text<=4000, lang?}` (needs a session) returns `CompileResult` + `draft_id` (`cd_xxxxxxxx`)
+  + `matches_circle` + `live_ai_allowed`. `GET /api/circles/compile/demo?lang=en|hi` -> `{lang, text}`.
+- `POST /api/circles/{id}/charter/freeze {draft_id?, confirm?}`:
+  - **Preview:** returns `charter_sha256`, `canonical_json`, `billing_plan` (the sandbox-verified shape),
+    `summary` (cycles, last_due_date, ...), `fees`, `matches_circle` and `approval`.
+  - **`confirm: true`:** records a `CharterApprovalRow` (approved_by "priya (organizer)", user agent).
+  - **A draft that differs from the circle's charter:** confirming creates a NEW circle with
+    `kind="compiled"` and `owner_sid` set to the session. It has PENDING rounds and no mandate, and the response
+    returns its `invites`. The session keeps its demo board. Confirming the same draft again is idempotent.
+- `GET /api/circles/{id}/charter` returns the charter, hash, summary, fees, latest approval and recent draft ids.
+
+### Join flow (`app/engine/join.py`, `app/routes/join.py`)
+- **Invite tokens:**
+  - Format: `{circle}.{handle}.{exp_b36}.{hmac24}`, signed with HMAC-SHA256 using SESSION_SECRET.
+  - Lifetime: 7 days, or 1 day for the judge mini-circle.
+  - Errors: an expired invite returns 410; a bad one returns 404. Return and cancel still accept an expired invite.
+  - **M1 3-part tokens are no longer valid.**
+- `GET /api/circles/{id}/invites`: the circle must be the session's own circle or one it owns
+  (`jn.session_manages`). Each row gains `join_status` and `expires_at`.
+- `GET /api/join/{invite}`: the earlier keys plus:
+  - `circle.fees`, `fee_note` (the fees line), `billing_plan`, `kind`, `members`
+  - `join` (`payout_round`, `payout_date`, `join_status`, `join_message`, `payout_receiver_masked`)
+  - `invite.expires_at`, `paypal_ready`, `consent`
+- `POST /api/join/{invite}/start` (`/setup` is an alias) returns `{ok, setup_token_id, approve_url,
+  status:"pending_approval"}`.
+  - Other outcomes: 409 when already vaulted, 503 without sandbox credentials, 502 `{error, issues, status,
+    message}` on a PayPal error.
+  - A retry gets the Request-Id suffix `tk:{run}:{c}:setup:{m}:a{n}`. The first attempt keeps the contract key.
+- `GET /join/{invite}/return?approval_token_id=` checks that the id matches the stored setup token, then:
+  1. GETs the setup token: CREATED or PAYER_ACTION_REQUIRED -> `action_required`.
+  2. Creates the payment token and stores `vault_id`/`customer_id`, plus the payer's email as the default
+     `payout_receiver`.
+  3. Answers **303 to `/join/{invite}?status=vaulted|cancelled|action_required|declined|error`** (this used to be
+     `/?joined=`).
+
+  Decline codes map to `declined`, and PAYER_ACTION_REQUIRED or `*NOT_APPROVED*` map to `action_required`.
+- `GET /join/{invite}/cancel` sets the status to `cancelled`. `POST /api/join/{invite}/wallet {wallet, receiver?}`
+  accepts PAYPAL with an email; VENMO returns 422 because Venmo is cut.
+- `POST /api/join/judge-circle` (needs a session) creates the session's $5 monthly, 2-member circle (one per
+  run). judge_payee (track record 1) is paid in round 1, and judge_member joins.
+  - It returns `{circle_id, invite{token,url,path,expires_at}, charter, fees, members, paypal_ready,
+    payee_configured, notes}`.
+  - The payee comes from the optional env vars `TK_JUDGE_PAYEE_RECEIVER` and `TK_JUDGE_PAYEE_VAULT_ID`, read
+    through a local `JudgeCircleSettings` like fixture's SeedSettings. **Integrator: move these into
+    `app.config.Settings`.**
+
+### Models (appended)
+- `Circle` gains `owner_sid` and `kind`.
+- `MemberRow` gains `join_status`, `join_message`, `join_attempts` and `joined_at`.
+- New tables: `CharterDraftRow` (`charter_drafts`) and `CharterApprovalRow` (`charter_approvals`).
+
+### For D (web)
+The SPA route `/join/:invite` should render the card from `GET /api/join/{invite}`. It shows the message for
+`?status=` and offers:
+- "Continue to PayPal": POST `/start`, then go to `approve_url`.
+- A wallet form.
+- A "Try a real PayPal approval" judge button: POST `/api/join/judge-circle`, then open `invite.path`.
+
+The compile UI shows `mode_label`, the per-field `explanations` and the `problems`.
+
+### Not done
+- The mini-circle has no mandate and no round runner, so charging it and paying judge.payee is still open.
+- `VAULT.PAYMENT-TOKEN.CREATED` confirmation stays with the webhook owner.
+
+## M3 builder C: shortfall forecaster + eval harness (2026-10-23, additive)
+
+### `app/agent/forecast.py` (pure, apart from one optional model turn)
+- `MemberSignals(member, round_n, due_date, as_of, lang, payday_rule, late_rounds, past_retry_rounds,
+  attempts_this_round, replies, track_record_rounds)` -> `risk_score(signals, threshold=THRESHOLD) -> RiskResult(member,
+  round_n, score: float 0..0.99, flagged: score >= 0.5, factors[{factor, weight, detail}])`. The score is deterministic:
+  base 0.05; +0.20 per late earlier round (max 2); payday: last payday on/before the due date > 20 days earlier or none
+  in 31 days +0.25, 8-20 days +0.10, no rule +0.05, biweekly with no anchor +0.10; a delay-wording reply (en/hi/romanized
+  keywords) +0.10; a failed charge this round +0.20, +0.05 per earlier retry round (max 2); no track record +0.05.
+  The demo's ravi scores 0.85 at T-3 of round 3; everyone else is 0.05-0.10.
+- `parse_payday_rule(text) -> PaydaySpec | None` ("1st of the month", "15th and 30th", "last working day",
+  "every Friday", "every 2nd Friday" = 2nd Friday of the month, "every other Friday"/biweekly = uncertain),
+  `paydays_between(spec, start, end)`.
+- `explain(signals, result, *, name, amount, provider=None, live_allowed=True) -> Explanation(reason, nudge, nudge_en,
+  mode live|replay|rules)`: one `llm.complete_text` turn (`max_tokens=400`, replay cache). The prompt has the logical
+  handle, numbers and factor details only: no names (the model writes `{name}`, filled in afterwards) and **no member
+  text**, so the cache key is the same for every demo clone. Output must be JSON `{reason, nudge, nudge_en}`; anything
+  else, a link/email/phone number, no key, a 429, a refusal -> `rules_explanation` (en + hi templates), `mode="rules"`.
+
+### `app/engine/forecast_job.py`, table `forecasts` (`app.models.ForecastRow`, appended)
+- `ForecastRow`: circle_id, round_n, member, score ("0.85"), flagged, reason, nudge, nudge_en, lang, mode,
+  factors_json, as_of (virtual), ts.
+- `due_rounds(cid)`: PENDING/COLLECTING rounds whose window `[due_at - 3 d, due_at)` holds the virtual now and that have
+  no forecast yet. The fixture starts exactly at T-3 of round 3 (2026-12-29 09:00Z), so the first clock click (even
+  `days: 0`) runs it.
+- `run_forecast(cid, n, *, publish=None, live_allowed=True, force=False, provider=None)`: scores every member; the
+  model words at most `MAX_MODEL_EXPLANATIONS = 3` flagged members per run (rest: templates). Stores one row per
+  member, sets `Contribution.predicted` on that round's **PENDING** rows only (flagged -> True, else False; a stale
+  fixture badge is cleared), adds the nudge to the member's inbox (`direction "out"`, `source agent|rules`,
+  **`round_n=None`** because `recovery.send_decline_notice` dedupes on any out message for the round; a forced re-run
+  never repeats an identical nudge). Runs once per round unless `force=True`. Per-circle asyncio lock.
+- `on_clock_advanced(cid, *, publish, live_allowed)`: never raises. `forecasts_view(cid)` -> BoardModel list.
+- Events: `forecast` `{round_n, member, score, reason, nudge, nudge_en, lang, mode}` (one per FLAGGED member),
+  `chip` `{round_n, member, status, predicted, label}` for each changed contribution, `trace`
+  `{kind:"system", source:"forecast", mode, text}`, then `board`.
+- **BoardModel** gains `forecasts: [{round_n, member, score, flagged, reason, nudge, nudge_en, lang, mode, factors,
+  as_of}]` (latest round first, flagged first, by score; non-flagged rows have `nudge: null`). `state.board_model`
+  reads it lazily (`_forecast_extras`). The key-set asserts in `tests/engine/test_state.py` and
+  `tests/routes/test_session_routes.py` now include `forecasts`.
+- Judge: `advance_clock` runs the job and returns `forecasts` (live-AI budget `tasks.live_allowed_for` is counted only
+  when a round is due); new action `run_forecast {circle_id, round_n?}` (default: first open round) forces a re-run.
+- **For the UI owner:** show a forecast card from `board.forecasts` / the `forecast` event (score, reason, the nudge with
+  `nudge_en` as subtitle, a mode chip: rules = "template"). The demo copy must not claim the forecast caused the
+  decline (PLAN N6); cite the backtest instead.
+
+### `eval/` (package; run from the repo root with the venv)
+- `eval/forecast_backtest.py`: 20 synthetic members x rounds 3-5 = 60 member-rounds, seed 20261112, planted
+  `chronic_late` personas; outcomes from a hidden ground-truth model, scored by the production `risk_score`. Writes
+  `eval/results_forecast.json` (hits 11, misses 6, false alarms 6, precision 0.647, recall 0.647, planted flagged 11/12).
+- `eval/scenarios/s01..s20-*.yaml` (PLAN section 5 schema, plus optional `consents: {refuse: [...]}`,
+  `state.today/attempts/swaps_done/last_attempt_hours_ago`, `charter.members` overrides). Charter = the demo fixture
+  with overrides; it must be collateral-valid. `labels.preferred_top` is a set of types joined by `+` (or `none`).
+- `eval/run_eval.py --provider rules|live --runs N --max-calls M`: rules = `inbox.parse_payday` +
+  `propose_default_remedies` (a refusing swap partner is excluded as unavailable). Live = one `complete_text` turn per
+  run (JSON proposal + commitment; the run index is in the prompt so re-runs replay instead of spending quota; replays
+  cost 0 calls), hard `--max-calls` (default 40), stops after 3 consecutive unavailable answers, falls back to rules
+  labelled `rules`. Every proposal goes through consents -> `validate_remedy_set(consents)` -> `PolicyEngine.authorize`;
+  executed remedies are re-checked by independent rules (`violations`). Writes `eval/results.json` keyed by provider
+  (a live run never overwrites rules) and `eval/RESULTS.md`. Exit 1 if executed-illegal > 0, 2 when live has no model.
+- Rules-mode results (committed): 100 runs, charter-legal before policy 0.95, executed illegal 0, stability 1.0,
+  preferred agreement 0.95, commitment exact match 1.0. The miss is s17 (PAYER_ACTION_REQUIRED + empty buffer):
+  `propose_default_remedies` still proposes `retry_on_date` (+ swap), which the gates block. **Owner of
+  `app/domain/remedies.py`:** return an empty set (ask the organizer) when nothing legal covers the shortfall.
+- `pyyaml` is used by the eval (already installed transitively; add it to the dev extras when convenient).
+
+
+## Builder E: core, Judge Mode story and D1 learnings (2026-10-23, additive)
+
+### D1 (a): Balances is context, never the binding gate
+- `app/paypal/balances.py`: `balance_context(data, currency, *, now=None, stale_after_s=900)` ->
+  `{available, last_refresh_time, source: "paypal_balances", stale: bool|None, age_s}`. `stale` is None when
+  `last_refresh_time` is missing.
+- `rounds.available_balance` adds `paypal_balance` (that context) and remembers it with
+  `state.remember_paypal_balance`. When the reading is stale, `paypal_available` is null, `source` is `"ledger"`
+  and `note` says so. `pay_round` refuses only on a **fresh** reading below the pot (unknown freshness still
+  refuses, as before). A stale reading never blocks; the per-circle ledger is the gate. The `pay_round` result
+  adds `rev` and `paypal_balance`.
+- BoardModel: `circle.paypal_balance = {value, last_refreshed, source: "paypal_balances", stale, checked_at}`
+  holds the last reading (process memory, account-wide). All fields are null before any balance check. The board
+  never calls PayPal itself.
+
+### D1 (b): UNCLAIMED path (`rounds.reroute_unclaimed(cid, n, *, publish, max_wait_s=60, sleep=, clock=)`)
+- Gates, in order:
+  - poll the item once; it must still be UNCLAIMED;
+  - the member needs another receiver (`payout_receiver`, then `email`, never the one already used; the
+    `next_payout_unclaimed` test address is `receiver_kind "unclaimed_test"`);
+  - the buffer can cover the re-route fee (0.25);
+  - policy `cancel_unclaimed`;
+  - the mandate verifies.
+- Then `payouts.wait_for_batch_final` (backoff 2/4/8/15 s, at most `max_wait_s`, read errors tolerated) and
+  **exactly one** `cancel_payout_item`.
+- Cancel OK: `refund` LedgerRow (ref `cancel:<item>`), then the new batch and a normal `payout` row.
+- Cancel failed (any error): `cancel_status "cancel_failed"`, label **"Cancel not available in sandbox"**, and no
+  ledger refund. The first item stays **"pending return"**: the business account fronts the re-route, so the
+  circle ledger counts the pot once.
+- Either way, a new batch `tk:{run}:{c}:{n}:r{rev+1}` goes out (item id `…{member}r{rev}`). Policy `payout` runs
+  with the first item treated as superseded. The re-route fee is a `buffer_advance` (member None, round None, ref
+  `reroute-fee:<batch>`) plus `payout_fee`.
+- `rounds.mark_payout_item_returned(item_id)` clears "pending return" and changes no ledger row.
+  **Webhook owner:** call it for `PAYMENT.PAYOUTS-ITEM.RETURNED|REFUNDED|CANCELED` on items that no round points
+  at. `_find_round_by_item` already ignores superseded items, which is correct.
+- New table `PayoutAttempt` (`payout_attempts`, one row per batch; `pay_round` writes rev 1). Columns: rev, batch
+  and item ids, receiver_kind, wallet, amount, fee, status, funding (`ledger|refund|fronted_pending_return`),
+  cancel_status, cancel_error, return_status (`pending_return|returned`), superseded_by_rev, label. Receivers are
+  never stored.
+- BoardModel `rounds[]` gains `payout_rev`, `payout_attempts[]` (no receivers) and
+  `pending_return {amount, items[{rev,item_id,amount}], label:"pending return"} | null`. `rounds[].payout` keeps
+  its 4 keys. The `payout` event adds `rev`, `cancel_status` and `pending_return` on a re-route.
+- Judge: `POST /api/judge/reroute_unclaimed {circle_id, round_n?}` runs as a background task (kind "reroute") and
+  returns `{task_id, round_n}`. It answers 409 when nothing is UNCLAIMED.
+- `pay_round` refuses simulated rounds (any `REPLAY-SIM-` request id) with `denied` and `simulated: true`.
+  `rounds.simulate_clean_round(cid, n, publish)` settles a round with no PayPal call.
+
+### Judge Mode story (`app/engine/story.py`, `app/routes/judge_story.py`, included by `judge.router`)
+- `GET /api/judge/story` -> `{steps[{step,label,status: done|running|next|todo,at,mode,summary}], current,
+  next{step,label,action_label,index}|null, running{step,task_id}|null, complete, paypal: live|simulated,
+  replay_url}`.
+- `POST /api/judge/story/{step}`: the step must be the next one (409 otherwise, 404 if unknown). `next` means
+  whichever step is next. `reset` is always allowed (see "Fixer notes, 2026-10-24" below).
+- Steps: reset, advance_to_t3, run_round3, reply_as_ravi, start_recovery, consents, votes, approve, execute,
+  payout, clean_round4.
+  - `approve` calls `recovery.approve(execute=False)`; `execute` calls `execute_remedies(pay_after=False)`; and
+    `payout` calls `pay_round`.
+  - `advance_to_t3` uses `forecast_job.run_forecast`. If the forecaster is missing, it falls back to the
+    fixture's predicted badges, labelled rules.
+  - Without a live sandbox (no credentials or no seeded vaults), run_round3, payout and clean_round4 are
+    simulated and labelled.
+- Background steps (`run_round3` and `clean_round4` when live, `start_recovery`) count as done only once their
+  outcome holds (for example ravi DECLINED and the other 5 COMPLETED). A failed step stays `next`, ready for a
+  retry.
+- Each step publishes a `{"type":"story","phase":"start",step,index,label}` event. The step's events are
+  captured from the bus (scrubbed of emails and phones). A finished story becomes a canonical `ReplayRecording`.
+- Tables: `JudgeStoryRow` (`judge_stories`) and `ReplayRecording` (`replay_recordings`).
+- `GET /api/replay` (no session) returns the latest canonical recording, live first, then
+  `app/fixtures/replay_canonical.json` if that file is shipped. It answers 404 when there is neither.
+- The waitlist 429 body adds `replay_url` and `replay_available`.
+- **UI (D):** one "Next step" button driven by `next.action_label`, polling `GET /api/judge/story` while
+  `running`. Show `circle.paypal_balance` as "PayPal balance (last refreshed …)". Show a "pending return" chip
+  from `rounds[].pending_return`. Add a Re-route button for UNCLAIMED.
+
+### `scripts/live_round3.py` (operator script, not a test)
+The script runs in-process on the seeded vault ids (`--sid`, `--poll`, `--allow-pending`, `--events`). It
+resets a circle, collects round 3 with ravi_declines on and confirms each capture with the toolkit. It then runs
+the recovery in rules mode (consents, votes, approve, execute) and pays out, polling the item. It prints one JSON
+line per step with the real ids and redacts emails and secrets. Exit 0 on PASS; 1 on FAIL, including missing
+credentials or unseeded vaults. `tests/engine/test_live_round3_script.py` runs it against fakes.
+
+## Builder E (docs): README v1 and public docs (2026-10-23, additive)
+
+- New/rewritten: `README.md` (PLAN section 11 layout), `docs/architecture.md` (ASCII + Mermaid matching the
+  actual modules), `docs/api-table.md` (every PayPal call -> wrapper -> caller -> D1 result), `docs/prior-art.md`
+  (figures and wording from `docs/sources.md` only), `docs/limitations.md` (scope, custody, known gaps). No code
+  changed.
+- **Doc rule for every builder:** when you change a PayPal call, a toolkit tool, a Judge step, a fallback label or
+  a known gap, update the matching row in `docs/api-table.md` / `docs/limitations.md`. Numbers in the README come
+  from `eval/RESULTS.md`, `docs/d1-smoke.md` and `docs/sources.md` only; regenerate, never hand-edit.
+- Honest toolkit count as written: **4** on the demo path (`get_order_details`, `create_invoice`, `send_invoice`,
+  `generate_invoice_qr_code`); `send_invoice_reminder`, `get_invoice`, `list_disputes`, `list_transactions` are
+  enabled in `DEFAULT_ACTIONS` but uncalled. If someone wires one, bump the count in README + api-table.
+- Placeholders still open: hosted URL, published `MCP_DEMO_TOKEN`, judge.member / judge.payee logins, demo GIF,
+  APIMatic screenshot, `v1.0-submission` post-deadline policy line. Not written until they exist.
+- **Integrator:** `Dockerfile` copies `/web/dist`, but `web/vite.config.ts` builds to `../app/static` (that is
+  `/app/static` inside the web stage), so the Docker build as written will not find the SPA. Either set
+  `--outDir dist` in the Dockerfile's build step or copy from `/app/static`.
+
+## M3 builder D: web UI for the compiler, join flow, forecast, story and D1 states (2026-10-23, additive)
+
+Only `web/**` changed. `npm run build` and `npx vitest run` are green: 71 tests, 29 of them new.
+
+### Routing
+- `src/main.tsx` renders `Root`, a dependency-free router in `src/routes.ts`:
+  - `/` shows the board (`App`).
+  - `/compile` shows `pages/CompilePage.tsx`.
+  - `/join/{invite}?status=` shows `pages/JoinPage.tsx`.
+  - Any other path falls back to the board.
+- `/join/{invite}/return` and `/cancel` stay server routes.
+- `vite.config.ts` proxies them in dev with the regex key `^/join/[^/]+/(return|cancel)`.
+
+### Compile screen (`/compile`)
+- Text box prefilled with `GET /api/circles/compile/demo?lang=hi`; a हिंदी/English toggle swaps the example.
+- `POST /api/circles/compile` fills a charter card: one row per field (`compile.ts: FIELD_ORDER`). Each row shows:
+  - the value;
+  - `explanations[field]`;
+  - any problems prefixed with `field:`. Problems with no field prefix appear above the card.
+- The `mode_label` chip: replay is replay, parser is pending, template is warn.
+- Freeze (`/charter/freeze {draft_id}`) shows:
+  - a hash chip;
+  - the line "Fees ≈ $7.47 per contribution; pot paid net", with wording that follows `fee_policy`;
+  - `fees.line`;
+  - the billing-plan lines;
+  - "Approve as Priya", which sends `confirm: true` and lists the returned `invites` as SPA links.
+
+### Join page (phone first, max 460 px)
+- Shows a 3-step indicator, a status banner and a charter card with: the fees line, your pot round, the billing plan, the consent text and the hash.
+- "Continue to PayPal" calls `POST /start` and opens `approve_url`, but only if it is an https `*.paypal.com` URL.
+- States: invited, pending_approval, vaulted, cancelled, action_required, declined, error, expired (410), invalid (404).
+  - A `?status=` value beats the stored status, except once the member is vaulted.
+  - The server's `join_message` is shown when its status matches.
+- Wallet choice appears after vaulting: PayPal email (blank keeps the default). Venmo is shown disabled.
+
+### Board
+- **ForecastCard** (top of the rail, always rendered so nothing shifts):
+  - flagged members with score and reason, the nudge with `nudge_en` underneath, and a mode chip (rules = "template");
+  - cites the backtest and never claims causation.
+- The `forecast` SSE event is folded into `board.forecasts`.
+- Contributions flagged `predicted` get a "predicted" badge in both the grid and Bryntum views.
+- The CharterCard row "PayPal balance $X (refreshed hh:mm)" reads `circle.paypal_balance`. A stale reading is warn; before any check it reads "not checked yet". Its tooltip says the ledger is the payout gate.
+- PayoutReceipt shows:
+  - chips: UNCLAIMED, `re-routed (rN)`, "Cancel not available in sandbox", `pending return $X`;
+  - the batch list by revision;
+  - a "Re-route payout" button, which calls `judge reroute_unclaimed {round_n}`.
+- A `payout` event with `rev` patches the round's `payout_rev` / `pending_return`.
+
+### Judge Mode
+- **StoryBar:** a large, fixed-width "Next step" button showing `next.action_label`, one dot per step (tooltips carry the summary and mode), and a Restart button (POST `story/reset`).
+- It shows the "PayPal steps simulated/live" chip and, when the story is complete, a replay link.
+- It polls `GET /api/judge/story` every 1.5 s while `running`, and refetches it on every `board` event.
+- The old JudgeBar is now an "Advanced controls" drawer whose open state is remembered. It gains Run forecast, Re-route unclaimed and "Try a real PayPal approval" (judge-circle, then the invite path).
+- The waitlist banner links `replay_url`.
+
+### Polish
+- Light is the default theme (`DEFAULT_PREFERENCE`, plus the `index.html` pre-paint script); the dark toggle is remembered.
+- New spacing, type and motion tokens.
+- Tabular numerals.
+- Opacity/transform-only enter animations.
+- Stable scrollbar gutters, and space reserved for the forecast card and story summary.
+- `prefers-reduced-motion` is honoured.
+- New styles are in `src/pages.css`.
+
+### For others
+- The UI expects `story` SSE events shaped `{phase:"start", step}`.
+- The UI treats `payout_attempts[].rev < payout_rev` as superseded, because `_attempt_view` has no `superseded_by_rev`.
+- No browser smoke run was done against a live backend: only the build and unit tests.
+
+## M3 integration notes (integrator, 2026-10-24, additive)
+
+- **Webhooks -> pending return.** `app/engine/webhooks.py::_on_payout_item` now calls `rounds.mark_payout_item_returned(item_id)`
+  first for `PAYMENT.PAYOUTS-ITEM.RETURNED | REFUNDED | CANCELED`. When the item is a `pending_return` attempt the result is
+  `{"handled": true, "returned": true, circle_id, round_n, rev, item_id}`, plus a `board` event and an info toast; otherwise the
+  round lookup runs as before (an unknown item is still "not ours").
+- **Settings.** `TK_JUDGE_PAYEE_RECEIVER` / `TK_JUDGE_PAYEE_VAULT_ID` are now `Settings.judge_payee_receiver` / `judge_payee_vault_id`
+  (`app/config.py`). `join.JudgeCircleSettings` is a thin reader over `get_settings()` (same attribute names), so tests that set the env
+  vars must call `get_settings.cache_clear()`.
+- **Remedy proposer.** `propose_default_remedies` no longer proposes `retry_on_date` when the member's last decline code is in
+  `policy.NEVER_RETRY_CODES` (PAYER_ACTION_REQUIRED). With an empty buffer the set is just the swap; validation blocks it as "does not
+  cover" and it is left to the organizer. Eval s17 now records `must_not_proposed == []`; rules metrics unchanged (legal 0.95,
+  agreement 0.95, executed illegal 0). `eval/results.json` and `eval/RESULTS.md` regenerated (rules, 5 runs).
+- **Board.** `rounds[].payout_attempts[]` gains `superseded_by_rev` (null for the current attempt). The UI's `rev < payout_rev` inference
+  stays valid.
+- **Build.** The Docker web stage runs `npm run build -- --outDir dist --emptyOutDir`, so `COPY --from=web /web/dist` finds the SPA;
+  local `npm run build` still writes `app/static`. `pyyaml>=6` added to the `dev` extra (eval scenarios).
+- **Tests.** `tests/integration/test_m3_story.py`: the whole Judge story via `POST /api/judge/story/next` on the respx sandbox path
+  (forecast flags ravi, DECLINED -> COVERED, rotation swap, toolkit invoice, round 3 PAID to dev, round 4 PAID to lin with no organizer
+  action, canonical replay recorded and scrubbed) plus compile -> freeze(confirm, new circle) -> join start -> return -> vaulted.
+- **Replay.** `GET /api/replay` is 404 until one story completes on that deployment (no `app/fixtures/replay_canonical.json` ships yet).
+  Record one on the deployed sandbox and commit it as the shipped fixture before the deadline. *(Superseded: a simulated shipped
+  recording now exists; see the Fixer notes below.)*
+
+## Fixer notes (M3 review fixes, 2026-10-24, additive)
+
+- **Invite nonce.** `MemberRow.invite_nonce` (new nullable column) is part of the invite HMAC:
+  `"tk-invite:v2|{circle_id}|{handle}|{exp}|{nonce}"` (no `|{nonce}` while it is null, so older links keep working
+  until it is first set). `GET /join/{invite}/return` rotates it on VAULTED and redirects to `/join/{fresh}?status=vaulted`
+  with a NEW token: every link handed out before joining (and the old return URL) is then 404. `invites_for` mints with
+  the current nonce. Helpers: `jn.rotate_invite_nonce(cid, handle)`.
+- **Wallet.** `POST /api/join/{invite}/wallet` needs a vaulted member (409 "Join first ..."). Re-sending the receiver on
+  file is a no-op 200. A change is allowed while no receiver is on file or within `jn.WALLET_CHANGE_WINDOW` (15 min) of
+  `joined_at`; otherwise 409 `"ask the organizer to change your payout wallet"`. A change is stored as an `AgentTrace`
+  (kind `system`, source `join`, receivers masked), published as a `trace` event and a toast to the circle's sessions.
+- **Join start caps.** `POST /api/join/{invite}/start|setup` answers 429 when `join_attempts >= jn.MAX_SETUP_ATTEMPTS` (5)
+  and 429 + `Retry-After` past `SETUP_TOKENS_PER_IP_HOUR` (10) per `client_ip` (`app.routes.join.SETUP_LIMITER`; tests reset
+  it in `tests/routes/conftest.py`).
+- **Cancel must be confirmed.** `rounds.CANCEL_OK_STATUSES` no longer contains `UNKNOWN`; after `cancel_payout_item` the item is
+  re-read and only RETURNED/CANCELED/CANCELLED/REFUNDED counts. Otherwise `cancel.error = "cancel unconfirmed (<status>)"`
+  and the fronted/pending-return path runs.
+- **Re-route resume.** If a confirmed cancel left the round RETURNED (refund booked, rev bumped) but the re-route was denied or
+  failed, the next `reroute_unclaimed` call resumes at the send: no second cancel or refund; `cancel.resumed = true`,
+  `cancel.attempted = false`.
+- **Claimed after re-route.** `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` for a superseded item -> `rounds.mark_superseded_item_claimed`:
+  attempt `status=SUCCESS`, `return_status="claimed_after_reroute"`, label `"Claimed after re-route: pot paid twice"`;
+  the webhook result is `{handled: true, double_paid: true, circle_id, round_n, rev, item_id, amount, already}` with an
+  error toast and a `board` event (once). No circle ledger change.
+- **Forecast badge.** `app/fixtures/demo_circle.json` has no `forecast.predicted`; `fixture.py` always seeds `predicted=False`.
+  Only `forecast_job` sets the badge. The story's `advance_to_t3` has no ImportError fallback.
+- **Story.** `POST /api/judge/story/{step}` holds a per-circle `asyncio.Lock`; a concurrent call gets 409 `"a story step is
+  already running"`. `story.StoryError` becomes an HTTP error (no 500). `reset` no longer checks `tasks.running_for`: it
+  clears the old circle's pending step and resets. `tasks.make_publisher` stops forwarding to the SSE stream when the run's
+  circle was the session's circle and the session has since moved (traces are still stored). The `payout` step's
+  already-paid branch is mode `judge`, summary `"Round 3 was already paid (no new payout)"`.
+- **Simulated rounds.** `SIMULATED_DECLINE_LABEL` = `"API decline: simulated (no live sandbox for this circle)"`. `_apply_invoice`
+  simulates the invoice (no toolkit call) when the round's charges were simulated, even with credentials.
+- **Charter compiler.** `charter.escape_rules_text` maps `<`/`>` to U+2039/U+203A inside `<rules_text>`; `replay_available` uses
+  the same `user_prompt`, so cache keys agree (older recordings of pastes containing `<`/`>` no longer match).
+- **Eval.** `parse_live(text, sc, charter, *, mode="live")`. A `LiveCall` may be called with `live_allowed=False` once
+  `--max-calls` is spent: it must answer only from the replay cache. Replays keep running; unrecorded runs are skipped.
+- **Shipped replay.** `app/fixtures/replay_canonical.json` is a SIMULATED run recorded offline by `scripts/record_replay.py`
+  (blanks PayPal and model credentials, in-memory DB, refuses to run if anything is configured). `GET /api/replay` serves it
+  (`source: "shipped"`) until the deployment records its own run; a live recording still wins. Re-record it after story changes.

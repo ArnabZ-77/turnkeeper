@@ -1,0 +1,902 @@
+/*
+ * M3 UI: Judge Mode story bar, forecast card, payout re-route states, the charter compiler and the
+ * phone-first join page, plus the shared polish (motion, numerals, no layout shift). Colours and scale
+ * come from theme/tokens.css.
+ */
+
+/* ---- polish shared by every page ----------------------------------------------------------- */
+
+body {
+  font-variant-numeric: tabular-nums; /* numbers that change in place never shift their neighbours */
+  transition: background-color var(--tk-dur) ease, color var(--tk-dur) ease;
+}
+
+.tk-card {
+  transition:
+    background-color var(--tk-dur) ease,
+    border-color var(--tk-dur) ease,
+    box-shadow var(--tk-dur) ease;
+}
+
+.tk-chip {
+  transition:
+    background-color var(--tk-dur) ease,
+    border-color var(--tk-dur) ease,
+    color var(--tk-dur) ease;
+}
+.tk-chip .tk-dot {
+  transition: background-color var(--tk-dur) ease;
+}
+
+.tk-card-title {
+  min-height: 24px; /* chips appearing in a title never change its height */
+}
+
+/* Scroll containers keep their scrollbar gutter, so content arriving does not reflow the column. */
+.tk-rail,
+.tk-trace-list {
+  scrollbar-gutter: stable;
+}
+
+@keyframes tk-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Opacity/transform only: entering items animate without moving anything around them. */
+.tk-enter,
+.tk-trace-item,
+.tk-toast {
+  animation: tk-fade-in var(--tk-dur-slow) var(--tk-ease) both;
+}
+
+.tk-btn:focus-visible,
+.tk-chip:focus-visible,
+.tk-seg button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--tk-accent);
+  outline-offset: 2px;
+}
+
+.tk-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tk-space-2);
+  margin-top: var(--tk-space-3);
+}
+.tk-spacer {
+  flex: 1;
+}
+.tk-block {
+  display: block;
+}
+.tk-subhead {
+  margin: var(--tk-space-4) 0 var(--tk-space-2);
+  font-size: var(--tk-fs-sm);
+  font-weight: 600;
+  color: var(--tk-ink-2);
+}
+.tk-critical-text {
+  color: var(--tk-critical-ink);
+}
+.tk-good-text {
+  color: var(--tk-good-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tk-good-text svg {
+  width: 13px;
+  height: 13px;
+}
+.tk-chip-nav {
+  text-decoration: none;
+  color: var(--tk-accent);
+  border-color: color-mix(in srgb, var(--tk-accent) 40%, transparent);
+  background: var(--tk-accent-wash);
+}
+.tk-chip-hash {
+  cursor: pointer;
+  font-family: var(--tk-font);
+}
+.tk-chip-hash code {
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ---- footer: story bar + advanced drawer --------------------------------------------------- */
+
+.tk-judge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-2);
+}
+
+.tk-story {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head dots actions"
+    "last last last";
+  align-items: center;
+  column-gap: var(--tk-space-4);
+  row-gap: var(--tk-space-1);
+}
+.tk-story-head {
+  grid-area: head;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+.tk-story-head .tk-judge-label {
+  font-size: var(--tk-fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tk-ink-2);
+}
+.tk-story-count {
+  font-size: var(--tk-fs-md);
+  font-weight: 600;
+  min-width: 9ch;
+}
+.tk-story-dots {
+  grid-area: dots;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.tk-story-dot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.tk-story-dot::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  margin: 0 2px;
+  background: var(--tk-hairline);
+  transition: background-color var(--tk-dur-slow) ease;
+}
+.tk-story-dot:last-child {
+  flex: none;
+}
+.tk-story-dot:last-child::after {
+  display: none;
+}
+.tk-story-dot-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid var(--tk-hairline);
+  background: var(--tk-surface);
+  color: var(--tk-muted);
+  transition:
+    background-color var(--tk-dur-slow) ease,
+    border-color var(--tk-dur-slow) ease,
+    color var(--tk-dur-slow) ease,
+    transform var(--tk-dur-slow) var(--tk-ease);
+}
+.tk-story-dot-mark svg {
+  width: 12px;
+  height: 12px;
+}
+.tk-story-done .tk-story-dot-mark {
+  background: var(--tk-good);
+  border-color: var(--tk-good);
+  color: #fff;
+}
+.tk-story-done::after {
+  background: var(--tk-good);
+}
+.tk-story-next .tk-story-dot-mark {
+  border-color: var(--tk-accent);
+  color: var(--tk-accent);
+  transform: scale(1.12);
+}
+.tk-story-running .tk-story-dot-mark {
+  border-color: var(--tk-accent);
+  background: var(--tk-accent-wash);
+  color: var(--tk-accent);
+  animation: tk-pulse 1.2s ease-in-out infinite;
+}
+@keyframes tk-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--tk-accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--tk-accent) 0%, transparent);
+  }
+}
+.tk-story-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-2);
+}
+.tk-story-last {
+  grid-area: last;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 1.4em; /* reserved even when empty: no shift when the first summary arrives */
+}
+
+.tk-btn-hero {
+  padding: 10px 18px;
+  font-size: var(--tk-fs-md);
+  font-weight: 600;
+  border-radius: var(--tk-radius);
+  width: 380px; /* fixed: changing labels never move the buttons beside it */
+  max-width: 100%;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 4px 14px color-mix(in srgb, var(--tk-accent) 30%, transparent);
+}
+.tk-btn-hero svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.tk-btn-hero-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-btn-hero.tk-btn-running {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: tk-shimmer 1.4s linear infinite;
+}
+@keyframes tk-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.tk-advanced {
+  padding: 0;
+}
+.tk-advanced-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-3);
+  padding: var(--tk-space-2) 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.tk-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+.tk-advanced-summary::before {
+  content: "▸";
+  color: var(--tk-muted);
+  transition: transform var(--tk-dur) ease;
+}
+.tk-advanced[open] > .tk-advanced-summary::before {
+  transform: rotate(90deg);
+}
+.tk-advanced-summary .tk-judge-label {
+  font-size: var(--tk-fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tk-ink-2);
+}
+.tk-advanced .tk-judge-bar {
+  padding: 0 14px var(--tk-space-3);
+  border-top: 1px solid var(--tk-hairline);
+  padding-top: var(--tk-space-3);
+}
+
+@media (max-width: 1100px) {
+  .tk-story {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "dots"
+      "actions"
+      "last";
+    row-gap: var(--tk-space-2);
+  }
+  .tk-story-head {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--tk-space-3);
+  }
+  .tk-btn-hero {
+    flex: 1;
+    width: auto;
+  }
+}
+@media (max-width: 480px) {
+  .tk-story-dot-mark {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+  }
+  .tk-story-actions {
+    flex-wrap: wrap;
+  }
+  .tk-story-last {
+    white-space: normal;
+  }
+}
+
+/* ---- forecast card ------------------------------------------------------------------------- */
+
+.tk-forecast {
+  min-height: 112px;
+}
+.tk-forecast-empty {
+  margin: 0;
+}
+.tk-forecast-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-1);
+  padding: var(--tk-space-2) 0;
+  border-top: 1px solid var(--tk-hairline);
+}
+.tk-forecast-row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.tk-forecast-top {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-2);
+}
+.tk-forecast-score {
+  font-weight: 600;
+  color: var(--tk-warn-ink);
+}
+.tk-forecast-meter {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tk-surface-3);
+  overflow: hidden;
+}
+.tk-forecast-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tk-warn);
+  transition: width var(--tk-dur-slow) var(--tk-ease);
+}
+.tk-forecast-reason {
+  margin: 0;
+  font-size: var(--tk-fs-sm);
+}
+.tk-forecast-nudge {
+  margin: 0;
+  padding: var(--tk-space-2) var(--tk-space-3);
+  border-left: 3px solid var(--tk-accent);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--tk-fs-sm);
+}
+.tk-forecast-en {
+  color: var(--tk-ink-2);
+  font-size: var(--tk-fs-xs);
+  font-style: italic;
+}
+.tk-forecast-note {
+  margin: var(--tk-space-2) 0 0;
+}
+
+/* T-3 "predicted" badge on board chips (grid fallback and Bryntum events). */
+.tk-predicted-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+  background: color-mix(in srgb, var(--tk-warn) 26%, transparent);
+  color: var(--tk-warn-ink);
+}
+.tk-scheduler .tk-predicted-badge {
+  background: rgba(255, 255, 255, 0.85);
+  color: #6b4a00;
+}
+.tk-chip-predicted {
+  border-style: dashed;
+  border-color: var(--tk-warn);
+}
+
+/* ---- payout receipt: UNCLAIMED / re-route states -------------------------------------------- */
+
+.tk-reroute {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-2);
+  margin-top: var(--tk-space-3);
+  padding-top: var(--tk-space-3);
+  border-top: 1px solid var(--tk-hairline);
+}
+.tk-reroute .tk-btn {
+  align-self: flex-start;
+}
+.tk-attempts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--tk-fs-xs);
+}
+.tk-attempts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.tk-attempt-old {
+  color: var(--tk-ink-2);
+}
+.tk-attempt-old > span:nth-child(2) {
+  text-decoration: line-through;
+}
+.tk-attempt-rev {
+  font-family: var(--tk-mono);
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--tk-surface-2);
+}
+.tk-attempt-notes {
+  color: var(--tk-warn-ink);
+}
+
+/* ---- standalone pages (compiler) ----------------------------------------------------------- */
+
+.tk-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--tk-space-3) var(--tk-space-4) var(--tk-space-6);
+}
+.tk-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tk-space-2);
+  margin-bottom: var(--tk-space-3);
+}
+.tk-page-head a.tk-chip {
+  text-decoration: none;
+  color: var(--tk-ink);
+}
+.tk-page .tk-banner {
+  margin-bottom: var(--tk-space-3);
+}
+
+.tk-compile {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--tk-space-3);
+  align-items: start;
+}
+@media (max-width: 1200px) {
+  .tk-compile {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .tk-compile-freeze {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .tk-compile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tk-seg {
+  display: inline-flex;
+  border: 1px solid var(--tk-border);
+  border-radius: 999px;
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.tk-seg button {
+  border: 0;
+  background: transparent;
+  padding: 3px 12px;
+  font-size: var(--tk-fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--tk-ink-2);
+  transition: background-color var(--tk-dur) ease, color var(--tk-dur) ease;
+}
+.tk-seg button[aria-pressed="true"] {
+  background: var(--tk-accent);
+  color: var(--tk-accent-ink);
+}
+.tk-seg button:disabled {
+  cursor: progress;
+}
+
+.tk-textarea {
+  display: block;
+  width: 100%;
+  min-height: 420px;
+  resize: vertical;
+  padding: var(--tk-space-3);
+  border-radius: var(--tk-radius-sm);
+  border: 1px solid var(--tk-border);
+  background: var(--tk-surface-2);
+  color: var(--tk-ink);
+  font: inherit;
+  font-size: var(--tk-fs-sm);
+  line-height: 1.6;
+  transition: border-color var(--tk-dur) ease, box-shadow var(--tk-dur) ease;
+}
+.tk-textarea:focus {
+  outline: none;
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px var(--tk-accent-wash);
+}
+
+.tk-compile-card,
+.tk-compile-freeze {
+  min-height: 200px;
+}
+.tk-charter-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tk-charter-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: var(--tk-space-3);
+  padding: var(--tk-space-2) 0;
+  border-top: 1px solid var(--tk-hairline);
+  animation: tk-fade-in var(--tk-dur-slow) var(--tk-ease) both;
+}
+.tk-charter-row:first-child {
+  border-top: 0;
+}
+.tk-charter-row dt {
+  margin: 0;
+  font-size: var(--tk-fs-sm);
+  color: var(--tk-ink-2);
+}
+.tk-charter-row dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tk-charter-value {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tk-charter-why {
+  font-size: var(--tk-fs-xs);
+  color: var(--tk-muted);
+  overflow-wrap: anywhere;
+}
+.tk-charter-problem {
+  font-size: var(--tk-fs-xs);
+  color: var(--tk-warn-ink);
+}
+.tk-charter-problem::before {
+  content: "⚠ ";
+}
+.tk-has-problem dt {
+  color: var(--tk-warn-ink);
+  font-weight: 600;
+}
+.tk-problems {
+  margin: 0 0 var(--tk-space-2);
+  padding: var(--tk-space-2) var(--tk-space-3) var(--tk-space-2) var(--tk-space-5);
+  border-radius: var(--tk-radius-sm);
+  background: color-mix(in srgb, var(--tk-warn) 14%, transparent);
+  font-size: var(--tk-fs-sm);
+}
+
+.tk-callout {
+  padding: var(--tk-space-2) var(--tk-space-3);
+  border-radius: var(--tk-radius-sm);
+  font-size: var(--tk-fs-sm);
+  margin-top: var(--tk-space-3);
+}
+.tk-callout-good {
+  background: color-mix(in srgb, var(--tk-good) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tk-good) 40%, transparent);
+}
+.tk-callout-critical {
+  background: color-mix(in srgb, var(--tk-critical) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tk-critical) 40%, transparent);
+}
+
+.tk-fee-line {
+  margin: var(--tk-space-3) 0 var(--tk-space-1);
+  font-size: var(--tk-fs-md);
+  font-weight: 600;
+}
+.tk-plan {
+  margin: 0 0 var(--tk-space-3);
+  padding: var(--tk-space-2) var(--tk-space-3);
+  list-style: none;
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  font-family: var(--tk-mono);
+  font-size: var(--tk-fs-xs);
+}
+.tk-invites {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--tk-fs-sm);
+}
+.tk-invites li {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-2);
+}
+
+/* ---- join page (phone first) ---------------------------------------------------------------- */
+
+.tk-join {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: var(--tk-space-3) var(--tk-space-4) var(--tk-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-3);
+}
+.tk-join-head {
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-2);
+}
+.tk-join-brand {
+  font-size: var(--tk-fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.tk-join-steps {
+  display: flex;
+  gap: var(--tk-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--tk-fs-xs);
+  color: var(--tk-muted);
+}
+.tk-join-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 3px solid var(--tk-hairline);
+  transition: border-color var(--tk-dur-slow) ease, color var(--tk-dur-slow) ease;
+}
+.tk-join-steps li.tk-current {
+  border-color: var(--tk-accent);
+  color: var(--tk-ink);
+  font-weight: 600;
+}
+.tk-join-steps li.tk-done {
+  border-color: var(--tk-good);
+  color: var(--tk-good-ink);
+}
+.tk-join-step-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tk-surface-2);
+  font-weight: 700;
+  font-size: 10px;
+  flex: none;
+}
+.tk-join-step-n svg {
+  width: 11px;
+  height: 11px;
+}
+.tk-join-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--tk-space-3);
+  border-radius: var(--tk-radius);
+  border: 1px solid var(--tk-border);
+  border-left-width: 4px;
+  background: var(--tk-surface);
+  font-size: var(--tk-fs-sm);
+  animation: tk-fade-in var(--tk-dur-slow) var(--tk-ease) both;
+}
+.tk-join-status strong {
+  font-size: var(--tk-fs-md);
+}
+.tk-tone-good {
+  border-left-color: var(--tk-good);
+  background: color-mix(in srgb, var(--tk-good) 8%, var(--tk-surface));
+}
+.tk-tone-warn {
+  border-left-color: var(--tk-warn);
+  background: color-mix(in srgb, var(--tk-warn) 10%, var(--tk-surface));
+}
+.tk-tone-critical {
+  border-left-color: var(--tk-critical);
+  background: color-mix(in srgb, var(--tk-critical) 8%, var(--tk-surface));
+}
+.tk-tone-info {
+  border-left-color: var(--tk-accent);
+}
+.tk-join-loading {
+  text-align: center;
+  padding: var(--tk-space-5) 0;
+}
+.tk-join-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tk-space-2);
+  padding: var(--tk-space-4);
+}
+.tk-join-card p {
+  margin: 0;
+}
+.tk-join-title {
+  margin: 0;
+  font-size: var(--tk-fs-xl);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.tk-join-amount {
+  font-size: var(--tk-fs-lg);
+  font-weight: 700;
+}
+.tk-join-amount span {
+  font-size: var(--tk-fs-sm);
+  font-weight: 500;
+  color: var(--tk-ink-2);
+}
+.tk-join-kv {
+  row-gap: 6px;
+  font-size: var(--tk-fs-sm);
+}
+.tk-join-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--tk-space-2) var(--tk-space-3);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-2);
+  font-size: var(--tk-fs-sm);
+}
+.tk-join-consent {
+  font-size: var(--tk-fs-sm);
+  line-height: 1.5;
+  color: var(--tk-ink-2);
+}
+.tk-join-card .tk-chip-hash {
+  align-self: flex-start;
+  cursor: default;
+}
+.tk-join-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+.tk-btn-block {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: var(--tk-fs-md);
+  font-weight: 600;
+  border-radius: var(--tk-radius);
+}
+.tk-wallets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--tk-space-2);
+}
+.tk-wallet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: var(--tk-space-2) var(--tk-space-3);
+  border-radius: var(--tk-radius-sm);
+  border: 1px solid var(--tk-border);
+  font-weight: 600;
+}
+.tk-wallet-on {
+  border-color: var(--tk-accent);
+  background: var(--tk-accent-wash);
+}
+.tk-wallet-off {
+  opacity: 0.6;
+}
+.tk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tk-field input {
+  padding: 10px 12px;
+  border-radius: var(--tk-radius-sm);
+  border: 1px solid var(--tk-border);
+  background: var(--tk-surface-2);
+  font-size: var(--tk-fs-md); /* >= 16px: no zoom-on-focus on phones */
+}
+.tk-field input:focus {
+  outline: none;
+  border-color: var(--tk-accent);
+  box-shadow: 0 0 0 3px var(--tk-accent-wash);
+}
+.tk-join-foot {
+  text-align: center;
+  margin: var(--tk-space-2) 0 0;
+}

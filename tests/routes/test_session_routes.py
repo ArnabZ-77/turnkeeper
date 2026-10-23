@@ -74,7 +74,16 @@ def test_board_route(client, session):
     r = client.get(f"/api/circles/{session['circle_id']}")
     assert r.status_code == 200
     board = r.json()
-    assert set(board) == {"circle", "members", "rounds", "contributions", "counters", "ticker", "recovery"}
+    assert set(board) == {
+        "circle",
+        "members",
+        "rounds",
+        "contributions",
+        "counters",
+        "ticker",
+        "recovery",
+        "forecasts",
+    }
     assert board["circle"]["id"] == session["circle_id"] and board["circle"]["amount"] == "200.00"
     assert len(board["members"]) == 6 and len(board["rounds"]) == 6 and len(board["contributions"]) == 36
     assert client.get("/api/circles/zzzzzz").status_code == 403  # not this session's circle

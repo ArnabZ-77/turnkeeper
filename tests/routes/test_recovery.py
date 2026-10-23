@@ -218,7 +218,7 @@ def test_simulated_decline_reaches_the_whole_recovery_path_without_vault_ids(
     board = client.get(f"/api/circles/{cid}").json()
     r3 = {c["member"]: c for c in board["contributions"] if c["round_n"] == 3}
     assert r3["ravi"]["status"] == "DECLINED" and r3["ravi"]["decline_source"] == "simulated"
-    assert r3["ravi"]["label"] == "API decline: simulated (no sandbox credentials)"
+    assert r3["ravi"]["label"] == "API decline: simulated (no live sandbox for this circle)"
     assert all(
         c["status"] == "COMPLETED" and c["order_id"].startswith("REPLAY-")
         for m, c in r3.items()
@@ -234,6 +234,8 @@ def test_simulated_decline_reaches_the_whole_recovery_path_without_vault_ids(
     r = _judge(client, "approve_as_priya", cid)
     assert r.status_code == 200 and r.json()["status"] == "executed", r.text
     assert r.json()["payout"]["skipped"].startswith("simulated round")  # no real money on simulated captures
+    # fixer: credentials are configured here, but a simulated round never triggers a live toolkit invoice
+    assert toolkit.calls == [] and toolkit.prepared == 0
     r = _judge(client, "mark_invoice_paid", cid)
     assert r.status_code == 200 and r.json()["handled"] is True
 

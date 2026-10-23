@@ -29,6 +29,16 @@ export interface JudgeBarProps {
   onVote: () => void;
   onApprove: () => void;
   onMarkPaid: () => void;
+  /** M3: force the T-3 forecast for the next open round. */
+  onRunForecast?: () => void;
+  /** D1: the round whose current payout item is UNCLAIMED (null hides Re-route). */
+  rerouteRound?: number | null;
+  onReroute?: (roundN: number) => void;
+  /** Builder B: the $5 two-member judge circle that uses the real join flow. */
+  onJudgeCircle?: () => void;
+  /** Drawer open state (remembered by the App). */
+  open?: boolean;
+  onToggleOpen?: (open: boolean) => void;
 }
 
 export const DEMO_ROUND = 3;
@@ -55,9 +65,18 @@ export function JudgeBar(p: JudgeBarProps) {
   const paypalTip = paypalLive ? null : PAYPAL_NOT_CONFIGURED;
   const tip = (why: string | null, ok: string) => why ?? ok;
   return (
-    <section className="tk-card tk-judge-bar" aria-label="Judge mode">
+    <details
+      className="tk-card tk-advanced"
+      open={p.open}
+      onToggle={(e) => p.onToggleOpen?.((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="tk-advanced-summary">
+        <span className="tk-judge-label">Advanced controls</span>
+        <span className="tk-muted tk-small">individual judge actions, outside the story order</span>
+      </summary>
+    <section className="tk-judge-bar" aria-label="Judge mode advanced controls">
       <div className="tk-judge-row">
-        <span className="tk-judge-label">Judge mode</span>
+        <span className="tk-judge-label">Setup</span>
         <button type="button" className="tk-btn" disabled={disabled} onClick={p.onReset} title="New run id, fresh clone of the fixture circle">
           Reset
         </button>
@@ -185,11 +204,49 @@ export function JudgeBar(p: JudgeBarProps) {
             </button>
           </>
         )}
+        {p.onRunForecast && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm"
+            disabled={disabled}
+            onClick={p.onRunForecast}
+            title="Re-run the T-3 shortfall forecast for the next open round (rules score; the wording may use one model call)"
+          >
+            Run forecast
+          </button>
+        )}
+        {p.onReroute && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm"
+            disabled={disabled || p.rerouteRound == null}
+            onClick={() => p.rerouteRound != null && p.onReroute?.(p.rerouteRound)}
+            title={
+              p.rerouteRound == null
+                ? "No payout is UNCLAIMED"
+                : `Round ${p.rerouteRound}: wait for the batch, one cancel attempt, then a new batch to the member's other receiver`
+            }
+          >
+            Re-route unclaimed{p.rerouteRound != null ? ` (round ${p.rerouteRound})` : ""}
+          </button>
+        )}
+        {p.onJudgeCircle && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm"
+            disabled={busy}
+            onClick={p.onJudgeCircle}
+            title="Creates this session's $5, 2-member circle and opens judge.member's invite: a real PayPal sandbox approval (log in with the published judge.member sandbox account)"
+          >
+            Try a real PayPal approval
+          </button>
+        )}
         <span className="tk-spacer" />
         <span className="tk-judge-clock" title="Virtual clock of this circle">
           clock: {fmtDateTime(circle?.virtual_now)}
         </span>
       </div>
     </section>
+    </details>
   );
 }

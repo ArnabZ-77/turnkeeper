@@ -253,10 +253,48 @@ _PAYOUT_ITEM_STATUS = {
     "PAYMENT.PAYOUTS-ITEM.REFUNDED": "REFUNDED",
     "PAYMENT.PAYOUTS-ITEM.RETURNED": "RETURNED",
 }
+_RETURN_STATUSES = frozenset({"RETURNED", "REFUNDED", "CANCELED"})
 
 
 async def _on_payout_item(event_type: str, resource: dict, publish_for: Any) -> dict[str, Any]:
     item_id = str(resource.get("payout_item_id") or resource.get("id") or "")
+    if item_id and _PAYOUT_ITEM_STATUS.get(event_type) in _RETURN_STATUSES:
+        # A superseded (re-routed) UNCLAIMED item came back: clear its "pending return" (no ledger change).
+        from app.engine.rounds import mark_payout_item_returned
+
+        returned = mark_payout_item_returned(item_id)
+        if returned is not None:
+            publish = publish_for(returned["circle_id"])
+            await publish({"type": "board"})
+            await publish(
+                {
+                    "type": "toast",
+                    "level": "info",
+                    "text": f"Round {returned['round_n']}: the re-routed payout's first item was returned",
+                }
+            )
+            return {"handled": True, "returned": True, **returned}
+    if item_id and _PAYOUT_ITEM_STATUS.get(event_type) == "SUCCESS":
+        # The superseded item of a re-route was claimed after all: the pot went out twice. Never drop this.
+        from app.engine.rounds import CLAIMED_AFTER_REROUTE_LABEL, mark_superseded_item_claimed
+
+        claimed = mark_superseded_item_claimed(item_id)
+        if claimed is not None:
+            if not claimed["already"]:
+                publish = publish_for(claimed["circle_id"])
+                await publish({"type": "board"})  # the attempt's label and return_status are on the board
+                await publish(
+                    {
+                        "type": "toast",
+                        "level": "error",
+                        "text": (
+                            f"Round {claimed['round_n']}: the re-routed payout's first item (r{claimed['rev']}, "
+                            f"{claimed['amount']}) was claimed after all. {CLAIMED_AFTER_REROUTE_LABEL}; "
+                            "the organizer must recover the extra amount."
+                        ),
+                    }
+                )
+            return {"handled": True, "double_paid": True, **claimed}
     rnd = _find_round_by_item(item_id) if item_id else None
     if rnd is None:
         return {"handled": False, "reason": "payout item not ours"}

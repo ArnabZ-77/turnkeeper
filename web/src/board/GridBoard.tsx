@@ -110,13 +110,14 @@ export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProp
                 {ev && (
                   <button
                     type="button"
-                    className={`tk-chip tk-chip-${ev.tk.status.toLowerCase()}`}
+                    className={`tk-chip tk-chip-${ev.tk.status.toLowerCase()}${ev.tk.predicted ? " tk-chip-predicted" : ""}`}
                     style={isSelected(ev.tk) ? { borderColor: STATUS_COLOR[ev.tk.status] } : undefined}
                     onClick={() => onSelect(isSelected(ev.tk) ? null : ev.tk)}
-                    title={`${ev.tk.orderId ? `order ${ev.tk.orderId}` : "no order yet"}${ev.tk.captureId ? ` · capture ${ev.tk.captureId}` : ""}`}
+                    title={`${ev.tk.orderId ? `order ${ev.tk.orderId}` : "no order yet"}${ev.tk.captureId ? ` · capture ${ev.tk.captureId}` : ""}${ev.tk.predicted ? " · T-3 forecast: at risk" : ""}`}
                   >
                     <span className="tk-dot" style={{ background: STATUS_COLOR[ev.tk.status] }} />
                     {ev.name}
+                    {ev.tk.predicted && <span className="tk-predicted-badge">predicted</span>}
                     {ev.tk.orderId && <code className="tk-muted">{shortId(ev.tk.orderId, 8)}</code>}
                   </button>
                 )}

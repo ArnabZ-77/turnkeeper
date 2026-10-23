@@ -81,8 +81,8 @@ def test_clone_creates_members_rounds_replay_and_mandate(circle_id):
     assert all(c.order_id.startswith("REPLAY-") and c.capture_id.startswith("REPLAY-") for c in replayed)
     pending = [c for c in contribs if c.round_n >= 3]
     assert len(pending) == 24 and all(c.status == "PENDING" and c.attempt == 0 for c in pending)
-    predicted = {(c.round_n, c.member_handle) for c in pending if c.predicted}
-    assert predicted == {(3, "ravi")}
+    # no "predicted" badge until the forecaster runs (fixer: the fixture must not fake a forecast)
+    assert not any(c.predicted for c in pending)
     assert len(mandates) == 1
 
 

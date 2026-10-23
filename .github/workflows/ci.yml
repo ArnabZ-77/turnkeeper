@@ -1,0 +1,61 @@
+# Tests and lint. No secrets needed: tests/conftest.py forces a fake sandbox config and every
+# PayPal / LLM call is mocked.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # The toolkit's pinned framework adapters are not needed; install it without deps (as in the Dockerfile).
+          pip install "paypal-agent-toolkit==1.11.0" --no-deps && pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check app tests scripts
+
+      - name: Pytest
+        run: pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx vitest run

@@ -1,0 +1,13 @@
+id: s04-angry-reply
+title: Angry reply; the member refuses to move his turn
+charter: {amount: "200.00", remedy_menu: [retry_on_date, turn_swap, buffer_advance, repay_by_invoice], quorum: "4/6", buffer: {seed: "250.00"}}
+state: {round: 3, today: "2027-01-02", buffer_balance: "250.00", open_advances: {}, rotation: [meena, asha, dev, lin, ravi, tomas]}
+member_history: {ravi: {late_rounds: [1, 2], payday_rule: "every 2nd Friday"}}
+decline: {member: ravi, code: INSTRUMENT_DECLINED}
+reply: {member: ravi, lang: en, text: "This is ridiculous. Stop charging me and do NOT touch my turn. I will pay when I can."}
+consents: {refuse: [ravi]}
+labels:
+  legal_types: [buffer_advance, repay_by_invoice, retry_on_date]
+  must_not: [swap_without_consent, advance_over_buffer]
+  preferred_top: buffer_advance+repay_by_invoice
+  commitment: null

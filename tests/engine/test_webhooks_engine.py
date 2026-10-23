@@ -255,3 +255,106 @@ async def test_default_publisher_reaches_the_owning_session(session, paypal, col
     await wh.handle_event(HEADERS, capture_event(caps["asha"], "WH-EVT-BUS"))
     types = [e["type"] for e in get_event_bus().recent(session.sid)]
     assert "chip" in types and "toast" in types
+
+
+def payout_item_event(item_id: str, event_type: str, event_id: str) -> bytes:
+    return json.dumps(
+        {
+            "id": event_id,
+            "event_type": event_type,
+            "resource_type": "payouts_item",
+            "resource": {"payout_item_id": item_id, "transaction_status": event_type.rsplit(".", 1)[-1]},
+        }
+    ).encode()
+
+
+@pytest.mark.parametrize(
+    "event_type",
+    ["PAYMENT.PAYOUTS-ITEM.RETURNED", "PAYMENT.PAYOUTS-ITEM.REFUNDED", "PAYMENT.PAYOUTS-ITEM.CANCELED"],
+)
+async def test_returned_superseded_item_clears_pending_return(vaulted_circle, collector, verify, event_type):
+    from app.models import PayoutAttempt
+
+    with session_scope() as db:
+        db.add(
+            PayoutAttempt(
+                circle_id=vaulted_circle,
+                round_n=3,
+                rev=1,
+                item_id="ITEM-SUPERSEDED",
+                status="UNCLAIMED",
+                funding="ledger",
+                cancel_status="cancel_failed",
+                return_status="pending_return",
+                superseded_by_rev=2,
+            )
+        )
+    res = await wh.handle_event(
+        HEADERS,
+        payout_item_event("ITEM-SUPERSEDED", event_type, f"WH-RET-{event_type}"),
+        publish_for=_publish_for(collector),
+    )
+    assert res["handled"] is True and res["returned"] is True and res["round_n"] == 3
+    with session_scope() as db:
+        a = db.exec(select(PayoutAttempt).where(PayoutAttempt.item_id == "ITEM-SUPERSEDED")).one()
+        assert a.return_status == "returned" and a.status == "RETURNED"
+    assert any(e.get("type") == "board" for e in collector.events)
+    # a second, unrelated RETURNED for an unknown item is still "not ours"
+    res = await wh.handle_event(
+        HEADERS,
+        payout_item_event("ITEM-UNKNOWN", event_type, "WH-RET-unknown"),
+        publish_for=_publish_for(collector),
+    )
+    assert res["handled"] is False
+
+
+async def test_superseded_item_claimed_after_reroute_is_reported_as_double_paid(
+    vaulted_circle, collector, verify
+):
+    """Fixer: a fronted re-route's first (UNCLAIMED) item claimed later must not be dropped as 'not ours'."""
+    from app.models import PayoutAttempt, Round
+
+    with session_scope() as db:
+        rnd = db.exec(select(Round).where(Round.circle_id == vaulted_circle, Round.n == 3)).one()
+        rnd.payout_item_id, rnd.payout_status, rnd.status, rnd.rev = "ITEM-R2", "SUCCESS", "PAID", 2
+        db.add(rnd)
+        db.add(
+            PayoutAttempt(
+                circle_id=vaulted_circle,
+                round_n=3,
+                rev=1,
+                item_id="ITEM-R1",
+                amount="1154.93",
+                status="UNCLAIMED",
+                funding="ledger",
+                cancel_status="cancel_failed",
+                return_status="pending_return",
+                superseded_by_rev=2,
+            )
+        )
+    before = state.ledger_totals(vaulted_circle)
+    res = await wh.handle_event(
+        HEADERS,
+        payout_item_event("ITEM-R1", "PAYMENT.PAYOUTS-ITEM.SUCCEEDED", "WH-CLAIMED-1"),
+        publish_for=_publish_for(collector),
+    )
+    assert res["handled"] is True and res["double_paid"] is True and res["round_n"] == 3
+    r3 = state.board_model(vaulted_circle)["rounds"][2]
+    assert r3["pending_return"] is None
+    first = next(a for a in r3["payout_attempts"] if a["rev"] == 1)
+    assert first["status"] == "SUCCESS" and first["return_status"] == "claimed_after_reroute"
+    assert first["label"] == "Claimed after re-route: pot paid twice"
+    assert r3["payout"]["item_id"] == "ITEM-R2"  # the round still points at the re-route
+    toasts = [e for e in collector.events if e.get("type") == "toast"]
+    assert toasts and toasts[-1]["level"] == "error" and "paid twice" in toasts[-1]["text"]
+    assert any(e.get("type") == "board" for e in collector.events)
+    assert state.ledger_totals(vaulted_circle) == before  # the circle paid once; the loss is the business's
+    # a later RETURNED for the same item no longer finds it pending; a repeat SUCCEEDED does not re-toast
+    collector.events.clear()
+    again = await wh.handle_event(
+        HEADERS,
+        payout_item_event("ITEM-R1", "PAYMENT.PAYOUTS-ITEM.SUCCEEDED", "WH-CLAIMED-2"),
+        publish_for=_publish_for(collector),
+    )
+    assert again["double_paid"] is True and again["already"] is True
+    assert not [e for e in collector.events if e.get("type") == "toast"]

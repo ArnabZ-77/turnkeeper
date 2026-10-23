@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     paypal_rate_per_min: int = Field(default=40, alias="TK_PAYPAL_RATE_PER_MIN")
     max_active_sessions: int = Field(default=6, alias="TK_MAX_ACTIVE_SESSIONS")
 
+    # Judge mini-circle payee (optional sandbox values; empty is fine)
+    judge_payee_receiver: str = Field(
+        default="", alias="TK_JUDGE_PAYEE_RECEIVER"
+    )  # judge.payee sandbox email
+    judge_payee_vault_id: str = Field(default="", alias="TK_JUDGE_PAYEE_VAULT_ID")
+
     @field_validator("llm_provider_setting")
     @classmethod
     def _known_provider(cls, v: str) -> str:

@@ -42,17 +42,33 @@ def _make_engine(db_path: str) -> Engine:
         connect_args={"check_same_thread": False, "timeout": 30},
     )
 
+    journal_mode = sqlite_journal_mode(db_path)
+
     @event.listens_for(eng, "connect")
     def _set_pragmas(dbapi_conn, _record) -> None:  # pragma: no cover - exercised only with file DBs
         cur = dbapi_conn.cursor()
         try:
-            cur.execute("PRAGMA journal_mode=WAL")
-            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.execute(f"PRAGMA journal_mode={journal_mode}")
+            cur.execute("PRAGMA synchronous=NORMAL" if journal_mode == "WAL" else "PRAGMA synchronous=FULL")
             cur.execute("PRAGMA busy_timeout=30000")
         finally:
             cur.close()
 
     return eng
+
+
+def sqlite_journal_mode(db_path: str) -> str:
+    """WAL needs shared memory on a local disk. Azure App Service's persistent /home is a network share where
+    WAL is unsafe (https://www.sqlite.org/wal.html), so databases under /home use the rollback journal.
+    TK_SQLITE_JOURNAL (WAL|DELETE) overrides the choice."""
+    override = os.environ.get("TK_SQLITE_JOURNAL", "").strip().upper()
+    if override in ("WAL", "DELETE"):
+        return override
+    raw = db_path.replace("\\", "/")
+    on_home = raw.startswith("/home/") or (
+        os.name == "posix" and os.path.abspath(db_path).startswith("/home/")
+    )
+    return "DELETE" if on_home else "WAL"
 
 
 engine: Engine = _make_engine(get_settings().db_path)

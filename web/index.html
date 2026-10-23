@@ -11,9 +11,10 @@
       (function () {
         try {
           var t = localStorage.getItem("tk-theme");
-          if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+          document.documentElement.setAttribute("data-theme", t === "dark" ? "dark" : "light");
         } catch (e) {
-          /* storage may be unavailable; the system preference applies */
+          /* storage may be unavailable; light (the default) applies */
+          document.documentElement.setAttribute("data-theme", "light");
         }
       })();
     </script>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { MemberInfo, PayoutEvent, RoundInfo } from "../types";
-import { copyText, fmtDateTime, fmtMoney } from "../format";
+import { copyText, fmtDateTime, fmtMoney, shortId } from "../format";
+import { unclaimedView } from "../payouts";
 import { IconCheck, IconClock, IconCoins, IconCopy, IconX } from "./icons";
 
 export interface PayoutReceiptProps {
@@ -9,6 +10,9 @@ export interface PayoutReceiptProps {
   rounds: RoundInfo[];
   members: MemberInfo[];
   currency?: string;
+  /** D1 UNCLAIMED path: POST /api/judge/reroute_unclaimed for the round (omit to hide the button). */
+  onReroute?: (roundN: number) => void;
+  busy?: boolean;
 }
 
 interface ReceiptView {
@@ -81,7 +85,7 @@ function CopyId({ value }: { value: string | null }) {
   );
 }
 
-export function PayoutReceipt({ payout, rounds, members, currency = "USD" }: PayoutReceiptProps) {
+export function PayoutReceipt({ payout, rounds, members, currency = "USD", onReroute, busy = false }: PayoutReceiptProps) {
   const view = receiptFrom(payout, rounds);
   const nextRecipient = rounds.filter((r) => r.status !== "PAID" && r.status !== "VOID").sort((a, b) => a.n - b.n)[0];
   const nameOf = (handle: string) => members.find((m) => m.handle === handle)?.name ?? handle;
@@ -107,6 +111,8 @@ export function PayoutReceipt({ payout, rounds, members, currency = "USD" }: Pay
 
   const tone = statusTone(view.status);
   const Icon = tone === "good" ? IconCheck : tone === "critical" ? IconX : tone === "warn" ? IconClock : IconCoins;
+  const round = rounds.find((r) => r.n === view.roundN);
+  const un = unclaimedView(round, currency);
   return (
     <section className="tk-card" aria-label="Payout receipt">
       <h2 className="tk-card-title">
@@ -133,6 +139,41 @@ export function PayoutReceipt({ payout, rounds, members, currency = "USD" }: Pay
         <dt>Paid at</dt>
         <dd>{view.paidAt ? fmtDateTime(view.paidAt) : <span className="tk-muted">pending</span>}</dd>
       </dl>
+      {(un.chips.length > 0 || un.attempts.length > 1) && (
+        <div className="tk-reroute">
+          <div className="tk-chips">
+            {un.chips.map((c) => (
+              <span key={c.label} className={`tk-chip ${c.cls}`} title={c.tip}>
+                <span className="tk-dot" />
+                {c.label}
+              </span>
+            ))}
+          </div>
+          {un.attempts.length > 1 && (
+            <ol className="tk-attempts" aria-label="Payout batches">
+              {un.attempts.map((a) => (
+                <li key={a.rev} className={a.superseded ? "tk-attempt-old" : "tk-attempt-current"} title={a.label ?? undefined}>
+                  <span className="tk-attempt-rev">r{a.rev}</span>
+                  <span>{a.status}</span>
+                  <code className="tk-muted">{shortId(a.itemId, 10)}</code>
+                  {a.notes.length > 0 && <span className="tk-attempt-notes">{a.notes.join(" · ")}</span>}
+                </li>
+              ))}
+            </ol>
+          )}
+          {un.canReroute && onReroute && (
+            <button
+              type="button"
+              className="tk-btn tk-btn-sm tk-btn-primary"
+              disabled={busy}
+              onClick={() => onReroute(view.roundN)}
+              title="Wait for the batch (up to ~60 s), try one cancel, then pay the member's other receiver. The buffer pays the $0.25 re-route fee."
+            >
+              Re-route payout
+            </button>
+          )}
+        </div>
+      )}
       <p className="tk-small tk-muted" style={{ margin: "8px 0 0" }}>
         Amount is the net pot: contributions minus PayPal fees, plus any approved buffer advance.
       </p>

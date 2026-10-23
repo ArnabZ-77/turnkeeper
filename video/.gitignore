@@ -1,0 +1,11 @@
+node_modules/
+.tools/
+tts/.venv/
+tts/.venv-arm64/
+tts/models/
+tts/__pycache__/
+footage
+audio
+public/footage/
+public/audio/
+out/

@@ -1,7 +1,8 @@
 """Load app/fixtures/demo_circle.json and clone it into a fresh Circle for a session.
 
 Rounds listed in `replay.settled_rounds` are pre-settled with REPLAY- prefixed IDs (no PayPal call is
-ever made for them). The next round is PENDING with the forecast's "predicted" badges applied.
+ever made for them). Later rounds start PENDING with no "predicted" badge: only the forecaster
+(app.engine.forecast_job) sets one, so the board never shows a forecast that has not run.
 """
 
 from __future__ import annotations
@@ -127,7 +128,6 @@ def clone_fixture(db: DbSession, *, circle_id: str, run_id: str, now: datetime |
     late = {h: {int(n) for n in rounds} for h, rounds in replay.get("late", {}).items()}
     late_days = int(replay.get("late_days", 2))
     ids = replay.get("ids", {})
-    predicted = {int(k): set(v) for k, v in fx.get("forecast", {}).get("predicted", {}).items()}
     overrides = seed_overrides()
     seed_vaults = fx.get("seed", {}).get("vault_ids", {})
 
@@ -274,7 +274,7 @@ def clone_fixture(db: DbSession, *, circle_id: str, run_id: str, now: datetime |
                         member_handle=m.handle,
                         status="PENDING",
                         attempt=0,
-                        predicted=m.handle in predicted.get(n, set()),
+                        predicted=False,  # set by forecast_job only (PLAN section 5)
                         created_at=now,
                         updated_at=now,
                     )

@@ -10,6 +10,9 @@ PayPal rejects a `sender_batch_id` reused within 30 days (and a 5xx may be retri
 
 from __future__ import annotations
 
+import asyncio
+import time
+from collections.abc import Awaitable, Callable
 from decimal import Decimal
 from typing import Literal
 
@@ -145,3 +148,45 @@ def item_fee(item: dict | None) -> Decimal | None:
 
 def batch_fees(batch: dict) -> Decimal | None:
     return to_decimal((batch.get("batch_header") or {}).get("fees"))
+
+
+# --- D1 finding (2026-10-23): cancelling an UNCLAIMED item in the sandbox --------------------------------
+# POST .../payouts-item/{id}/cancel answered 400 BATCH_NOT_COMPLETED while the batch was PROCESSING and 500
+# INTERNAL_SERVICE_ERROR (twice) once it was SUCCESS. So: wait for the batch to finish (bounded), try the cancel
+# exactly once, and on any failure say so honestly and re-route with a new batch; never claim a cancel worked.
+
+CANCEL_UNAVAILABLE_LABEL = "Cancel not available in sandbox"
+BATCH_WAIT_BACKOFF_S = (2.0, 4.0, 8.0, 15.0)
+
+
+async def wait_for_batch_final(
+    gw: Gateway,
+    *,
+    batch_id: str,
+    max_wait_s: float = 60.0,
+    backoff_s: tuple[float, ...] = BATCH_WAIT_BACKOFF_S,
+    sleep: Callable[[float], Awaitable[object]] = asyncio.sleep,
+    clock: Callable[[], float] = time.monotonic,
+    fetch: Callable[..., Awaitable[dict]] | None = None,
+) -> tuple[dict | None, bool]:
+    """Poll GET /v1/payments/payouts/{batch_id} with backoff until batch_status is final or `max_wait_s` passes.
+
+    Returns (last batch seen or None, final?). Read errors are tolerated (the wait simply continues); the last
+    backoff value repeats. Never raises for PayPal errors. `fetch` replaces get_payout_batch (engine fakes)."""
+    fetch = fetch or get_payout_batch
+    started = clock()
+    last: dict | None = None
+    attempt = 0
+    while True:
+        try:
+            last = await fetch(gw, batch_id=batch_id)
+            if batch_status(last) in FINAL_BATCH_STATUSES:
+                return last, True
+        except Exception:  # noqa: BLE001 - a failed read only means "not known to be final yet"
+            pass
+        elapsed = clock() - started
+        if elapsed >= max_wait_s or attempt >= 100:  # hard cap even if the clock misbehaves
+            return last, False
+        delay = backoff_s[min(attempt, len(backoff_s) - 1)] if backoff_s else 1.0
+        await sleep(min(delay, max(0.0, max_wait_s - elapsed)))
+        attempt += 1

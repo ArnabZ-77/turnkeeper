@@ -4,7 +4,8 @@ WORKDIR /web
 COPY web/package*.json ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY web/ ./
-RUN npm run build
+# vite.config.ts targets ../app/static for local dev; the image build writes to /web/dist instead
+RUN npm run build -- --outDir dist --emptyOutDir
 
 # Stage 2: Python runtime
 FROM python:3.11-slim

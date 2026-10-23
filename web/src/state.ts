@@ -7,6 +7,9 @@
 
 import type { ConnectionState } from "./events";
 import { movedHandles, normalizeMode } from "./recovery";
+import { applyForecastEvent } from "./forecast";
+import { applyRerouteToRound } from "./payouts";
+import { markStoryStart } from "./story";
 import type {
   BoardModel,
   ContributionInfo,
@@ -14,6 +17,7 @@ import type {
   RecoveryInfo,
   RunMode,
   SessionInfo,
+  StoryView,
   TickerInfo,
   ToastLevel,
   TraceKind,
@@ -62,6 +66,10 @@ export interface UiState {
   translations: Record<number, string>;
   /** Members whose turn just moved (schedule_changed); drives the board animation. */
   moved: { handles: string[]; seq: number } | null;
+  /** Judge Mode story (`GET /api/judge/story`), refreshed with the board and while a step runs. */
+  story: StoryView | null;
+  /** Replay link offered by the waitlist 429 (builder E). */
+  replayUrl: string | null;
 }
 
 export type UiAction =
@@ -81,7 +89,9 @@ export type UiAction =
   /** A task finished (`GET /api/tasks/{id}`): its mode is authoritative for the run. */
   | { type: "runMode"; mode: string | null | undefined }
   | { type: "translation"; id: number; text: string }
-  | { type: "clearMoved" };
+  | { type: "clearMoved" }
+  | { type: "story"; story: StoryView | null }
+  | { type: "replayUrl"; url: string | null };
 
 export const TRACE_LIMIT = 500;
 export const TOAST_LIMIT = 6;
@@ -103,6 +113,8 @@ export const initialState: UiState = {
   lastMode: null,
   translations: {},
   moved: null,
+  story: null,
+  replayUrl: null,
 };
 
 let seq = 0;
@@ -181,7 +193,7 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
           if (r.n !== ev.round_n) return r;
           const prev = r.payout;
           return {
-            ...r,
+            ...applyRerouteToRound(r, ev),
             status: ev.status === "SUCCESS" ? "PAID" : r.status,
             payout: {
               batch_id: ev.batch_id ?? prev?.batch_id ?? null,
@@ -229,6 +241,15 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
         moved: handles.length ? { handles, seq: (state.moved?.seq ?? 0) + 1 } : state.moved,
       };
     }
+    case "forecast": {
+      if (!state.board || typeof ev.member !== "string" || typeof ev.round_n !== "number") return state;
+      return { ...state, board: applyForecastEvent(state.board, ev) };
+    }
+    case "story": {
+      if (ev.phase !== "start" || typeof ev.step !== "string") return state;
+      const story = markStoryStart(state.story, ev.step);
+      return story === state.story ? state : { ...state, story };
+    }
     case "unknown":
     default:
       return state;
@@ -257,6 +278,10 @@ export function reducer(state: UiState, action: UiAction): UiState {
       return { ...state, translations: { ...state.translations, [action.id]: action.text } };
     case "clearMoved":
       return state.moved ? { ...state, moved: null } : state;
+    case "story":
+      return { ...state, story: action.story };
+    case "replayUrl":
+      return { ...state, replayUrl: action.url };
     case "event":
       return applyEvent(state, action.event);
     case "toast":

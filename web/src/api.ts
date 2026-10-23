@@ -6,7 +6,20 @@
  * 429 `{"waitlist": true}` response the session cap returns.
  */
 
-import type { BoardModel, JudgeResult, RecoveryInfo, SessionInfo, TaskStarted, TaskStatus } from "./types";
+import type {
+  BoardModel,
+  CompileResult,
+  FreezeResult,
+  JoinCard,
+  JudgeCircleResult,
+  JudgeResult,
+  RecoveryInfo,
+  SessionInfo,
+  StoryStepResult,
+  StoryView,
+  TaskStarted,
+  TaskStatus,
+} from "./types";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -21,6 +34,13 @@ export class ApiError extends Error {
 
   get waitlist(): boolean {
     return this.status === 429 && isRecord(this.body) && this.body.waitlist === true;
+  }
+
+  /** Builder E: the waitlist 429 names the canonical recorded run (`/api/replay`). */
+  get replayUrl(): string | null {
+    if (!isRecord(this.body)) return null;
+    const url = this.body.replay_url;
+    return typeof url === "string" && url.startsWith("/") && this.body.replay_available !== false ? url : null;
   }
 }
 
@@ -82,7 +102,11 @@ export type JudgeAction =
   | "approve_as_priya"
   | "mark_invoice_paid"
   // No live sandbox (no credentials or no seeded vault ids): stands in for Run Round 3
-  | "simulate_round3_decline";
+  | "simulate_round3_decline"
+  // M3 builder C: force the T-3 forecast
+  | "run_forecast"
+  // Builder E (D1): UNCLAIMED pot -> one cancel attempt, new batch r{rev+1} (background task)
+  | "reroute_unclaimed";
 
 /** `POST /api/judge/{action}` with `{circle_id, ...extra}`. */
 export function judge(action: JudgeAction, circleId: string, extra: Record<string, unknown> = {}): Promise<JudgeResult> {
@@ -110,6 +134,36 @@ export const api = {
     approveAsPriya: (circleId: string) => judge("approve_as_priya", circleId),
     markInvoicePaid: (circleId: string) => judge("mark_invoice_paid", circleId),
     simulateRound3Decline: (circleId: string) => judge("simulate_round3_decline", circleId),
+    runForecast: (circleId: string, roundN?: number) =>
+      judge("run_forecast", circleId, roundN ? { round_n: roundN } : {}),
+    rerouteUnclaimed: (circleId: string, roundN?: number) =>
+      judge("reroute_unclaimed", circleId, roundN ? { round_n: roundN } : {}),
+  },
+  /** Judge Mode story: one "Next step" button (builder E). */
+  story: {
+    get: (): Promise<StoryView> => request("GET", "/api/judge/story"),
+    run: (step: string = "next"): Promise<StoryStepResult> => request("POST", `/api/judge/story/${enc(step)}`),
+  },
+  /** Charter compiler (builder B). */
+  compile: {
+    demo: (lang: "en" | "hi"): Promise<{ lang: string; text: string }> =>
+      request("GET", `/api/circles/compile/demo?lang=${lang}`),
+    run: (text: string, lang?: string): Promise<CompileResult> =>
+      request("POST", "/api/circles/compile", lang ? { text, lang } : { text }),
+    freeze: (circleId: string, body: { draft_id?: string; confirm?: boolean }): Promise<FreezeResult> =>
+      request("POST", `/api/circles/${enc(circleId)}/charter/freeze`, body),
+  },
+  /** Member join flow (builder B); no organizer session needed except for the judge circle. */
+  join: {
+    card: (invite: string): Promise<JoinCard> => request("GET", `/api/join/${enc(invite)}`),
+    start: (invite: string): Promise<{ ok: boolean; setup_token_id: string; approve_url: string; status: string }> =>
+      request("POST", `/api/join/${enc(invite)}/start`),
+    wallet: (
+      invite: string,
+      body: { wallet: "PAYPAL" | "VENMO"; receiver?: string },
+    ): Promise<{ ok: boolean; payout_wallet: string; payout_receiver_masked: string | null }> =>
+      request("POST", `/api/join/${enc(invite)}/wallet`, body),
+    judgeCircle: (): Promise<JudgeCircleResult> => request("POST", "/api/join/judge-circle"),
   },
   getTask: (taskId: string): Promise<TaskStatus> => request("GET", `/api/tasks/${enc(taskId)}`),
   getRecovery: (circleId: string): Promise<RecoveryInfo> => request("GET", `/api/circles/${enc(circleId)}/recovery`),

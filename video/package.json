@@ -1,0 +1,37 @@
+{
+  "name": "turnkeeper-video",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Turnkeeper demo video toolchain: Playwright capture -> Kokoro TTS -> Remotion render -> ffmpeg loudnorm",
+  "type": "module",
+  "scripts": {
+    "link": "node scripts/link-public.mjs",
+    "studio": "remotion studio remotion/src/index.ts",
+    "render": "remotion render remotion/src/index.ts Main out/main.mp4 --props=remotion/storyboard.json",
+    "render:test": "remotion render remotion/src/index.ts Main out/test.mp4",
+    "capture": "node capture/capture.ts --storyboard capture/storyboard.json",
+    "capture:test": "node capture/capture.ts --storyboard capture/storyboard.test.json --out footage/_test",
+    "master": "node scripts/master.mjs out/main.mp4 out/final.mp4",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fontsource/inter": "5.3.0",
+    "@remotion/captions": "4.0.538",
+    "@remotion/cli": "4.0.538",
+    "@remotion/fonts": "4.0.538",
+    "@remotion/transitions": "4.0.538",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.538"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "playwright": "1.64.1",
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

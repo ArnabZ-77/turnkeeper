@@ -8,7 +8,7 @@ from app.domain.policy import CircleState
 from app.engine import state
 from app.models import PayPalCall
 
-BOARD_KEYS = {"circle", "members", "rounds", "contributions", "counters", "ticker", "recovery"}
+BOARD_KEYS = {"circle", "members", "rounds", "contributions", "counters", "ticker", "recovery", "forecasts"}
 CIRCLE_KEYS = {
     "id",
     "name",
@@ -27,7 +27,18 @@ CIRCLE_KEYS = {
     "flags",
 }
 MEMBER_KEYS = {"handle", "name", "lang", "payout_wallet", "vaulted", "rotation_pos", "label"}
-ROUND_KEYS = {"n", "due_at", "recipient", "status", "payout", "paid_at"}
+ROUND_KEYS = {
+    "n",
+    "due_at",
+    "recipient",
+    "status",
+    "payout",
+    "paid_at",
+    # builder E (D1 UNCLAIMED path)
+    "payout_rev",
+    "payout_attempts",
+    "pending_return",
+}
 CONTRIBUTION_KEYS = {
     "round_n",
     "member",
@@ -51,6 +62,7 @@ def test_board_model_shape(circle_id):
     assert set(board) == BOARD_KEYS
     circle = board["circle"]
     assert CIRCLE_KEYS <= set(circle)
+    assert circle["paypal_balance"]["source"] == "paypal_balances"  # context only (D1: Balances lags)
     assert circle["id"] == circle_id and circle["amount"] == "200.00" and circle["currency"] == "USD"
     assert circle["buffer_balance"] == "250.00" and circle["circle_available"] == "0.00"
     assert circle["mandate_present"] is True

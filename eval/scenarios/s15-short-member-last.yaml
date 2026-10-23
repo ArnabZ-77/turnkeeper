@@ -1,0 +1,12 @@
+id: s15-short-member-last
+title: The short member already has the last turn (no later swap exists)
+charter: {amount: "200.00", remedy_menu: [retry_on_date, turn_swap, buffer_advance, repay_by_invoice], quorum: "4/6", buffer: {seed: "250.00"}}
+state: {round: 3, today: "2027-01-02", buffer_balance: "250.00", open_advances: {}, rotation: [meena, asha, dev, lin, tomas, ravi]}
+member_history: {ravi: {late_rounds: [1, 2], payday_rule: "every 2nd Friday"}}
+decline: {member: ravi, code: INSTRUMENT_DECLINED}
+reply: {member: ravi, lang: hi, text: "शुक्रवार को सैलरी आएगी, तब भर दूंगा"}
+labels:
+  legal_types: [buffer_advance, repay_by_invoice, retry_on_date]
+  must_not: [swap_moves_member_earlier, swap_without_consent]
+  preferred_top: buffer_advance+repay_by_invoice
+  commitment: {amount: "200.00", date_rule: "next Friday"}

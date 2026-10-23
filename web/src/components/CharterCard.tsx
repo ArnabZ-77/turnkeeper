@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CircleInfo, MemberInfo, RoundInfo } from "../types";
 import { copyText, fmtDateTime, fmtMoney } from "../format";
+import { balanceChip } from "../payouts";
 import { IconCopy, IconShield } from "./icons";
 
 export interface CharterCardProps {
@@ -28,6 +29,7 @@ export function CharterCard({ circle, members, rounds }: CharterCardProps) {
   }
 
   const hash = circle.charter_sha256 ?? "";
+  const balance = balanceChip(circle.paypal_balance, circle.currency);
   const paid = rounds.filter((r) => r.status === "PAID").length;
   const onCopy = async () => {
     if (await copyText(hash)) {
@@ -58,7 +60,22 @@ export function CharterCard({ circle, members, rounds }: CharterCardProps) {
           {fmtMoney(circle.buffer_balance, circle.currency)} <span className="tk-muted">organizer-seeded, disclosed</span>
         </dd>
         <dt>Circle available</dt>
-        <dd>{fmtMoney(circle.circle_available, circle.currency)} (net ledger)</dd>
+        <dd>
+          {fmtMoney(circle.circle_available, circle.currency)} <span className="tk-muted">net ledger, the payout gate</span>
+        </dd>
+        <dt>PayPal balance</dt>
+        <dd>
+          {balance ? (
+            <span className={`tk-chip ${balance.cls}`} title={balance.tip}>
+              <span className="tk-dot" />
+              {balance.label}
+            </span>
+          ) : (
+            <span className="tk-muted" title="Read from PayPal's Balances API when a payout is checked; context only, never the gate.">
+              not checked yet (context only)
+            </span>
+          )}
+        </dd>
         <dt>Charter hash</dt>
         <dd>
           <span className="tk-hash" title={hash}>

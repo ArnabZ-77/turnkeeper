@@ -39,7 +39,9 @@ function eventRenderer({ eventRecord, renderData }: RendererContext): string {
   if (meta) {
     renderData.wrapperCls = addCls(renderData.wrapperCls, meta.kind === "pot" ? potCls(meta) : contributionCls(meta));
   }
-  return StringHelper.encodeHtml(String(eventRecord.name ?? ""));
+  const text = StringHelper.encodeHtml(String(eventRecord.name ?? ""));
+  // T-3 forecast flag: a small fixed-width badge (static markup, no member text).
+  return meta?.kind === "contribution" && meta.predicted ? `${text}<span class="tk-predicted-badge">predicted</span>` : text;
 }
 
 const COLUMNS = [

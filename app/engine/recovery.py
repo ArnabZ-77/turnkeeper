@@ -1061,15 +1061,21 @@ async def _apply_invoice(
     mrow = _member_rows(circle_id).get(member)
     email = _payer_email(mrow)
     settings = get_settings()
-    simulated = not settings.paypal_configured
+    # A simulated round (Judge Mode without seeded vault ids) never triggers a live toolkit invoice either: the
+    # decline it repays never happened on PayPal.
+    simulated_round = settings.paypal_configured and _round_is_simulated(circle_id, remedy.round_n)
+    simulated = not settings.paypal_configured or simulated_round
     invoice_id: str | None = None
     invoice_status = "SENT"
     qr: str | None = None
     if simulated:
         invoice_id = f"{SIMULATED_INVOICE_PREFIX}{circle.run_id}-{remedy.round_n}-{member}"
-        await _trace(
-            publish, "No PayPal sandbox credentials: invoice simulated (labelled), no PayPal call made"
+        why = (
+            f"Round {remedy.round_n}'s charges were simulated"
+            if simulated_round
+            else "No PayPal sandbox credentials"
         )
+        await _trace(publish, f"{why}: invoice simulated (labelled), no PayPal call made")
     else:
         keys = _keys()
         number = keys.invoice_number(circle.run_id, circle_id, remedy.round_n, member)
@@ -1401,7 +1407,7 @@ def send_decline_notice(circle_id: str, round_n: int, member: str) -> dict[str, 
     )
 
 
-SIMULATED_DECLINE_LABEL = "API decline: simulated (no sandbox credentials)"
+SIMULATED_DECLINE_LABEL = "API decline: simulated (no live sandbox for this circle)"
 SIMULATED_CAPTURE_LABEL = "Captured (simulated, no PayPal call)"
 SIMULATED_REQUEST_PREFIX = "REPLAY-SIM-"  # request ids of simulated rows (see _round_is_simulated)
 
