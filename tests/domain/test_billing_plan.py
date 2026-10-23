@@ -14,13 +14,15 @@ def test_monthly_demo_plan_matches_plan_md_shape(charter):
                 "sequence": 1,
                 "total_cycles": 6,
                 "pricing_scheme": {
-                    "pricing_model": "FIXED",
+                    "pricing_model": "VARIABLE",
                     "price": {"value": "200.00", "currency_code": "USD"},
                 },
                 "frequency": {"interval_unit": "MONTH", "interval_count": 1},
                 "start_date": "2026-11-01",
             }
         ],
+        # Required by the sandbox for RECURRING_PREPAID (verified 2026-10-23); FIXED pricing is rejected.
+        "one_time_charges": {"total_amount": {"value": "0.00", "currency_code": "USD"}},
     }
 
 

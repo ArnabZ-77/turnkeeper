@@ -8,3 +8,7 @@ Dated, one line each, newest first. Cuts and fallbacks chosen at the D1 go/no-go
 - 2026-10-21 · Reasoning model `claude-opus-5-5`, text model `claude-haiku-5-5`; no vector store / RAG in the MVP.
 - 2026-10-21 · All sandbox accounts must be **US**; the default India accounts are never used.
 - 2026-10-22 · Bryntum trial: the 45-day clock is per visitor browser from the first load of a bundle's install-time UUID; every `npm ci` (every Render Docker build) resets it. Final production image must be built on/after Nov 2. Pin `@bryntum/scheduler-trial@7.3.7` + `@bryntum/scheduler-react@7.3.7`.
+- 2026-10-23 · D1 go/no-go: GO. Vault consent (RECURRING_PREPAID, billing_plan needs one_time_charges + pricing_model VARIABLE), merchant-initiated capture, mock decline, payouts ($0.25 fee), dedupe and toolkit wrapper all PASS in the US sandbox.
+- 2026-10-23 · Balances lags ~2.5 h in sandbox: the per-circle ledger is the binding payout check; Balances is shown as "last refreshed …" context only.
+- 2026-10-23 · Cancelling an UNCLAIMED payout item returns 500 in sandbox: the UNCLAIMED path shows the status honestly and re-routes as a new batch; it never claims a cancel succeeded.
+- 2026-10-23 · Venmo payouts cut (no sandbox phone); PayPal wallet only. Free LLM provider by default (no paid Anthropic key).
