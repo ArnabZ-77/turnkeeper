@@ -223,6 +223,9 @@ def money(x) -> Decimal                           # quantize to 0.01, ROUND_HALF
 def estimate_fee(gross: Decimal, pct=Decimal("0.0349"), fixed=Decimal("0.49")) -> Decimal
 def net_of(gross, fee) -> Decimal
 def pot_amount(charter, net_contributions: list[Decimal], advance_net: Decimal, payout_fee_reserve: Decimal) -> Decimal
+    # net_pot: Σ net + advance_net - payout_fee_reserve; gross_up / organizer_absorbs: charter.amount * len(nets) + advance_net
+    # (fees borne by the grossed-up charges or the organizer). Never negative.
+def wire_amount(x) -> str                        # "200.00" (B2 addition; use it for every amount on the wire)
 ```
 
 ### `app/domain/mandate.py`
@@ -237,12 +240,20 @@ def verify_mandate(m: Mandate, secret: str, *, charter_sha256: str, round_n: int
 ### `app/domain/ledger.py` (pure functions over a `LedgerView` snapshot; persistence is B4's)
 ```python
 class LedgerEntry(BaseModel): kind: Literal["contribution_net","buffer_seed","buffer_advance","advance_repaid",
-                              "payout","payout_fee","refund"]; amount: Decimal; round_n: int | None; member: str | None; ref: str | None
-class LedgerView(BaseModel): entries: list[LedgerEntry]
-def circle_available(view) -> Decimal       # Σ contribution_net + advance_repaid + refund(+) - payout - payout_fee
-def buffer_balance(view) -> Decimal         # buffer_seed + advance_repaid - buffer_advance
-def round_net_collected(view, round_n) -> Decimal
+                              "payout","payout_fee","refund","capture_refund"]; amount: Decimal  # >= 0; the kind carries the sign
+                              round_n: int | None = None; member: str | None = None; ref: str | None = None
+class LedgerView(BaseModel): entries: list[LedgerEntry] = []
+def circle_available(view) -> Decimal       # Σ contribution_net + buffer_advance + refund - payout - payout_fee - capture_refund
+def buffer_balance(view) -> Decimal         # Σ buffer_seed + advance_repaid - buffer_advance
+def round_net_collected(view, round_n) -> Decimal   # Σ contribution_net for that round (advances excluded)
 ```
+B2 deviation (2026-10-22): the first draft had `circle_available = … + advance_repaid + refund(+) …` with no
+`buffer_advance` term. That counted a repayment in both balances and left the advanced share out of the circle, so
+the demo's advance-then-payout path would fail the `circle_available` gate. Now an advance moves money buffer -> circle
+and a repayment restores the buffer only. What B4 records: `buffer_advance` when a remedy covers a share,
+`advance_repaid` when the invoice is paid (net), `refund` when a cancelled UNCLAIMED payout item returns to the circle
+(so the `r{rev+1}` payout passes the gate), `capture_refund` (new kind) when a contribution is refunded to a member
+(dissolve, void, canary).
 
 ### `app/domain/policy.py`
 ```python
@@ -254,8 +265,15 @@ class CircleState(BaseModel):
     buffer_balance: Decimal; circle_available: Decimal; paypal_available: Decimal | None
     open_advances: dict[str, Decimal] = {}; swaps_done: set[str] = set(); live_payout_exists: bool = False
     mandate_ok: bool = False
+    # Additive and optional (B2, 2026-10-22); the engine fills them in when it knows them:
+    rotation_override: list[str] | None = None   # effective payout order after approved swaps. Without it, a recipient
+                                                 # other than charter.rotation[round_n-1] is accepted only when both parties
+                                                 # are in swaps_done.
+    last_attempt_at: dict[str, datetime] = {}; now: datetime | None = None   # enables the 24-virtual-hour retry spacing
+    decline_codes: dict[str, str] = {}           # last decline issue code per member; PAYER_ACTION_REQUIRED is never retried
+    revoked: set[str] = set()                    # members whose vault token was deleted (VAULT.PAYMENT-TOKEN.DELETED): no charges
 class PolicyTicket(BaseModel): id: str; action: Action; circle_id: str; round_n: int; member: str | None; amount: Decimal | None; issued_at: datetime
-class PolicyDenied(Exception): reason: str
+class PolicyDenied(Exception): reason: str       # the string the UI shows; str(e) == e.reason
 class PolicyEngine:
     def __init__(self, charter: Charter, state: CircleState): ...
     def authorize(self, action: Action, *, member: str | None = None, amount: Decimal | None = None,
@@ -264,6 +282,14 @@ class PolicyEngine:
     # payout recipient == rotation[round_n-1] (or approved swap), amount <= min(cap, circle_available), paypal_available
     # >= amount when known, exactly one live payout; buffer_advance <= buffer_balance and <= one net contribution and
     # at most one open per member; swaps need both consents and at most one per member; frozen -> deny everything.
+    # Details fixed by B2: state.charter_sha256 must equal charter_sha256(charter) (else denied). `charge` and
+    # `retry_charge` share the attempt limit (attempts[member] <= 2 before this one); retry_charge also needs status
+    # DECLINED. Payout needs mandate_ok or "organizer" in consents, every member COMPLETED|COVERED, cap =
+    # charter.amount * len(members) (PolicyEngine.gross_pot_cap). "One net contribution" =
+    # fees.net_of(amount, estimate_fee(amount)) (PolicyEngine.one_net_contribution; size advances with it). buffer_advance
+    # and turn_swap must be in charter.remedy_menu; swaps only touch unpaid turns and must keep the collateral rule.
+    # refund needs "organizer" in consents, amount <= charter.amount and a COMPLETED contribution; cancel_unclaimed needs
+    # live_payout_exists. Not enforceable here (engine-level): tool-call and run-rate limits, vote closing, injection rules.
 ```
 Tests (B2): `tests/domain/test_*.py`, 30+ cases including the collateral rule, hash stability (key order, whitespace),
 HMAC tamper detection, every policy rule's allow and deny path.
@@ -325,6 +351,32 @@ async def run_task(task: AgentTask, *, publish: Callable[[dict], Awaitable[None]
 
 Tests (B3): schema converter over all tools; the loop against a fake Anthropic client (monkeypatched `messages.create`
 returning a scripted tool_use then end_turn); rules mode end-to-end against B4's engine with a mocked gateway.
+
+**B3 implementation notes (2026-10-22, additive to the above):**
+- `app/mcp/internal.py`: tools validate handles before touching the engine (`{"ok": false, "error": "INVALID_INPUT"}`).
+  Any other exception becomes `{"ok": false, "error": <ExceptionName>, "message"}` (`ENGINE_UNAVAILABLE` when
+  `app.engine` is missing). Engine events reach the session through `bind_publisher(circle_id, publish)` (context
+  manager; `run_task`/`run_rules` bind it, tools look the publisher up by `circle_id`). `get_member_history` calls
+  `app.engine.state.member_history(circle_id, member)` when B4 provides it, otherwise derives `late_rounds` from the
+  board (DECLINED/COVERED or attempt > 1) and `payday_rule` from the charter (`commitments`/`replies` empty in M1).
+  `record_note` publishes `{"type": "trace", "kind": "text", "source": "note", "text"}`.
+- `app/mcp/public.py`: demo check order: `state.is_fixture_clone(circle_id)` hook if present -> `app.db.session_scope()` +
+  `app.models.Circle.is_fixture_clone` -> `board["circle"]["is_fixture_clone"]`; fails closed. Non-demo circles get
+  `{"ok": false, "error": "NOT_A_DEMO_CIRCLE"}`. Masking drops email/phone/receiver/vault/customer/sandbox keys, reduces
+  `name` to the first name and scrubs email/phone patterns in strings.
+- `app/mcp/auth.py`: the public server is served at exactly `/mcp` through `Route("/mcp", endpoint=http_app)` (a plain
+  `app.mount` answers `POST /mcp` with a 307 that MCP clients do not follow), stateless streamable HTTP with JSON
+  responses, and its lifespan is chained onto the FastAPI app's. Empty `MCP_DEMO_TOKEN` -> 503 "MCP demo token not
+  configured"; 30 req/min per (token, IP) -> 429 with `Retry-After`; `X-Forwarded-For` is honoured (Render proxy).
+  `mount_public_mcp` is idempotent and must run before the SPA catch-all route (it does, from `_include_routers`).
+- `app/agent/treasurer.py`: `run_task(task, *, publish, client=None)` (`client` injectable for tests). Fallback to
+  `run_rules` on missing key, `refusal`, `max_tokens`, `model_context_window_exceeded` or any `anthropic.APIError`
+  (`mode="rules"`, the live trace is kept in front of the rules trace). The 25-call cap ends the run with `ok=False`,
+  `mode="live"`. Trace events carry `mode` ("live"|"rules"); tool results are truncated to 400 chars in the trace only.
+- `app/agent/rules_mode.py`: `run_rules(task, *, publish=None, reason="...")`. `collect_round` kind: collect_round ->
+  get_order_details per COMPLETED -> get_round_matrix -> get_available_balance -> create_pot_payout only when every
+  member is COMPLETED or COVERED -> record_note. `payout` kind skips the collection; `recover` reads the matrix and
+  `get_member_history` for every outstanding member and leaves a note (no money tools).
 
 ---
 

@@ -63,6 +63,14 @@ def _include_routers() -> None:
             continue
         app.include_router(m.router)
 
+    # Public read-only MCP (B3) behind bearer auth; guarded so boot never fails without it.
+    try:
+        from app.mcp.auth import mount_public_mcp
+
+        mount_public_mcp(app)
+    except (ImportError, Exception) as e:  # noqa: B014 - ImportError listed on purpose (missing module is the common case)
+        log.warning("public MCP not mounted: %s", e)
+
 
 _include_routers()
 

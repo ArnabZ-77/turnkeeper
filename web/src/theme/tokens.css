@@ -1,0 +1,88 @@
+/*
+ * Turnkeeper colour tokens. Light is the default; dark applies for the OS preference unless the
+ * viewer pinned light, and always when the viewer pinned dark. Status colours are reserved for
+ * state (never reused as series colours) and always ship with an icon + label.
+ */
+:root {
+  color-scheme: light;
+  --tk-page: #f9f9f7;
+  --tk-surface: #fcfcfb;
+  --tk-surface-2: #f0efec;
+  --tk-surface-3: #e6e5df;
+  --tk-ink: #0b0b0b;
+  --tk-ink-2: #52514e;
+  --tk-muted: #898781;
+  --tk-hairline: #e1e0d9;
+  --tk-border: rgba(11, 11, 11, 0.1);
+  --tk-accent: #2a78d6;
+  --tk-accent-ink: #ffffff;
+  --tk-accent-wash: rgba(42, 120, 214, 0.1);
+  --tk-good: #0ca30c;
+  --tk-good-ink: #006300;
+  --tk-warn: #fab219;
+  --tk-warn-ink: #6b4a00;
+  --tk-serious: #ec835a;
+  --tk-critical: #d03b3b;
+  --tk-critical-ink: #a32424;
+  --tk-pending: #898781;
+  --tk-pending-ink: #52514e;
+  --tk-radius: 10px;
+  --tk-radius-sm: 6px;
+  --tk-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --tk-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --tk-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --tk-page: #0d0d0d;
+    --tk-surface: #1a1a19;
+    --tk-surface-2: #262624;
+    --tk-surface-3: #383835;
+    --tk-ink: #f0efec;
+    --tk-ink-2: #c3c2b7;
+    --tk-muted: #898781;
+    --tk-hairline: #2c2c2a;
+    --tk-border: rgba(255, 255, 255, 0.1);
+    --tk-accent: #3987e5;
+    --tk-accent-ink: #ffffff;
+    --tk-accent-wash: rgba(57, 135, 229, 0.16);
+    --tk-good: #0ca30c;
+    --tk-good-ink: #4fd34f;
+    --tk-warn: #fab219;
+    --tk-warn-ink: #fab219;
+    --tk-serious: #ec835a;
+    --tk-critical: #d03b3b;
+    --tk-critical-ink: #ef7a7a;
+    --tk-pending: #898781;
+    --tk-pending-ink: #c3c2b7;
+    --tk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --tk-page: #0d0d0d;
+  --tk-surface: #1a1a19;
+  --tk-surface-2: #262624;
+  --tk-surface-3: #383835;
+  --tk-ink: #f0efec;
+  --tk-ink-2: #c3c2b7;
+  --tk-muted: #898781;
+  --tk-hairline: #2c2c2a;
+  --tk-border: rgba(255, 255, 255, 0.1);
+  --tk-accent: #3987e5;
+  --tk-accent-ink: #ffffff;
+  --tk-accent-wash: rgba(57, 135, 229, 0.16);
+  --tk-good: #0ca30c;
+  --tk-good-ink: #4fd34f;
+  --tk-warn: #fab219;
+  --tk-warn-ink: #fab219;
+  --tk-serious: #ec835a;
+  --tk-critical: #d03b3b;
+  --tk-critical-ink: #ef7a7a;
+  --tk-pending: #898781;
+  --tk-pending-ink: #c3c2b7;
+  --tk-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.35);
+}

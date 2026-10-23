@@ -1,0 +1,163 @@
+/*
+ * Bryntum Scheduler styling.
+ *
+ * Three imports are required by the package: FontAwesome (icons), the structural stylesheet and
+ * exactly one theme. The Stockholm theme is injected at runtime by theme/useTheme.ts (light or
+ * dark, both bundled) so it can follow the app's light/dark setting. Everything below maps
+ * Turnkeeper's status tokens onto Bryntum's `--b-primary`, which every event style consumes.
+ */
+@import "@bryntum/scheduler/fontawesome/css/fontawesome.css";
+@import "@bryntum/scheduler/fontawesome/css/solid.css";
+@import "@bryntum/scheduler/scheduler.css";
+
+.tk-scheduler {
+  font-family: var(--tk-font);
+  font-size: 13px;
+  border: 1px solid var(--tk-border);
+  border-radius: var(--tk-radius);
+  overflow: hidden;
+}
+
+/* Contribution chips: colour by status, always paired with an icon and a text label. */
+.tk-scheduler .b-sch-event-wrap.tk-st-pending {
+  --b-primary: var(--tk-pending);
+}
+.tk-scheduler .b-sch-event-wrap.tk-st-completed {
+  --b-primary: var(--tk-good);
+}
+.tk-scheduler .b-sch-event-wrap.tk-st-declined {
+  --b-primary: var(--tk-critical);
+}
+.tk-scheduler .b-sch-event-wrap.tk-st-covered {
+  --b-primary: var(--tk-warn);
+}
+.tk-scheduler .b-sch-event-wrap.tk-st-covered .b-sch-event {
+  /* amber is light; keep the label legible */
+  --b-sch-event-color: #0b0b0b;
+}
+.tk-scheduler .b-sch-event-wrap.tk-contrib .b-sch-event {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.tk-scheduler .b-sch-event-wrap.tk-predicted .b-sch-event {
+  outline: 2px dashed var(--tk-warn);
+  outline-offset: 1px;
+}
+.tk-scheduler .b-sch-event-wrap.tk-verified .b-sch-event {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45);
+}
+
+/* Pot milestones on the recipient's row. */
+.tk-scheduler .b-sch-event-wrap.tk-pot {
+  --b-primary: var(--tk-pending);
+}
+.tk-scheduler .b-sch-event-wrap.tk-pot-collecting {
+  --b-primary: var(--tk-accent);
+}
+.tk-scheduler .b-sch-event-wrap.tk-pot-collected {
+  --b-primary: var(--tk-warn);
+}
+.tk-scheduler .b-sch-event-wrap.tk-pot-paid {
+  --b-primary: var(--tk-good);
+}
+.tk-scheduler .b-sch-event-wrap.tk-pot-void {
+  --b-primary: var(--tk-critical);
+}
+.tk-scheduler .b-sch-event-wrap.tk-pot .b-sch-event {
+  font-weight: 700;
+}
+
+/* Round bands (TimeRanges feature): a label per round in the header, a faint wash in the body. */
+.tk-scheduler .b-time-ranges-header-canvas .b-sch-time-range.tk-round {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tk-ink-2);
+  background: color-mix(in srgb, var(--tk-ink) 6%, transparent);
+  justify-content: center;
+}
+.tk-scheduler .b-time-ranges-header-canvas .b-sch-time-range.tk-round-collecting {
+  color: var(--tk-accent);
+  background: var(--tk-accent-wash);
+}
+.tk-scheduler .b-time-ranges-header-canvas .b-sch-time-range.tk-round-paid {
+  color: var(--tk-good-ink);
+  background: color-mix(in srgb, var(--tk-good) 12%, transparent);
+}
+.tk-scheduler .b-time-ranges-header-canvas .b-sch-time-range.tk-round-void {
+  color: var(--tk-critical-ink);
+  background: color-mix(in srgb, var(--tk-critical) 12%, transparent);
+}
+.tk-scheduler .b-time-ranges-body-canvas .b-sch-time-range.tk-round {
+  background: transparent;
+}
+.tk-scheduler .b-time-ranges-body-canvas .b-sch-time-range.tk-round-collecting {
+  background: color-mix(in srgb, var(--tk-accent) 7%, transparent);
+}
+.tk-scheduler .b-time-ranges-body-canvas .b-sch-time-range.tk-round-paid {
+  background: color-mix(in srgb, var(--tk-good) 5%, transparent);
+}
+.tk-scheduler .b-time-ranges-body-canvas .b-sch-time-range.tk-round-void {
+  background: color-mix(in srgb, var(--tk-critical) 5%, transparent);
+}
+.tk-scheduler .b-sch-time-range.tk-now {
+  background: transparent;
+  border-inline-start: 2px solid var(--tk-accent);
+  color: var(--tk-accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Member column cell. */
+.tk-scheduler .tk-member {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.tk-scheduler .tk-member-name {
+  font-weight: 600;
+  color: var(--tk-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-scheduler .tk-member-meta {
+  font-size: 11px;
+  color: var(--tk-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-scheduler .tk-member-recipient {
+  color: var(--tk-accent);
+  font-weight: 600;
+}
+
+/* Tooltip (rendered by Bryntum via innerHTML; all values are HTML-encoded in RotationBoard). */
+.tk-tip {
+  font-family: var(--tk-font);
+  font-size: 12px;
+  min-width: 240px;
+  max-width: 360px;
+}
+.tk-tip-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.tk-tip-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  padding: 2px 0;
+  border-top: 1px solid var(--b-grid-cell-border-color, rgba(128, 128, 128, 0.25));
+}
+.tk-tip-k {
+  color: var(--tk-muted);
+}
+.tk-tip-v {
+  overflow-wrap: anywhere;
+}
+.tk-tip-v.tk-mono {
+  font-family: var(--tk-mono);
+  font-size: 11px;
+}

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "notes": [
+    "Demo circle cloned per visitor session (app/engine/fixture.py).",
+    "vault_id placeholders VAULT_ID_<HANDLE> are overridden from env TK_SEED_VAULT_IDS (JSON {handle: vault_id} or {handle: {vault_id, customer_id, payout_receiver, sandbox_account}}).",
+    "Rounds 1-2 are pre-settled in replay mode with REPLAY- prefixed IDs; no PayPal call is ever made for them.",
+    "Rotation satisfies the collateral rule: members with no track record (tomas, ravi) go last."
+  ],
+  "charter": {
+    "name": "Temple Circle A",
+    "currency": "USD",
+    "amount": "200.00",
+    "cadence": "monthly",
+    "start_date": "2026-11-01",
+    "members": [
+      {
+        "handle": "asha",
+        "name": "Asha Patel",
+        "lang": "en",
+        "email": null,
+        "payday_rule": "1st of the month",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 6
+      },
+      {
+        "handle": "ravi",
+        "name": "Ravi Sharma",
+        "lang": "hi",
+        "email": null,
+        "payday_rule": "every 2nd Friday",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 0
+      },
+      {
+        "handle": "meena",
+        "name": "Meena Iyer",
+        "lang": "en",
+        "email": null,
+        "payday_rule": "last working day",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 6
+      },
+      {
+        "handle": "tomas",
+        "name": "Tomas Alvarez",
+        "lang": "en",
+        "email": null,
+        "payday_rule": "15th and 30th",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 0
+      },
+      {
+        "handle": "lin",
+        "name": "Lin Zhao",
+        "lang": "en",
+        "email": null,
+        "payday_rule": "every Friday",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 3
+      },
+      {
+        "handle": "dev",
+        "name": "Dev Mehta",
+        "lang": "en",
+        "email": null,
+        "payday_rule": "1st of the month",
+        "payout_wallet": "PAYPAL",
+        "payout_receiver": null,
+        "track_record_rounds": 3
+      }
+    ],
+    "rotation": ["meena", "asha", "dev", "lin", "tomas", "ravi"],
+    "fee_policy": "net_pot",
+    "buffer": { "seed": "250.00", "source": "organizer", "retention_pct": 0 },
+    "grace_days": 3,
+    "quorum": "4/6",
+    "remedy_menu": ["retry_on_date", "turn_swap", "buffer_advance", "repay_by_invoice"],
+    "languages": ["en", "hi"]
+  },
+  "seed": {
+    "vault_ids": {
+      "asha": "VAULT_ID_ASHA",
+      "ravi": "VAULT_ID_RAVI",
+      "meena": "VAULT_ID_MEENA",
+      "tomas": "VAULT_ID_TOMAS",
+      "lin": "VAULT_ID_LIN",
+      "dev": "VAULT_ID_DEV"
+    }
+  },
+  "clock": { "virtual_now": "2026-12-29T09:00:00Z" },
+  "flags": { "ravi_declines": true, "next_payout_unclaimed": false },
+  "replay": {
+    "settled_rounds": [1, 2],
+    "fee": "7.47",
+    "payout_fee": "0.25",
+    "late": { "ravi": [1, 2] },
+    "late_days": 2,
+    "ids": {
+      "order": "REPLAY-ORD-{round}-{HANDLE}",
+      "capture": "REPLAY-CAP-{round}-{HANDLE}",
+      "batch": "REPLAY-BATCH-{round}",
+      "item": "REPLAY-ITEM-{round}"
+    }
+  },
+  "forecast": { "predicted": { "3": ["ravi"] } },
+  "history": {
+    "ravi": { "late_rounds": [1, 2], "replies": ["शुक्रवार को सैलरी आएगी, तब भर दूंगा"] }
+  }
+}
