@@ -34,7 +34,7 @@ const TITLES: Record<string, { tone: JoinTone; title: string; canContinue: boole
 const FALLBACK_BODY: Record<string, string> = {
   invited: "Review the circle below, then continue to PayPal to approve the schedule once.",
   pending_approval: "Waiting for your approval on PayPal.",
-  vaulted: "You're in. PayPal saved your approval; contributions are collected on each due date.",
+  vaulted: "PayPal saved your approval; contributions are collected on each due date.",
   cancelled: "You cancelled on PayPal. Nothing was saved and nothing will be charged.",
   action_required: "PayPal still needs you to finish approving. Tap Continue to PayPal again.",
   declined: "PayPal declined this payment method. Pick another funding source in PayPal, or ask the organizer.",

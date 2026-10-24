@@ -426,8 +426,15 @@ export interface StoryStep {
   label: string;
   status: StoryStepStatus | string;
   at: string | null;
+  /** Legacy single mode: the AI mode for agent steps, the PayPal mode for others (story.ts storyHow splits it). */
   mode: string | null;
   summary: string | null;
+  /** Newer servers: how PayPal was used (live | simulated | none). */
+  paypal?: string | null;
+  /** Newer servers: how the AI ran (live | replay | rules | none). */
+  ai?: string | null;
+  /** Newer servers: why the last attempt at this step failed. */
+  error?: string | null;
 }
 
 export interface StoryView {

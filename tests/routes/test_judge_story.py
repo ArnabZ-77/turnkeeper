@@ -308,7 +308,7 @@ async def test_concurrent_story_posts_run_the_step_once(client, session, monkeyp
     async def slow_step(_sess, _request):
         calls.append("run")
         await asyncio.sleep(0.05)
-        return {"ok": True}, None, "judge", "slow step"
+        return {"ok": True}, None, "judge", "slow step", judge_story.JUDGE
 
     monkeypatch.setitem(judge_story.EXECUTORS, "advance_to_t3", slow_step)
     request = Request(
@@ -340,6 +340,156 @@ def test_already_paid_payout_step_is_not_labelled_live(client, session, monkeypa
     sess = sessions.resolve_session(_sid(client, session))
     import asyncio
 
-    result, task_id, mode, summary = asyncio.run(judge_story._step_payout(sess, None))
+    result, task_id, mode, summary, how = asyncio.run(judge_story._step_payout(sess, None))
+    assert how == {"paypal": None, "ai": None}
     assert mode == "judge" and task_id is None and result["already"] is True
     assert summary == "Round 3 was already paid (no new payout)"
+
+
+# --- review fixes (2026-10-25 live run and code review) -----------------------------------------------------
+
+
+def _steps(view: dict) -> dict:
+    return {s["step"]: s for s in view["steps"]}
+
+
+def test_live_story_labels_paypal_and_ai_separately(client, session, toolkit, monkeypatch):
+    """run_round3/execute made live sandbox calls but were labelled mode 'rules'; votes read as unanimous;
+    'Advance to T-3' said '+0 d'; summaries showed handles and snake_case remedy kinds."""
+    from fakes import FakePayPal
+
+    FakePayPal().install(monkeypatch)
+    cid = _next(client, "reset")["session"]["circle_id"]
+    vault_members(cid)
+    t3 = _next(client, "advance_to_t3")
+    assert "+0" not in t3["summary"] and t3["summary"].startswith("Forecast at T-3 for round 3")
+    assert "Ravi Sharma" in t3["summary"] and t3["paypal"] is None and t3["ai"] == "rules"
+    _next(client, "run_round3")
+    for step in ("reply_as_ravi", "start_recovery", "consents", "votes", "approve", "execute"):
+        _next(client, step)
+    steps = _steps(_story(client))
+    assert steps["run_round3"]["paypal"] == "live" and steps["run_round3"]["mode"] == "live"
+    assert steps["run_round3"]["summary"] == "Round 3: 5 of 6 paid, Ravi Sharma declined"
+    assert steps["execute"]["paypal"] == "live" and steps["execute"]["ai"] is None
+    assert steps["execute"]["mode"] != "rules" and "buffer advance" in steps["execute"]["summary"]
+    assert "_" not in steps["execute"]["summary"].split("(")[0]
+    assert steps["votes"]["summary"] == "Votes: 4 of 6 yes (quorum 4)"
+    assert steps["consents"]["summary"] == "Consents: Ravi Sharma, Tomas Alvarez"
+    assert steps["start_recovery"]["paypal"] is None and steps["start_recovery"]["ai"] in ("rules", "engine")
+    assert steps["reply_as_ravi"]["mode"] == "judge" and steps["reply_as_ravi"]["paypal"] is None
+
+
+def test_failed_payout_is_kept_on_the_story_and_the_board(client, session, toolkit, monkeypatch):
+    """Live run 2026-10-25: 422 INSUFFICIENT_FUNDS left payout null, no attempt and a null step summary."""
+    from fakes import FakePayPal
+
+    paypal = FakePayPal(payout_error=True).install(monkeypatch)
+    cid = _next(client, "reset")["session"]["circle_id"]
+    vault_members(cid)
+    for step in ORDER[1 : ORDER.index("payout")]:
+        _next(client, step)
+    r = client.post("/api/judge/story/next")
+    assert r.status_code == 409 and "balance too low" in r.json()["detail"]
+    view = _story(client)
+    pay = _steps(view)["payout"]
+    assert pay["status"] == "next" and "balance too low" in pay["error"]
+    assert view["last_error"]["code"] == "INSUFFICIENT_FUNDS" and view["last_error"]["step"] == "payout"
+    board = client.get(f"/api/circles/{cid}").json()
+    assert [a["status"] for a in board["rounds"][2]["payout_attempts"]] == ["FAILED"]
+
+    paypal.payout_error = False  # the operator topped up the sandbox balance
+    ok = _next(client, "payout")
+    assert ok["paypal"] == "live" and ok["summary"].startswith("Pot $") and "Dev" in ok["summary"]
+    view = _story(client)
+    assert view["last_error"] is None and _steps(view)["payout"]["error"] is None
+
+
+def _complete_simulated(client) -> str:
+    r = client.post("/api/judge/story/reset")  # "reset" is always allowed, also on a completed story
+    assert r.status_code == 200, r.text
+    cid = r.json()["session"]["circle_id"]
+    for step in ORDER[1:]:
+        _next(client, step)
+    return cid
+
+
+def test_advanced_controls_mid_story_keep_the_run_out_of_the_public_replay(client, session, toolkit):
+    cid = _next(client, "reset")["session"]["circle_id"]
+    _next(client, "advance_to_t3")
+    r = client.post("/api/judge/toggle_ravi_declines", json={"circle_id": cid, "on": True})
+    assert r.status_code == 200 and _story(client)["tainted"] is True
+    for step in ORDER[2:]:
+        _next(client, step)
+    data = client.get("/api/replay").json()
+    assert data["source"] == "shipped"  # the tainted run was recorded but is not canonical
+    from sqlmodel import select
+
+    from app.db import session_scope
+    from app.models import ReplayRecording
+
+    with session_scope() as db:
+        rows = list(db.exec(select(ReplayRecording)).all())
+    assert [(r.circle_id, r.canonical, r.paypal_mode) for r in rows] == [(cid, False, "simulated")]
+
+    # the story's own steps call the same /api/judge/* handlers and never taint a fresh run
+    cid2 = _complete_simulated(client)
+    data = client.get("/api/replay").json()
+    assert data["source"] == "recorded" and data["paypal_mode"] == "simulated"
+    with session_scope() as db:
+        assert db.get(story.JudgeStoryRow, cid2).tainted is False
+
+
+def test_recording_paypal_mode_comes_from_the_steps():
+    live = [{"step": s, "paypal": "live"} for s in story.PAYPAL_STEPS]
+    assert story.recording_paypal_mode(live) == "live"
+    assert (
+        story.recording_paypal_mode(live[:2] + [{"step": "clean_round4", "paypal": "simulated"}])
+        == "simulated"
+    )
+    assert story.recording_paypal_mode([{"step": "run_round3", "mode": "live"}]) == "simulated"
+
+
+def test_replay_reads_one_row_and_prunes_old_recordings(client, session, toolkit, monkeypatch):
+    from sqlmodel import func, select
+
+    from app.db import session_scope
+    from app.models import ReplayRecording
+
+    for _ in range(story.KEEP_RECORDINGS_PER_MODE + 2):
+        _complete_simulated(client)
+    with session_scope() as db:
+        n = db.exec(select(func.count()).select_from(ReplayRecording)).one()
+    assert n == story.KEEP_RECORDINGS_PER_MODE
+    first = story.latest_recording()
+    assert first is not None and first["source"] == "recorded"
+    # the parsed payload is cached by row id: a second read does not parse the JSON again
+    calls: list[int] = []
+    real = story.json.loads
+    monkeypatch.setattr(story.json, "loads", lambda s, *a, **k: (calls.append(1), real(s, *a, **k))[1])
+    again = story.latest_recording()
+    assert again == first and calls == []
+    again["steps"].clear()  # callers get a copy
+    assert story.latest_recording()["steps"]
+    assert story.replay_available() is True
+
+
+def test_t3_step_charges_the_live_budget_only_when_a_forecast_runs(client, session, monkeypatch):
+    import asyncio
+
+    from app.engine import forecast_job, tasks
+
+    cid = _next(client, "reset")["session"]["circle_id"]
+    asyncio.run(
+        forecast_job.run_forecast(cid, 3, live_allowed=False)
+    )  # already forecast (e.g. clock advance)
+    seen: list[object] = []
+    monkeypatch.setattr(tasks, "live_allowed_for", lambda request: seen.append(request) or False)
+    _next(client, "advance_to_t3")
+    assert seen == []
+
+
+def test_judge_reply_is_tagged_with_round_3(client, session):
+    _next(client, "reset")
+    for step in ORDER[1 : ORDER.index("reply_as_ravi") + 1]:
+        body = _next(client, step)
+    assert body["result"]["message"]["round_n"] == 3

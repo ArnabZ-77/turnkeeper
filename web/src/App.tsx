@@ -11,7 +11,8 @@ import { ApiError, api, describeError } from "./api";
 import { openEventStream } from "./events";
 import { initialState, nextRound, reducer } from "./state";
 import type { JudgeResult, SessionInfo, StoryStepResult, TaskStatus, ToastLevel } from "./types";
-import { MODE_HELP, hasActiveSet, modeChip, nameOf, paypalChip, recoveryButtons } from "./recovery";
+import { MODE_HELP, forecastTranslations, hasActiveSet, modeChip, nameOf, paypalChip, recoveryButtons } from "./recovery";
+import { lastStoryAi, storyFailure } from "./story";
 import { PhoneInbox } from "./components/PhoneInbox";
 import { RecoveryPanel } from "./components/RecoveryPanel";
 import { useTheme } from "./theme/useTheme";
@@ -21,7 +22,7 @@ import { Counters } from "./components/Counters";
 import { JudgeBar } from "./components/JudgeBar";
 import { PayoutReceipt } from "./components/PayoutReceipt";
 import { QueueBadge } from "./components/QueueBadge";
-import { Ticker } from "./components/Ticker";
+import { TickerStat } from "./components/Ticker";
 import { Toasts } from "./components/Toasts";
 import { IconMoon, IconSun } from "./components/icons";
 import { RotationBoard } from "./board/RotationBoard";
@@ -65,6 +66,8 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { resolved, toggle } = useTheme();
   const busyRef = useRef(false);
+  /** True between a reset request and the new session: the old circle answers 403, so do not poll it. */
+  const resettingRef = useRef(false);
   /** Bumped on reset/unmount so task polls from an old run stop. */
   const pollGen = useRef(0);
   useEffect(
@@ -80,6 +83,7 @@ export default function App() {
   const loadSession = useCallback(async () => {
     try {
       const session = await api.getSession();
+      resettingRef.current = false;
       dispatch({ type: "session", session });
     } catch (e) {
       if (e instanceof ApiError && e.waitlist) {
@@ -102,15 +106,16 @@ export default function App() {
   // 2. Board, refetched whenever the circle changes or a `board` event arrives.
   const circleId = state.session?.circle_id ?? null;
   useEffect(() => {
-    if (!circleId) return;
+    if (!circleId || resettingRef.current) return;
     let alive = true;
     api
       .getCircle(circleId)
       .then((board) => {
-        if (alive) dispatch({ type: "board", board });
+        // Ignore an answer for a circle this session no longer owns (a reset raced the fetch).
+        if (alive && !resettingRef.current && board.circle?.id === circleId) dispatch({ type: "board", board });
       })
       .catch((e) => {
-        if (!alive) return;
+        if (!alive || resettingRef.current) return;
         // 403: the session was reset in another tab and owns a different circle now.
         if (e instanceof ApiError && (e.status === 403 || e.status === 401)) void loadSession();
         else dispatch({ type: "error", message: `Could not load the circle: ${describeError(e)}` });
@@ -118,7 +123,7 @@ export default function App() {
     api
       .getRecovery(circleId)
       .then((recovery) => {
-        if (alive) dispatch({ type: "recovery", recovery });
+        if (alive && !resettingRef.current) dispatch({ type: "recovery", recovery });
       })
       .catch(() => {
         /* older server without the recovery route, or a reset in flight: the board's block is enough */
@@ -137,7 +142,7 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
-    if (circleId) void loadStory();
+    if (circleId && !resettingRef.current) void loadStory();
   }, [circleId, state.boardVersion, loadStory]);
   const storyRunning = Boolean(state.story?.running);
   useEffect(() => {
@@ -206,7 +211,11 @@ export default function App() {
 
   // Judge actions: one in flight at a time; errors become toasts, never a blank page.
   const run = useCallback(
-    async (fn: () => Promise<JudgeResult | { task_id: string } | SessionInfo>, after?: (r: unknown) => void) => {
+    async (
+      fn: () => Promise<JudgeResult | { task_id: string } | SessionInfo>,
+      after?: (r: unknown) => void,
+      onError?: (text: string) => void,
+    ) => {
       if (busyRef.current) return;
       busyRef.current = true;
       dispatch({ type: "busy", busy: true });
@@ -214,7 +223,9 @@ export default function App() {
         const result = await fn();
         if (result && typeof result === "object" && (result as JudgeResult).ok === false) {
           const r = result as JudgeResult;
-          toast("warn", String(r.denied ?? r.error ?? r.message ?? "Action refused"));
+          const text = String(r.denied ?? r.error ?? r.message ?? "Action refused");
+          toast("warn", text);
+          onError?.(text);
         }
         after?.(result);
         const taskId = taskIdOf(result);
@@ -222,6 +233,7 @@ export default function App() {
       } catch (e) {
         if (e instanceof ApiError && e.waitlist) dispatch({ type: "waitlist", on: true });
         toast("error", describeError(e));
+        onError?.(describeError(e));
       } finally {
         busyRef.current = false;
         dispatch({ type: "busy", busy: false });
@@ -232,14 +244,20 @@ export default function App() {
 
   const onReset = useCallback(() => {
     if (!circleId) return;
+    resettingRef.current = true;
     void run(
       () => api.judge.reset(circleId),
       (r) => {
         pollGen.current += 1;
         dispatch({ type: "resetRun" });
         const session = (r as JudgeResult | undefined)?.session;
-        if (isSessionInfo(session)) dispatch({ type: "session", session });
-        else void loadSession();
+        if (isSessionInfo(session)) {
+          resettingRef.current = false;
+          dispatch({ type: "session", session });
+        } else void loadSession();
+      },
+      () => {
+        resettingRef.current = false;
       },
     );
   }, [circleId, run, loadSession]);
@@ -323,22 +341,43 @@ export default function App() {
       const res = r as StoryStepResult;
       if (res?.session && isSessionInfo(res.session)) {
         pollGen.current += 1;
+        resettingRef.current = false;
         dispatch({ type: "resetRun" });
         dispatch({ type: "session", session: res.session });
+      } else if (res?.step === "reset") {
+        resettingRef.current = false;
+        void loadSession();
       }
       if (res?.story) dispatch({ type: "story", story: res.story });
       if (res?.summary && res.step !== "reset") toast(res.task_id ? "info" : "success", res.summary);
     },
-    [toast],
+    [toast, loadSession],
   );
   const onStoryNext = useCallback(
     (step: string) => {
-      void run(() => api.story.run(step) as unknown as Promise<JudgeResult>, afterStory);
+      // The story's first step is a reset too: stop polling the old circle until the new session arrives.
+      if (step === "reset") resettingRef.current = true;
+      void run(
+        () => api.story.run(step) as unknown as Promise<JudgeResult>,
+        afterStory,
+        // Kept on screen (under the step dots) until a retry, a pass or a reset: toasts fade.
+        (text) => {
+          if (step === "reset") resettingRef.current = false;
+          dispatch({ type: "storyError", step, text });
+        },
+      );
     },
     [run, afterStory],
   );
   const onStoryRestart = useCallback(() => {
-    void run(() => api.story.run("reset") as unknown as Promise<JudgeResult>, afterStory);
+    resettingRef.current = true;
+    void run(
+      () => api.story.run("reset") as unknown as Promise<JudgeResult>,
+      afterStory,
+      () => {
+        resettingRef.current = false;
+      },
+    );
   }, [run, afterStory]);
   const onReroute = useCallback(
     (roundN: number) => {
@@ -373,10 +412,22 @@ export default function App() {
   const rounds = board?.rounds ?? [];
   const recovery = state.recovery;
   const recButtons = useMemo(() => recoveryButtons(board, recovery), [board, recovery]);
-  const aiChip = modeChip(state.lastMode);
+  // After a reload no trace line has reported a mode yet: fall back to how the story's steps ran.
+  const aiChip = modeChip(state.lastMode ?? lastStoryAi(state.story));
+  const failure = storyFailure(state.story, state.storyFailure);
+  const invoiceSimulated = recovery?.invoice ? Boolean(recovery.invoice.simulated) : undefined;
+  const runningStep = state.story?.running?.step ?? null;
+  const payoutRunning = runningStep === "payout" || runningStep === "clean_round4";
+  const lastPaid = [...rounds].filter((r) => r.status === "PAID").sort((a, b) => b.n - a.n)[0];
+  const tickerSeeded = Boolean(lastPaid?.payout?.item_id?.startsWith("REPLAY-"));
+  const translations = useMemo(
+    () => ({ ...forecastTranslations(board, recovery?.inbox), ...state.translations }),
+    [board, recovery?.inbox, state.translations],
+  );
   const ppChip = session ? paypalChip(session) : null;
   const inbox = recovery?.inbox ?? [];
   const phoneMember = recovery?.member ?? inbox[0]?.member ?? null;
+  const recoveryMember = hasActiveSet(recovery) ? (recovery?.member ?? null) : null;
   const showRecovery = hasActiveSet(recovery);
   const rerouteRound = rounds.find((r) => (r.payout?.status ?? "").toUpperCase() === "UNCLAIMED")?.n ?? null;
 
@@ -448,21 +499,22 @@ export default function App() {
           </div>
         )}
         <CharterCard circle={board?.circle ?? null} members={members} rounds={rounds} />
-        <Counters counters={board?.counters ?? null} />
-        <Ticker ticker={state.ticker} />
+        <Counters counters={board?.counters ?? null}>
+          <TickerStat ticker={state.ticker} running={payoutRunning} seeded={tickerSeeded} />
+        </Counters>
       </header>
 
       <main className="tk-main">
-        <RotationBoard board={board} moved={state.moved?.handles ?? NO_MOVES} />
+        <RotationBoard board={board} moved={state.moved?.handles ?? NO_MOVES} recoveryMember={recoveryMember} />
         {showRecovery && recovery && (
           <RecoveryPanel recovery={recovery} board={board} busy={state.busy} approveBlocked={recButtons.approve} onApprove={onApprove} />
         )}
       </main>
 
       <aside className="tk-rail">
-        <ForecastCard board={board} />
+        <ForecastCard board={board} phoneShown={Boolean(phoneMember)} />
         {phoneMember && (
-          <PhoneInbox memberName={nameOf(board, phoneMember)} messages={inbox} translations={state.translations} />
+          <PhoneInbox memberName={nameOf(board, phoneMember)} messages={inbox} translations={translations} />
         )}
         <AgentTrace entries={state.trace} mode={state.lastMode} keyConfigured={Boolean(session?.live_ai)} onClear={onClearTrace} />
         <PayoutReceipt
@@ -477,7 +529,14 @@ export default function App() {
       </aside>
 
       <footer className="tk-judge">
-        <StoryBar story={state.story} busy={state.busy} onNext={onStoryNext} onRestart={onStoryRestart} />
+        <StoryBar
+          story={state.story}
+          busy={state.busy}
+          failure={failure}
+          invoiceSimulated={invoiceSimulated}
+          onNext={onStoryNext}
+          onRestart={onStoryRestart}
+        />
         <JudgeBar
           open={advancedOpen}
           onToggleOpen={onToggleAdvanced}

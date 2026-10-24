@@ -1,15 +1,26 @@
 """POST /api/circles/compile, the freeze/confirm step and GET /charter (rules mode; no LLM key in tests)."""
 
+from datetime import date, timedelta
+
 from fastapi.testclient import TestClient
 
 from app.agent import charter as cc
 from app.engine import state, tasks
+from app.routes import compile as compile_routes
 
-CUSTOM = (
-    "Name: Corner Store Circle\nMembers: Ana Lopez, Bo Chen, Cy Diaz\n"
-    "We each pay $25 every week starting 2026-11-02.\nPast circles: Ana 4 rounds, Bo 1 round\n"
-    "Decisions need 2 of 3 votes."
-)
+# A start a month ahead, so a new circle can be created whenever the suite runs (PayPal needs a future start).
+START = (date.today() + timedelta(days=30)).isoformat()
+
+
+def _rules(start: str = START, name: str = "Corner Store Circle") -> str:
+    return (
+        f"Name: {name}\nMembers: Ana Lopez, Bo Chen, Cy Diaz\n"
+        f"We each pay $25 every week starting {start}.\nPast circles: Ana 4 rounds, Bo 1 round\n"
+        "Decisions need 2 of 3 votes."
+    )
+
+
+CUSTOM = _rules()
 
 
 def test_compile_needs_a_session(app):
@@ -123,3 +134,67 @@ def test_freeze_is_session_scoped(app, client, session):
         r = other.post(f"/api/circles/{mine}/charter/freeze", json={"draft_id": draft["draft_id"]})
         assert r.status_code == 404
         assert other.get(f"/api/circles/{session['circle_id']}/charter").status_code == 403
+
+
+def _confirm(client, cid, text):
+    draft = client.post("/api/circles/compile", json={"text": text}).json()
+    assert draft["ok"], draft
+    return client.post(
+        f"/api/circles/{cid}/charter/freeze", json={"draft_id": draft["draft_id"], "confirm": True}
+    )
+
+
+def test_a_new_circle_gets_a_future_start_date(client, session):
+    """Review: a past start_date reached PayPal's billing_plan untested (likely a 422, shown as a generic 502)."""
+    from app.engine.common import utcnow
+
+    cid = session["circle_id"]
+    draft = client.post("/api/circles/compile", json={"text": _rules("2025-01-01")}).json()
+    preview = client.post(f"/api/circles/{cid}/charter/freeze", json={"draft_id": draft["draft_id"]}).json()
+    moved = cc._next_month_start(utcnow().date())
+    assert preview["adjustments"] and "not in the future" in preview["adjustments"][0]
+    assert preview["charter_sha256"] != draft["charter_sha256"]  # the organizer sees the moved charter's hash
+    assert preview["billing_plan"]["billing_cycles"][0]["start_date"] == moved.isoformat()
+    body = client.post(
+        f"/api/circles/{cid}/charter/freeze", json={"draft_id": draft["draft_id"], "confirm": True}
+    ).json()
+    assert body["created_circle"] is True and body["charter_sha256"] == preview["charter_sha256"]
+    new = state.load_circle(body["circle_id"])
+    assert new.charter_sha256 == preview["charter_sha256"] and state.charter_of(new).start_date == moved
+
+    far = (date.today() + timedelta(days=400)).isoformat()
+    r = _confirm(client, cid, _rules(far, name="Far Circle"))
+    assert r.status_code == 422 and "more than a year" in r.json()["detail"]["message"]
+    assert _compiled_count() == 1
+    # the running demo charter is approved in place (no adjustment), whatever its start date
+    r = client.post(f"/api/circles/{cid}/charter/freeze", json={"confirm": True})
+    assert r.status_code == 200 and r.json()["adjustments"] == []
+
+
+def _compiled_count() -> int:
+    from sqlmodel import select
+
+    from app.db import session_scope
+    from app.models import Circle
+
+    with session_scope() as db:
+        return len(list(db.exec(select(Circle.id).where(Circle.kind == "compiled")).all()))
+
+
+def test_compiled_circles_and_drafts_are_capped_per_session(client, session, monkeypatch):
+    from sqlmodel import func, select
+
+    from app.db import session_scope
+    from app.models import CharterDraftRow
+
+    cid = session["circle_id"]
+    for i in range(compile_routes.MAX_COMPILED_CIRCLES_PER_SESSION):
+        assert _confirm(client, cid, _rules(name=f"Circle {i}")).status_code == 200
+    r = _confirm(client, cid, _rules(name="One too many"))
+    assert r.status_code == 429 and "reset the demo" in r.json()["detail"]
+
+    monkeypatch.setattr(compile_routes, "MAX_DRAFTS_PER_SESSION", 3)
+    for _ in range(5):
+        client.post("/api/circles/compile", json={"text": CUSTOM})
+    with session_scope() as db:
+        assert db.exec(select(func.count()).select_from(CharterDraftRow)).one() == 3

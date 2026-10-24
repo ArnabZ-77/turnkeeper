@@ -44,7 +44,7 @@ describe("balanceChip", () => {
 
   it("reads 'PayPal balance $X (refreshed hh:mm)' and flags stale readings", () => {
     const fresh = balanceChip({ value: "5000.00", last_refreshed: "2026-10-23T10:05:00Z", stale: false, checked_at: "2026-10-23T10:06:00Z" })!;
-    expect(fresh.label).toMatch(/^PayPal balance \$5000\.00 \(refreshed \d{2}:\d{2}\)$/);
+    expect(fresh.label).toMatch(/^PayPal balance \$5,000\.00 \(refreshed \d{2}:\d{2}\)$/);
     expect(fresh.tip).toMatch(/ledger/);
     const stale = balanceChip({ value: "5000.00", last_refreshed: "2026-10-23T07:00:00Z", stale: true, checked_at: null })!;
     expect(stale.label).toContain("stale");
@@ -76,7 +76,7 @@ describe("unclaimedView", () => {
     );
     expect(v.canReroute).toBe(false);
     expect(v.rerouted).toBe(true);
-    expect(v.chips.map((c) => c.label)).toEqual(["re-routed (r2)", CANCEL_UNAVAILABLE, "pending return $1154.93"]);
+    expect(v.chips.map((c) => c.label)).toEqual(["re-routed (r2)", CANCEL_UNAVAILABLE, "pending return $1,154.93"]);
     expect(v.attempts.map((a) => a.rev)).toEqual([1, 2]);
     expect(v.attempts[0].superseded).toBe(true);
     expect(v.attempts[0].notes).toEqual([CANCEL_UNAVAILABLE, "pending return"]);

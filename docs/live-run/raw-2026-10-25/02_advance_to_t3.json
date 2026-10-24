@@ -1,0 +1,1288 @@
+{
+  "i": 2,
+  "step": "advance_to_t3",
+  "http": 200,
+  "post_s": 0.05,
+  "post_body": {
+    "ok": true,
+    "step": "advance_to_t3",
+    "mode": "rules",
+    "summary": "T-3 for round 3 (+0 d); flagged: ravi (rules)",
+    "task_id": null,
+    "result": {
+      "flagged": [
+        "ravi"
+      ],
+      "forecasts": [
+        {
+          "round_n": 3,
+          "member": "ravi",
+          "score": 0.85,
+          "flagged": true,
+          "reason": "ravi at risk (0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+          "nudge": "\u0928\u092e\u0938\u094d\u0924\u0947 Ravi, \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0947\u0902: \u0930\u093e\u0909\u0902\u0921 3 \u0915\u0947 $200.00 2027-01-01 \u0915\u094b \u0926\u0947\u092f \u0939\u0948\u0902\u0964 \u0905\u0917\u0930 \u0938\u0948\u0932\u0930\u0940 \u092c\u093e\u0926 \u092e\u0947\u0902 \u0906\u090f\u0917\u0940, \u0924\u094b \u0924\u093e\u0930\u0940\u0916 \u092c\u0924\u093e \u0926\u0947\u0902, \u0938\u0930\u094d\u0915\u0932 \u092a\u0939\u0932\u0947 \u0938\u0947 \u0907\u0902\u0924\u091c\u093c\u093e\u092e \u0915\u0930 \u0932\u0947\u0917\u093e\u0964",
+          "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
+          "lang": "hi",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            },
+            {
+              "factor": "late_history",
+              "weight": 0.4,
+              "detail": "paid late in rounds 1 and 2"
+            },
+            {
+              "factor": "payday",
+              "weight": 0.25,
+              "detail": "last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08"
+            },
+            {
+              "factor": "replies",
+              "weight": 0.1,
+              "detail": "1 earlier reply asked for more time"
+            },
+            {
+              "factor": "track_record",
+              "weight": 0.05,
+              "detail": "no track record in earlier circles"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        },
+        {
+          "round_n": 3,
+          "member": "tomas",
+          "score": 0.1,
+          "flagged": false,
+          "reason": "tomas (0.10): no track record in earlier circles",
+          "nudge": null,
+          "nudge_en": null,
+          "lang": "en",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            },
+            {
+              "factor": "track_record",
+              "weight": 0.05,
+              "detail": "no track record in earlier circles"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        },
+        {
+          "round_n": 3,
+          "member": "asha",
+          "score": 0.05,
+          "flagged": false,
+          "reason": "asha (0.05): no risk factors",
+          "nudge": null,
+          "nudge_en": null,
+          "lang": "en",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        },
+        {
+          "round_n": 3,
+          "member": "dev",
+          "score": 0.05,
+          "flagged": false,
+          "reason": "dev (0.05): no risk factors",
+          "nudge": null,
+          "nudge_en": null,
+          "lang": "en",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        },
+        {
+          "round_n": 3,
+          "member": "lin",
+          "score": 0.05,
+          "flagged": false,
+          "reason": "lin (0.05): no risk factors",
+          "nudge": null,
+          "nudge_en": null,
+          "lang": "en",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        },
+        {
+          "round_n": 3,
+          "member": "meena",
+          "score": 0.05,
+          "flagged": false,
+          "reason": "meena (0.05): no risk factors",
+          "nudge": null,
+          "nudge_en": null,
+          "lang": "en",
+          "mode": "rules",
+          "factors": [
+            {
+              "factor": "base",
+              "weight": 0.05,
+              "detail": "base rate"
+            }
+          ],
+          "as_of": "2026-12-29T09:00:00Z"
+        }
+      ],
+      "advanced_days": 0.0
+    },
+    "story": {
+      "ok": true,
+      "circle_id": "5wsg4b",
+      "run_id": "oqmxwklk",
+      "steps": [
+        {
+          "step": "reset",
+          "label": "Reset demo (new circle, new run id)",
+          "status": "done",
+          "at": "2026-10-23T20:08:37Z",
+          "mode": "judge",
+          "summary": "New circle 5wsg4b, run oqmxwklk"
+        },
+        {
+          "step": "advance_to_t3",
+          "label": "Advance to T-3 (forecast)",
+          "status": "done",
+          "at": "2026-10-23T20:08:37Z",
+          "mode": "rules",
+          "summary": "T-3 for round 3 (+0 d); flagged: ravi (rules)"
+        },
+        {
+          "step": "run_round3",
+          "label": "Run Round 3 (Ravi declines)",
+          "status": "next",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "reply_as_ravi",
+          "label": "Reply as Ravi (Hindi)",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "start_recovery",
+          "label": "Start recovery",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "consents",
+          "label": "Consent as the affected members",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "votes",
+          "label": "Vote as members (quorum)",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "approve",
+          "label": "Approve as Priya (one tap)",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "execute",
+          "label": "Execute remedies",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "payout",
+          "label": "Pay Round 3",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        },
+        {
+          "step": "clean_round4",
+          "label": "Clean Round 4 (no clicks)",
+          "status": "todo",
+          "at": null,
+          "mode": null,
+          "summary": null
+        }
+      ],
+      "current": "advance_to_t3",
+      "next": {
+        "step": "run_round3",
+        "label": "Run Round 3 (Ravi declines)",
+        "action_label": "Next: Run Round 3 (Ravi declines)",
+        "index": 2
+      },
+      "running": null,
+      "complete": false,
+      "paypal": "live",
+      "replay_url": "/api/replay"
+    }
+  },
+  "settle_s": 0.06,
+  "polls": [],
+  "story_after": {
+    "ok": true,
+    "circle_id": "5wsg4b",
+    "run_id": "oqmxwklk",
+    "steps": [
+      {
+        "step": "reset",
+        "label": "Reset demo (new circle, new run id)",
+        "status": "done",
+        "at": "2026-10-23T20:08:37Z",
+        "mode": "judge",
+        "summary": "New circle 5wsg4b, run oqmxwklk"
+      },
+      {
+        "step": "advance_to_t3",
+        "label": "Advance to T-3 (forecast)",
+        "status": "done",
+        "at": "2026-10-23T20:08:37Z",
+        "mode": "rules",
+        "summary": "T-3 for round 3 (+0 d); flagged: ravi (rules)"
+      },
+      {
+        "step": "run_round3",
+        "label": "Run Round 3 (Ravi declines)",
+        "status": "next",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "reply_as_ravi",
+        "label": "Reply as Ravi (Hindi)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "start_recovery",
+        "label": "Start recovery",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "consents",
+        "label": "Consent as the affected members",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "votes",
+        "label": "Vote as members (quorum)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "approve",
+        "label": "Approve as Priya (one tap)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "execute",
+        "label": "Execute remedies",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "payout",
+        "label": "Pay Round 3",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "clean_round4",
+        "label": "Clean Round 4 (no clicks)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      }
+    ],
+    "current": "advance_to_t3",
+    "next": {
+      "step": "run_round3",
+      "label": "Run Round 3 (Ravi declines)",
+      "action_label": "Next: Run Round 3 (Ravi declines)",
+      "index": 2
+    },
+    "running": null,
+    "complete": false,
+    "paypal": "live",
+    "replay_url": "/api/replay"
+  },
+  "board_after": {
+    "circle": {
+      "id": "5wsg4b",
+      "name": "Temple Circle A",
+      "amount": "200.00",
+      "currency": "USD",
+      "cadence": "monthly",
+      "charter_sha256": "b85cfed8ada903122d41249e0f8cfab62d1420a137638c921259511cda616f25",
+      "fee_policy": "net_pot",
+      "buffer_balance": "250.00",
+      "circle_available": "0.00",
+      "status": "active",
+      "virtual_now": "2026-12-29T09:00:00Z",
+      "run_id": "oqmxwklk",
+      "rotation": [
+        "meena",
+        "asha",
+        "dev",
+        "lin",
+        "ravi",
+        "tomas"
+      ],
+      "mandate_present": true,
+      "flags": {
+        "ravi_declines": true,
+        "next_payout_unclaimed": false
+      },
+      "frozen": false,
+      "is_fixture_clone": true,
+      "paypal_balance": {
+        "value": null,
+        "last_refreshed": null,
+        "source": "paypal_balances",
+        "stale": null,
+        "checked_at": null
+      }
+    },
+    "members": [
+      {
+        "handle": "meena",
+        "name": "Meena Iyer",
+        "lang": "en",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 1,
+        "label": null
+      },
+      {
+        "handle": "asha",
+        "name": "Asha Patel",
+        "lang": "en",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 2,
+        "label": null
+      },
+      {
+        "handle": "dev",
+        "name": "Dev Mehta",
+        "lang": "en",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 3,
+        "label": null
+      },
+      {
+        "handle": "lin",
+        "name": "Lin Zhao",
+        "lang": "en",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 4,
+        "label": null
+      },
+      {
+        "handle": "ravi",
+        "name": "Ravi Sharma",
+        "lang": "hi",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 5,
+        "label": null
+      },
+      {
+        "handle": "tomas",
+        "name": "Tomas Alvarez",
+        "lang": "en",
+        "payout_wallet": "PAYPAL",
+        "vaulted": true,
+        "rotation_pos": 6,
+        "label": null
+      }
+    ],
+    "rounds": [
+      {
+        "n": 1,
+        "due_at": "2026-11-01T09:00:00Z",
+        "recipient": "meena",
+        "status": "PAID",
+        "payout": {
+          "batch_id": "REPLAY-BATCH-1",
+          "item_id": "REPLAY-ITEM-1",
+          "status": "SUCCESS",
+          "amount": "1154.93"
+        },
+        "paid_at": "2026-11-03T09:00:42Z",
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      },
+      {
+        "n": 2,
+        "due_at": "2026-12-01T09:00:00Z",
+        "recipient": "asha",
+        "status": "PAID",
+        "payout": {
+          "batch_id": "REPLAY-BATCH-2",
+          "item_id": "REPLAY-ITEM-2",
+          "status": "SUCCESS",
+          "amount": "1154.93"
+        },
+        "paid_at": "2026-12-03T09:00:42Z",
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      },
+      {
+        "n": 3,
+        "due_at": "2027-01-01T09:00:00Z",
+        "recipient": "dev",
+        "status": "PENDING",
+        "payout": null,
+        "paid_at": null,
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      },
+      {
+        "n": 4,
+        "due_at": "2027-02-01T09:00:00Z",
+        "recipient": "lin",
+        "status": "PENDING",
+        "payout": null,
+        "paid_at": null,
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      },
+      {
+        "n": 5,
+        "due_at": "2027-03-01T09:00:00Z",
+        "recipient": "ravi",
+        "status": "PENDING",
+        "payout": null,
+        "paid_at": null,
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      },
+      {
+        "n": 6,
+        "due_at": "2027-04-01T09:00:00Z",
+        "recipient": "tomas",
+        "status": "PENDING",
+        "payout": null,
+        "paid_at": null,
+        "payout_rev": 1,
+        "payout_attempts": [],
+        "pending_return": null
+      }
+    ],
+    "contributions": [
+      {
+        "round_n": 1,
+        "member": "asha",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-ASHA",
+        "capture_id": "REPLAY-CAP-1-ASHA",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 1,
+        "member": "ravi",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-RAVI",
+        "capture_id": "REPLAY-CAP-1-RAVI",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured late (replay)"
+      },
+      {
+        "round_n": 1,
+        "member": "meena",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-MEENA",
+        "capture_id": "REPLAY-CAP-1-MEENA",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 1,
+        "member": "tomas",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-TOMAS",
+        "capture_id": "REPLAY-CAP-1-TOMAS",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 1,
+        "member": "lin",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-LIN",
+        "capture_id": "REPLAY-CAP-1-LIN",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 1,
+        "member": "dev",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-1-DEV",
+        "capture_id": "REPLAY-CAP-1-DEV",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "asha",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-ASHA",
+        "capture_id": "REPLAY-CAP-2-ASHA",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "ravi",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-RAVI",
+        "capture_id": "REPLAY-CAP-2-RAVI",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured late (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "meena",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-MEENA",
+        "capture_id": "REPLAY-CAP-2-MEENA",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "tomas",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-TOMAS",
+        "capture_id": "REPLAY-CAP-2-TOMAS",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "lin",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-LIN",
+        "capture_id": "REPLAY-CAP-2-LIN",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 2,
+        "member": "dev",
+        "status": "COMPLETED",
+        "order_id": "REPLAY-ORD-2-DEV",
+        "capture_id": "REPLAY-CAP-2-DEV",
+        "gross": "200.00",
+        "fee": "7.47",
+        "net": "192.53",
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 1,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": "Captured (replay)"
+      },
+      {
+        "round_n": 3,
+        "member": "asha",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 3,
+        "member": "ravi",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": true,
+        "label": null
+      },
+      {
+        "round_n": 3,
+        "member": "meena",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 3,
+        "member": "tomas",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 3,
+        "member": "lin",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 3,
+        "member": "dev",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "asha",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "ravi",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "meena",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "tomas",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "lin",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 4,
+        "member": "dev",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "asha",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "ravi",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "meena",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "tomas",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "lin",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 5,
+        "member": "dev",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "asha",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "ravi",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "meena",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "tomas",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "lin",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      },
+      {
+        "round_n": 6,
+        "member": "dev",
+        "status": "PENDING",
+        "order_id": null,
+        "capture_id": null,
+        "gross": null,
+        "fee": null,
+        "net": null,
+        "decline_code": null,
+        "decline_source": null,
+        "attempt": 0,
+        "webhook_verified": false,
+        "predicted": false,
+        "label": null
+      }
+    ],
+    "counters": {
+      "organizer_messages_typed": 0,
+      "rounds_paid_on_time": 2,
+      "shortfalls_covered": 0
+    },
+    "ticker": {
+      "last_capture_at": "2026-12-03T09:00:00Z",
+      "paid_at": "2026-12-03T09:00:42Z",
+      "seconds": 42
+    },
+    "recovery": {
+      "status": "none",
+      "set_id": null,
+      "member": null,
+      "round_n": null,
+      "commitment": null,
+      "remedies": [],
+      "problems": [],
+      "votes": null,
+      "consents": null,
+      "approval": null,
+      "invoice": null
+    },
+    "forecasts": [
+      {
+        "round_n": 3,
+        "member": "ravi",
+        "score": 0.85,
+        "flagged": true,
+        "reason": "ravi at risk (0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+        "nudge": "\u0928\u092e\u0938\u094d\u0924\u0947 Ravi, \u092f\u093e\u0926 \u0926\u093f\u0932\u093e \u0926\u0947\u0902: \u0930\u093e\u0909\u0902\u0921 3 \u0915\u0947 $200.00 2027-01-01 \u0915\u094b \u0926\u0947\u092f \u0939\u0948\u0902\u0964 \u0905\u0917\u0930 \u0938\u0948\u0932\u0930\u0940 \u092c\u093e\u0926 \u092e\u0947\u0902 \u0906\u090f\u0917\u0940, \u0924\u094b \u0924\u093e\u0930\u0940\u0916 \u092c\u0924\u093e \u0926\u0947\u0902, \u0938\u0930\u094d\u0915\u0932 \u092a\u0939\u0932\u0947 \u0938\u0947 \u0907\u0902\u0924\u091c\u093c\u093e\u092e \u0915\u0930 \u0932\u0947\u0917\u093e\u0964",
+        "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
+        "lang": "hi",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          },
+          {
+            "factor": "late_history",
+            "weight": 0.4,
+            "detail": "paid late in rounds 1 and 2"
+          },
+          {
+            "factor": "payday",
+            "weight": 0.25,
+            "detail": "last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08"
+          },
+          {
+            "factor": "replies",
+            "weight": 0.1,
+            "detail": "1 earlier reply asked for more time"
+          },
+          {
+            "factor": "track_record",
+            "weight": 0.05,
+            "detail": "no track record in earlier circles"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      },
+      {
+        "round_n": 3,
+        "member": "tomas",
+        "score": 0.1,
+        "flagged": false,
+        "reason": "tomas (0.10): no track record in earlier circles",
+        "nudge": null,
+        "nudge_en": null,
+        "lang": "en",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          },
+          {
+            "factor": "track_record",
+            "weight": 0.05,
+            "detail": "no track record in earlier circles"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      },
+      {
+        "round_n": 3,
+        "member": "asha",
+        "score": 0.05,
+        "flagged": false,
+        "reason": "asha (0.05): no risk factors",
+        "nudge": null,
+        "nudge_en": null,
+        "lang": "en",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      },
+      {
+        "round_n": 3,
+        "member": "dev",
+        "score": 0.05,
+        "flagged": false,
+        "reason": "dev (0.05): no risk factors",
+        "nudge": null,
+        "nudge_en": null,
+        "lang": "en",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      },
+      {
+        "round_n": 3,
+        "member": "lin",
+        "score": 0.05,
+        "flagged": false,
+        "reason": "lin (0.05): no risk factors",
+        "nudge": null,
+        "nudge_en": null,
+        "lang": "en",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      },
+      {
+        "round_n": 3,
+        "member": "meena",
+        "score": 0.05,
+        "flagged": false,
+        "reason": "meena (0.05): no risk factors",
+        "nudge": null,
+        "nudge_en": null,
+        "lang": "en",
+        "mode": "rules",
+        "factors": [
+          {
+            "factor": "base",
+            "weight": 0.05,
+            "detail": "base rate"
+          }
+        ],
+        "as_of": "2026-12-29T09:00:00Z"
+      }
+    ]
+  }
+}

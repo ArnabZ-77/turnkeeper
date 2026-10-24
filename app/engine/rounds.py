@@ -100,7 +100,70 @@ def _is_paypal_error(e: BaseException) -> bool:
 
 def _error_payload(e: BaseException) -> dict[str, Any]:
     codes = list(getattr(e, "issue_codes", None) or [])
-    return {"error": str(getattr(e, "name", type(e).__name__)), "issues": codes}
+    out: dict[str, Any] = {"error": str(getattr(e, "name", type(e).__name__)), "issues": codes}
+    debug_id = getattr(e, "debug_id", None)
+    if debug_id:
+        out["debug_id"] = str(debug_id)
+    return out
+
+
+# Payouts errors with a known operator fix (live run 2026-10-25: 422 INSUFFICIENT_FUNDS on every round 3 pot).
+PAYOUT_ERROR_LABELS = {
+    "INSUFFICIENT_FUNDS": (
+        "PayPal sandbox balance too low for the {amount} pot: add balance to the sandbox Business account "
+        "(developer.paypal.com > Sandbox accounts > Business > Add/Edit balance, USD) and retry. Nothing was paid."
+    ),
+}
+
+
+def payout_error_code(payload: dict[str, Any]) -> str:
+    """A stable code for a Payouts failure: the issue PayPal named (e.g. INSUFFICIENT_FUNDS), else its error name."""
+    for code in [payload.get("error"), *(payload.get("issues") or [])]:
+        if code and str(code) in PAYOUT_ERROR_LABELS:
+            return str(code)
+    issues = payload.get("issues") or []
+    return str(issues[0] if issues else payload.get("error") or "PAYOUT_FAILED")
+
+
+def payout_error_label(code: str, amount: Any) -> str:
+    template = PAYOUT_ERROR_LABELS.get(code)
+    return template.format(amount=amount) if template else f"Payout failed: {code}. Nothing was paid."
+
+
+def _record_failed_payout(
+    circle_id: str,
+    round_n: int,
+    rev: int,
+    *,
+    sender_batch_id: str,
+    wallet: str,
+    receiver_kind: str,
+    amount: Decimal,
+    label: str,
+) -> None:
+    """Keep the failed attempt on the board (round.payout_attempts) instead of only in a toast. One row per
+    (round, rev): a retry that fails again updates it, and a later success replaces it (see pay_round)."""
+    now = utcnow()
+    with session_scope() as db:
+        row = db.exec(
+            select(PayoutAttempt).where(
+                PayoutAttempt.circle_id == circle_id,
+                PayoutAttempt.round_n == round_n,
+                PayoutAttempt.rev == rev,
+            )
+        ).first()
+        if row is None:
+            row = PayoutAttempt(circle_id=circle_id, round_n=round_n, rev=rev, created_at=now)
+        elif row.status != "FAILED":
+            return  # never overwrite a batch PayPal accepted
+        row.sender_batch_id = sender_batch_id
+        row.wallet = wallet
+        row.receiver_kind = receiver_kind
+        row.amount = str(amount)
+        row.status = "FAILED"
+        row.label = label[:300]
+        row.updated_at = now
+        db.add(row)
 
 
 def _authorize(charter: Any, cs: Any, action: str, **kw: Any) -> tuple[Any | None, str | None]:
@@ -694,12 +757,30 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
         if not _is_paypal_error(e):
             raise
         payload = _error_payload(e)
-        await _toast(publish, "error", f"Payout failed: {payload['error']}")
+        code = payout_error_code(payload)
+        label = payout_error_label(code, amount)
+        _record_failed_payout(
+            circle_id,
+            round_n,
+            rnd.rev,
+            sender_batch_id=sender_batch_id,
+            wallet=wallet,
+            receiver_kind="unclaimed_test" if unclaimed_test else "payout_receiver",
+            amount=amount,
+            label=label + (f" (debug_id {payload['debug_id']})" if payload.get("debug_id") else ""),
+        )
+        await _toast(publish, "error", label)
+        await publish({"type": "board"})
         return {
             "ok": False,
-            "label": f"Payout failed: {payload['error']}",
+            "label": label,
+            "code": code,
             "amount": str(amount),
             "recipient": recipient,
+            # the balance context the operator needs next to the failure (Balances lags; the ledger is binding)
+            "circle_available": str(circle_available),
+            "paypal_balance": balances.get("paypal_balance"),
+            "source": source,
             **payload,
         }
     batch_id, item_id, status, fee = sent["batch_id"], sent["item_id"], sent["status"], sent["fee"]
@@ -742,6 +823,16 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
                 ts=now,
             )
         )
+        # A failed attempt at this rev (e.g. INSUFFICIENT_FUNDS before a top-up) is replaced by the batch PayPal took.
+        for failed in db.exec(
+            select(PayoutAttempt).where(
+                PayoutAttempt.circle_id == circle_id,
+                PayoutAttempt.round_n == round_n,
+                PayoutAttempt.rev == rnd.rev,
+                PayoutAttempt.status == "FAILED",
+            )
+        ).all():
+            db.delete(failed)
         db.add(
             PayoutAttempt(
                 circle_id=circle_id,

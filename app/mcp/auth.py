@@ -102,6 +102,18 @@ def _is_internal(addr: str) -> bool:
     return ip.is_loopback or any(ip in net for net in _INTERNAL_NETS)
 
 
+def _normalize_hop(hop: str) -> str:
+    """One X-Forwarded-For hop without a port: Azure App Service sends "203.0.113.5:54321", which would give
+    every new source port its own rate-limit bucket. Handles "1.2.3.4:443", "[2001:db8::1]:443" and "[::1]"."""
+    hop = hop.strip()
+    if hop.startswith("["):
+        end = hop.find("]")
+        return hop[1:end] if end > 0 else hop
+    if hop.count(":") == 1:  # IPv4 with a port (a bare IPv6 address has several colons)
+        return hop.rsplit(":", 1)[0]
+    return hop
+
+
 def client_ip(scope: Scope) -> str:
     """Caller IP for rate limiting.
 
@@ -116,7 +128,7 @@ def client_ip(scope: Scope) -> str:
         return peer
     for name, value in scope.get("headers") or []:
         if name == b"x-forwarded-for":
-            hops = [h.strip() for h in value.decode("latin-1").split(",") if h.strip()]
+            hops = [_normalize_hop(h) for h in value.decode("latin-1").split(",") if h.strip()]
             for hop in reversed(hops):
                 if not _is_internal(hop):
                     return hop

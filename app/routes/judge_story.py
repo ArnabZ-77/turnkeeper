@@ -20,6 +20,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.config import get_settings
+from app.domain import labels as lb
 from app.engine import recovery, rounds, sessions, state, story, tasks
 from app.engine.clock import advance_clock
 from app.engine.common import as_utc
@@ -81,30 +82,40 @@ def _round_statuses(circle_id: str, round_n: int) -> dict[str, str]:
     return {c.member_handle: c.status for c in state.round_contributions(circle_id, round_n)}
 
 
+def _name(circle_id: str, handle: str) -> str:
+    try:
+        return lb.display_name(handle, lb.names_of(state.members_of(circle_id)))
+    except Exception:  # noqa: BLE001 - wording only
+        return lb.display_name(handle)
+
+
+_STATUS_WORDS = {"DECLINED": "declined", "COMPLETED": "paid", "PENDING": "not charged yet"}
+
+
 def _check(step: str, circle_id: str) -> tuple[bool, str]:
     if step == "run_round3":
         st = _round_statuses(circle_id, DEMO_ROUND)
         others = {h: s for h, s in st.items() if h != DEMO_MEMBER}
         ok = st.get(DEMO_MEMBER) == "DECLINED" and all(s == "COMPLETED" for s in others.values())
-        done = sum(1 for s in others.values() if s == "COMPLETED")
-        return ok, f"Round {DEMO_ROUND}: {done}/{len(others)} captured, ravi {st.get(DEMO_MEMBER)}"
+        done = sum(1 for s in st.values() if s == "COMPLETED")
+        ravi = st.get(DEMO_MEMBER)
+        how = _STATUS_WORDS.get(str(ravi), str(ravi).lower() if ravi else "not charged")
+        return ok, f"Round {DEMO_ROUND}: {done} of {len(st)} paid, {_name(circle_id, DEMO_MEMBER)} {how}"
     if step == "start_recovery":
         row = recovery.latest_set(circle_id)
         ok = row is not None and row.status in ("voting", "approved")
-        return ok, (
-            f"Remedy proposal {row.status} ({row.source})"
-            if row is not None
-            else "no remedy proposal was made"
-        )
+        if row is None:
+            return ok, "no remedy proposal was made"
+        kinds = [r.type for r in recovery.domain_set(row).remedies]
+        return ok, f"Proposed for {_name(circle_id, row.member)}: {lb.remedy_list(kinds)} ({row.status})"
     if step == "clean_round4":
         st = _round_statuses(circle_id, CLEAN_ROUND)
         rnd = state.get_round(circle_id, CLEAN_ROUND)
         ok = bool(st) and all(s == "COMPLETED" for s in st.values())
         paid = rnd.status if rnd else "?"
-        return (
-            ok,
-            f"Round {CLEAN_ROUND}: {sum(1 for s in st.values() if s == 'COMPLETED')}/{len(st)} captured; {paid}",
-        )
+        paid_n = sum(1 for s in st.values() if s == "COMPLETED")
+        pot = paid.lower() if paid != "?" else "unknown"
+        return ok, f"Round {CLEAN_ROUND}: {paid_n} of {len(st)} paid; round {pot}"
     return True, step
 
 
@@ -119,32 +130,61 @@ async def settle(sess: Session) -> None:
     ok, summary = _check(step, cid)
     if not ok:
         story.clear_pending(cid)
+        story.set_error(cid, step, {"code": "OUTCOME", "label": summary})
         await get_event_bus().publish(
             sess.sid,
             {"type": "toast", "level": "warn", "text": f"Story step '{step}' did not finish: {summary}"},
         )
         return
-    mode = (rec.mode if rec else None) or ("live" if can_charge_live(cid) else "simulated")
-    story.record_step(cid, step, summary=summary, mode=str(mode), events=story.capture(sess.sid, step))
+    ai = str(rec.mode) if rec is not None and rec.mode else None
+    if step in BACKGROUND_PAYPAL_STEPS:
+        # a background round only starts on a live sandbox (otherwise the step is simulated synchronously)
+        paypal: str | None = "live"
+        mode = "live"
+    else:
+        paypal, mode = None, ai or "rules"
+    story.record_step(
+        cid,
+        step,
+        summary=summary,
+        mode=mode,
+        events=story.capture(sess.sid, step),
+        paypal=paypal,
+        ai=ai,
+    )
     await _maybe_finish(sess)
+
+
+BACKGROUND_PAYPAL_STEPS = ("run_round3", "clean_round4")
 
 
 async def _maybe_finish(sess: Session) -> None:
     row = story.load(sess.circle_id)
     if row is not None and story.next_step(row) is None:
-        story.save_recording(
-            sess.circle_id, paypal_mode="live" if can_charge_live(sess.circle_id) else "simulated"
+        rec = story.save_recording(sess.circle_id)
+        text = (
+            "Story complete: recorded as the replay run"
+            if rec is not None and rec.canonical
+            else "Story complete (Advanced controls were used, so it is not the public replay)"
         )
-        await get_event_bus().publish(
-            sess.sid,
-            {"type": "toast", "level": "success", "text": "Story complete: recorded as the replay run"},
-        )
+        await get_event_bus().publish(sess.sid, {"type": "toast", "level": "success", "text": text})
 
 
 # --- step executors ------------------------------------------------------------------------------------
-# Each returns (result, task_id or None, mode, summary). A task_id means "running in the background".
+# Each returns (result, task_id or None, mode, summary, how). A task_id means "running in the background".
+# `mode` is the one-word label; `how` = {"paypal": live | simulated | None, "ai": live | replay | rules | None}
+# says separately how the money side and the AI side ran (an AI step is never labelled "live sandbox").
 
-StepOut = tuple[dict[str, Any], str | None, str, str]
+StepOut = tuple[dict[str, Any], str | None, str, str, dict[str, str | None]]
+JUDGE: dict[str, str | None] = {"paypal": None, "ai": None}
+
+
+class StepFailed(HTTPException):
+    """A step PayPal (or a gate) refused: 409 with the label as detail; the story keeps code/label/debug_id."""
+
+    def __init__(self, label: str, *, code: str, debug_id: Any = None) -> None:
+        super().__init__(status_code=409, detail=label)
+        self.error = {"code": code, "label": label, **({"debug_id": str(debug_id)} if debug_id else {})}
 
 
 def _publish(sess: Session):
@@ -177,15 +217,19 @@ async def _step_advance_to_t3(sess: Session, request: Request) -> StepOut:
     from app.engine import forecast_job
 
     # The badge is backed by the forecaster only (PLAN section 5): no fallback that reads stored badges.
-    forecasts = await forecast_job.run_forecast(
-        cid, DEMO_ROUND, publish=publish, live_allowed=tasks.live_allowed_for(request)
-    )
+    # The live-AI budget is charged only when a forecast will actually run (a stored one makes no model call).
+    live_allowed = True if forecast_job.has_forecast(cid, DEMO_ROUND) else tasks.live_allowed_for(request)
+    forecasts = await forecast_job.run_forecast(cid, DEMO_ROUND, publish=publish, live_allowed=live_allowed)
     flagged = [f["member"] for f in forecasts if f.get("flagged")]
     modes = {str(f.get("mode")) for f in forecasts if f.get("flagged") and f.get("mode")}
     await publish({"type": "board"})
     mode = "rules" if not modes or modes == {"rules"} else ("replay" if modes == {"replay"} else "live")
-    summary = f"T-3 for round {DEMO_ROUND} (+{days:g} d); flagged: {', '.join(flagged) or 'nobody'} ({mode})"
-    return {"flagged": flagged, "forecasts": forecasts, "advanced_days": days}, None, mode, summary
+    # The demo circle already starts at T-3: say "clock +N d" only when the clock really moved.
+    moved = f", clock +{days:g} d" if days > 0 else ""
+    who = ", ".join(_name(cid, h) for h in flagged) or "nobody"
+    summary = f"Forecast at T-3 for round {DEMO_ROUND}{moved}; flagged: {who}"
+    out = {"flagged": flagged, "forecasts": forecasts, "advanced_days": days}
+    return out, None, mode, summary, {"paypal": None, "ai": mode}
 
 
 async def _step_run_round3(sess: Session, request: Request) -> StepOut:
@@ -197,7 +241,8 @@ async def _step_run_round3(sess: Session, request: Request) -> StepOut:
         started = start_round_task(
             "collect_round", cid, DEMO_ROUND, sess, fallback_engine=True, request=request
         )
-        return started, started["task_id"], "live", "Round 3 collection started"
+        how = {"paypal": "live", "ai": None}
+        return started, started["task_id"], "live", "Round 3 collection started", how
     try:
         res = await recovery.simulate_round_decline(cid, DEMO_ROUND, DEMO_MEMBER, publish=_publish(sess))
     except recovery.RecoveryError as e:
@@ -205,14 +250,16 @@ async def _step_run_round3(sess: Session, request: Request) -> StepOut:
     ok, summary = _check("run_round3", cid)
     if not ok:
         raise HTTPException(status_code=409, detail=summary)
-    return res, None, "simulated", summary + " (simulated, no PayPal call)"
+    how = {"paypal": "simulated", "ai": None}
+    return res, None, "simulated", summary + " (simulated, no PayPal call)", how
 
 
 async def _step_reply(sess: Session, request: Request) -> StepOut:
     from app.routes.recovery import RecoveryJudgeBody, reply_as_ravi
 
     res = await reply_as_ravi(RecoveryJudgeBody(circle_id=sess.circle_id), sess)
-    return res, None, "judge", f"Ravi replied; payday {res.get('payday')}"
+    payday = res.get("payday")
+    return res, None, "judge", f"{_name(sess.circle_id, DEMO_MEMBER)} replied; payday {payday}", JUDGE
 
 
 async def _step_start_recovery(sess: Session, request: Request) -> StepOut:
@@ -221,14 +268,15 @@ async def _step_start_recovery(sess: Session, request: Request) -> StepOut:
     res = await start_recovery(
         sess.circle_id, sess, request, StartBody(round_n=DEMO_ROUND, member=DEMO_MEMBER)
     )
-    return res, res["task_id"], "rules", "Recovery started"
+    return res, res["task_id"], "rules", "Recovery started", {"paypal": None, "ai": None}
 
 
 async def _step_consents(sess: Session, request: Request) -> StepOut:
     from app.routes.recovery import RecoveryJudgeBody, consent_as_affected
 
     res = await consent_as_affected(RecoveryJudgeBody(circle_id=sess.circle_id), sess)
-    return res, None, "judge", f"Consents: {', '.join(res.get('consented') or []) or 'none needed'}"
+    who = ", ".join(_name(sess.circle_id, h) for h in res.get("consented") or []) or "none needed"
+    return res, None, "judge", f"Consents: {who}", JUDGE
 
 
 async def _step_votes(sess: Session, request: Request) -> StepOut:
@@ -238,7 +286,8 @@ async def _step_votes(sess: Session, request: Request) -> StepOut:
     votes = res.get("votes") or {}
     if not votes.get("passed"):
         raise HTTPException(status_code=409, detail=f"vote did not pass: {votes}")
-    return res, None, "judge", f"Votes {votes.get('yes')}/{votes.get('needed')} yes"
+    summary = f"Votes: {votes.get('yes')} of {votes.get('total')} yes (quorum {votes.get('needed')})"
+    return res, None, "judge", summary, JUDGE
 
 
 async def _step_approve(sess: Session, request: Request) -> StepOut:
@@ -248,7 +297,7 @@ async def _step_approve(sess: Session, request: Request) -> StepOut:
     )
     if not res.get("ok", True) and res.get("denied"):
         raise HTTPException(status_code=409, detail=res["denied"])
-    return res, None, "judge", "Priya approved (one tap)"
+    return res, None, "judge", "Priya approved (one tap)", JUDGE
 
 
 async def _step_execute(sess: Session, request: Request) -> StepOut:
@@ -258,8 +307,15 @@ async def _step_execute(sess: Session, request: Request) -> StepOut:
         raise HTTPException(
             status_code=409, detail=res.get("denied") or res.get("error") or "execution failed"
         )
-    kinds = [r.get("type") for r in res.get("results") or [] if isinstance(r, dict)]
-    return res, None, "rules", f"Executed: {', '.join(k for k in kinds if k) or res.get('status')}"
+    results = [r for r in res.get("results") or [] if isinstance(r, dict)]
+    kinds = [r.get("type") for r in results if r.get("type")]
+    # Execution is deterministic code (no model); PayPal is touched only by the invoice (Agent Toolkit).
+    invoice = next((r for r in results if r.get("type") == "repay_by_invoice"), None)
+    paypal = None if invoice is None else ("simulated" if invoice.get("simulated") else "live")
+    summary = f"Executed: {lb.remedy_list(kinds) if kinds else res.get('status')}"
+    if invoice is not None and invoice.get("ok") and not invoice.get("simulated") and not invoice.get("qr"):
+        summary += " (invoice sent, no QR image)"
+    return res, None, paypal or "engine", summary, {"paypal": paypal, "ai": None}
 
 
 async def _step_payout(sess: Session, request: Request) -> StepOut:
@@ -271,6 +327,7 @@ async def _step_payout(sess: Session, request: Request) -> StepOut:
             None,
             "judge",  # this step made no PayPal call
             f"Round {DEMO_ROUND} was already paid (no new payout)",
+            JUDGE,
         )
     simulated = any(
         (c.request_id or "").startswith(rounds.SIMULATED_REQUEST_PREFIX)
@@ -286,11 +343,17 @@ async def _step_payout(sess: Session, request: Request) -> StepOut:
                 "text": f"Payout skipped: {why} (no PayPal call)",
             }
         )
-        return {"ok": True, "skipped": why}, None, "simulated", f"Payout skipped: {why}"
+        how = {"paypal": "simulated", "ai": None}
+        return {"ok": True, "skipped": why}, None, "simulated", f"Payout skipped: {why}", how
     res = await rounds.pay_round(cid, DEMO_ROUND, publish=_publish(sess))
     if not res.get("ok"):
-        raise HTTPException(status_code=409, detail=res.get("denied") or res.get("label") or res.get("error"))
-    return res, None, "live", f"Pot {res.get('amount')} -> {res.get('recipient')}: {res.get('status')}"
+        code = res.get("code") or ("DENIED" if res.get("denied") else res.get("error")) or "PAYOUT_FAILED"
+        label = str(res.get("denied") or res.get("label") or res.get("error") or "payout failed")
+        raise StepFailed(label, code=str(code), debug_id=res.get("debug_id"))
+    who = _name(cid, str(res.get("recipient") or ""))
+    status = str(res.get("status") or "").lower()
+    summary = f"Pot {lb.fmt_money(res.get('amount'))} paid out to {who}: {status}"
+    return res, None, "live", summary, {"paypal": "live", "ai": None}
 
 
 async def _step_clean_round4(sess: Session, request: Request) -> StepOut:
@@ -306,12 +369,14 @@ async def _step_clean_round4(sess: Session, request: Request) -> StepOut:
         started = start_round_task(
             "collect_round", cid, CLEAN_ROUND, sess, fallback_engine=True, request=request
         )
-        return started, started["task_id"], "live", "Round 4 collection started"
+        how = {"paypal": "live", "ai": None}
+        return started, started["task_id"], "live", "Round 4 collection started", how
     res = await rounds.simulate_clean_round(cid, CLEAN_ROUND, publish=_publish(sess))
     if not res.get("ok"):
         raise HTTPException(status_code=409, detail=res.get("error"))
     ok, summary = _check("clean_round4", cid)
-    return res, None, "simulated", summary + " (simulated, payout skipped)"
+    how = {"paypal": "simulated", "ai": None}
+    return res, None, "simulated", summary + " (simulated, payout skipped)", how
 
 
 EXECUTORS = {
@@ -407,12 +472,27 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
     if story.load(cid) is None:  # defensive: next_step() is "reset" for a circle without a story
         raise HTTPException(status_code=409, detail="reset the story first")
     await story.mark_step_start(sess.sid, cid, step)
-    result, task_id, mode, summary = await EXECUTORS[step](sess, request)
+    token = story.IN_STORY_STEP.set(True)  # the story's own calls into /api/judge/* handlers never taint it
+    try:
+        result, task_id, mode, summary, how = await EXECUTORS[step](sess, request)
+    except HTTPException as e:
+        error = getattr(e, "error", None) or {"code": f"HTTP_{e.status_code}", "label": str(e.detail)[:300]}
+        story.set_error(cid, step, error)
+        raise
+    finally:
+        story.IN_STORY_STEP.reset(token)
     if task_id is not None:
         story.set_pending(cid, step, task_id)
     else:
         story.record_step(
-            cid, step, summary=summary, mode=mode, events=story.capture(sess.sid, step), result=result
+            cid,
+            step,
+            summary=summary,
+            mode=mode,
+            events=story.capture(sess.sid, step),
+            result=result,
+            paypal=how.get("paypal"),
+            ai=how.get("ai"),
         )
         await _maybe_finish(sess)
     live = can_charge_live(cid)
@@ -420,6 +500,8 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
         "ok": True,
         "step": step,
         "mode": mode,
+        "paypal": how.get("paypal"),
+        "ai": how.get("ai"),
         "summary": summary,
         "task_id": task_id,
         "result": result,

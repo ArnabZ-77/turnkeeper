@@ -99,7 +99,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--tk-accent);
+  background: var(--tk-accent-fill);
   color: var(--tk-accent-ink);
   font-size: 11px;
   font-weight: 700;
@@ -139,7 +139,7 @@
 }
 .tk-bubble-me {
   align-self: flex-end;
-  background: var(--tk-accent);
+  background: var(--tk-accent-fill);
   color: var(--tk-accent-ink);
   border-bottom-right-radius: 4px;
 }
@@ -177,21 +177,27 @@
 .tk-recovery {
   flex: none;
 }
+/* Capped so the board keeps all six rows at 1080p; the rest scrolls inside the panel. */
+.tk-main > .tk-recovery {
+  max-height: 320px;
+  overflow: auto;
+}
 .tk-recovery-commit {
   margin: 0 0 10px;
   font-size: 13px;
 }
+/* Remedies side by side (one row), then the vote, consents, approval and invoice in one row. */
 .tk-recovery-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .tk-remedies {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px;
 }
 .tk-remedy {
@@ -227,6 +233,10 @@
 .tk-remedy-reason {
   margin: 0;
   color: var(--tk-ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .tk-remedy-problems {
   margin: 0;
@@ -236,14 +246,42 @@
 }
 .tk-recovery-side {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
   min-width: 0;
 }
 .tk-vote {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto;
+  align-items: start;
+  gap: 8px 16px;
+}
+.tk-vote-blockers {
+  grid-column: 1 / -1;
+}
+.tk-recovery-side .tk-invoice {
+  flex: none;
+  max-width: 320px;
+}
+.tk-btn-wait {
+  color: var(--tk-ink-2);
+  background: var(--tk-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+.tk-btn-wait:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.tk-approved-chip {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tk-good-ink);
+  border-color: color-mix(in srgb, var(--tk-good) 45%, transparent);
+  background: color-mix(in srgb, var(--tk-good) 10%, var(--tk-surface));
 }
 .tk-vote-row {
   display: flex;
@@ -258,11 +296,9 @@
   font-size: 13px;
 }
 .tk-vote-approve {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 .tk-vote-blockers {
   margin: 0;
@@ -399,12 +435,34 @@
   background: color-mix(in srgb, currentColor 14%, transparent);
 }
 
-@media (max-width: 920px) {
-  .tk-recovery-grid {
-    grid-template-columns: minmax(0, 1fr);
+@media (max-width: 1280px) {
+  .tk-vote {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+  .tk-vote-approve {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+@media (max-width: 920px) {
   .tk-main {
     overflow: visible;
+  }
+  .tk-main > .tk-recovery {
+    max-height: none;
+    overflow: visible;
+  }
+  .tk-recovery-side {
+    flex-direction: column;
+  }
+  .tk-vote {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tk-recovery-side .tk-invoice {
+    max-width: none;
   }
 }
 

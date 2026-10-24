@@ -14,6 +14,8 @@ export interface GridBoardProps {
   onSelect: (meta: EventMeta | null) => void;
   /** Why the scheduler is not in use (shown as a small note). */
   reason?: string | null;
+  /** Phone layout: one card per member with its rounds as wrapping chips (no sideways scroll). */
+  compact?: boolean;
 }
 
 interface Column {
@@ -27,7 +29,7 @@ interface Column {
  * position to the new one. Skipped for viewers who prefer reduced motion.
  */
 function useRowFlip(order: string) {
-  const rows = useRef(new Map<string, HTMLDivElement>());
+  const rows = useRef(new Map<string, HTMLElement>());
   const last = useRef(new Map<string, number>());
   useLayoutEffect(() => {
     const reduce =
@@ -46,13 +48,13 @@ function useRowFlip(order: string) {
     });
     last.current = next;
   }, [order]);
-  return (handle: string) => (el: HTMLDivElement | null) => {
+  return (handle: string) => (el: HTMLElement | null) => {
     if (el) rows.current.set(handle, el);
     else rows.current.delete(handle);
   };
 }
 
-export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProps) {
+export function GridBoard({ mapping, selected, onSelect, reason, compact = false }: GridBoardProps) {
   const rowRef = useRowFlip(mapping.resources.map((r) => r.id).join(","));
   const contributions = mapping.events.filter((e): e is typeof e & { tk: ContributionMeta } => e.tk.kind === "contribution");
   const pots = mapping.events.filter((e): e is typeof e & { tk: PotMeta } => e.tk.kind === "pot");
@@ -72,6 +74,48 @@ export function GridBoard({ mapping, selected, onSelect, reason }: GridBoardProp
     selected.kind === m.kind &&
     selected.roundN === m.roundN &&
     (m.kind === "pot" || (selected.kind === "contribution" && selected.member === m.member));
+
+  if (compact) {
+    return (
+      <ol className="tk-board-list" aria-label="Rotation board (list)">
+        {mapping.resources.map((r) => {
+          const pot = pots.find((p) => p.resourceId === r.id);
+          return (
+            <li className={`tk-board-member${r.moved ? " tk-row-moved" : ""}`} key={r.id} ref={rowRef(r.id)}>
+              <div className="tk-board-member-head">
+                <strong>{r.name}</strong>
+                <span className="tk-muted tk-small">
+                  #{r.rotationPos}
+                  {pot ? ` · pot in round ${pot.tk.roundN} (${pot.tk.status.toLowerCase()})` : ""}
+                </span>
+              </div>
+              {r.label && <span className="tk-member-label">{r.label}</span>}
+              <div className="tk-board-member-rounds">
+                {columns.map((c) => {
+                  const ev = contributions.find((e) => e.tk.roundN === c.roundN && e.tk.member === r.handle);
+                  if (!ev) return null;
+                  return (
+                    <button
+                      type="button"
+                      key={c.roundN}
+                      className={`tk-chip tk-chip-${ev.tk.status.toLowerCase()}${ev.tk.predicted ? " tk-chip-predicted" : ""}`}
+                      aria-pressed={isSelected(ev.tk)}
+                      onClick={() => onSelect(isSelected(ev.tk) ? null : ev.tk)}
+                      title={`Round ${c.roundN}, due ${fmtDate(c.dueAt)}`}
+                    >
+                      <span className="tk-dot" style={{ background: STATUS_COLOR[ev.tk.status] }} />
+                      <span className="tk-board-round">R{c.roundN}</span>
+                      {ev.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
 
   return (
     <div className="tk-grid" role="table" aria-label="Rotation board (grid)">

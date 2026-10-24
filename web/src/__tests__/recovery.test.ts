@@ -17,6 +17,7 @@ import {
   setProblems,
   sortedInbox,
   subtitleFor,
+  forecastTranslations,
   voteBar,
 } from "../recovery";
 import type { InboxMessage, RecoveryInfo, RemedyInfo } from "../types";
@@ -133,7 +134,7 @@ describe("votes and consents", () => {
     expect(none.markPaid).not.toBeNull();
 
     const open = recoveryButtons(board, rec());
-    expect(open).toMatchObject({ start: null, consent: null, vote: null, approve: null });
+    expect(open).toMatchObject({ start: null, consent: null, vote: null, approve: "Waiting for quorum (1/4)" });
     expect(open.markPaid).toContain("No invoice");
 
     const voted = recoveryButtons(
@@ -144,6 +145,12 @@ describe("votes and consents", () => {
       }),
     );
     expect(voted.vote).toBe("Quorum already reached");
+    expect(voted.approve).toBeNull();
+    const noConsent = recoveryButtons(
+      board,
+      rec({ votes: { yes: 4, no: 0, needed: 4, total: 6, passed: true, closes_at: null } }),
+    );
+    expect(noConsent.approve).toBe("Waiting for consent (1/2)");
     expect(voted.consent).toBe("Every affected member has answered");
 
     const noSwap = recoveryButtons(board, rec({ consents: { needed: [], given: [], refused: [] } }));
@@ -174,7 +181,7 @@ describe("inbox", () => {
     expect(
       subtitleFor(msg(3, "नमस्ते Ravi, सर्कल ने आपका हिस्सा भर दिया है। $200.00 का PayPal इनवॉइस, देय तिथि 2026-11-27।", { lang: "hi" })),
     ).toContain("PayPal invoice for $200.00, due 2026-11-27");
-    expect(subtitleFor(msg(4, "मैं कल भरूंगा", { lang: "hi" }))).toContain("no English translation");
+    expect(subtitleFor(msg(4, "मैं कल भरूंगा", { lang: "hi" }))).toBe("Hindi message");
     expect(subtitleFor(msg(4, "मैं कल भरूंगा", { lang: "hi" }), { 4: "I will pay tomorrow." })).toBe("I will pay tomorrow.");
     expect(subtitleFor(msg(5, "Paying Friday"))).toBeNull();
   });
@@ -284,7 +291,8 @@ describe("review fixes (fixer)", () => {
     const proposed = recoveryButtons(board, rec({ status: "proposed" }));
     expect(proposed.consent).toBe("The vote is not open yet");
     expect(proposed.vote).toBe("The vote is not open yet");
-    expect(proposed.approve).toBeNull(); // the server answers with the blockers
+    expect(proposed.approve).toBe("Waiting for the vote to open"); // the server would refuse it
+    expect(recoveryButtons(board, rec({ status: "approved" })).approve).toBeNull();
     const approved = recoveryButtons(board, rec({ status: "approved" }));
     expect(approved.vote).toBe("Remedy set is approved");
     expect(recoveryButtons(board, rec({ status: "voting" })).vote).toBeNull();
@@ -304,5 +312,23 @@ describe("review fixes (fixer)", () => {
     expect(canChargeLive(null)).toBe(false);
     expect(paypalChip({ paypal_live: false }).tip).toContain(SIMULATE_DECLINE_LABEL);
     expect(paypalChip({ paypal_live: false }).tip).not.toContain("still work");
+  });
+});
+
+describe("phone inbox translations", () => {
+  it("uses the forecast's own English for the T-3 nudge it sent", () => {
+    const nudge = "नमस्ते Ravi, याद दिला दें: राउंड 3 के $200.00 2027-01-01 को देय हैं।";
+    const board = {
+      forecasts: [
+        { round_n: 3, member: "ravi", score: 0.85, flagged: true, reason: null, nudge, nudge_en: "Hi Ravi, a friendly reminder", lang: "hi", mode: "rules" },
+      ],
+    };
+    const messages = [
+      { id: 7, member: "ravi", text: nudge },
+      { id: 8, member: "asha", text: nudge },
+      { id: 9, member: "ravi", text: "something else" },
+    ];
+    expect(forecastTranslations(board, messages)).toEqual({ 7: "Hi Ravi, a friendly reminder" });
+    expect(forecastTranslations(null, messages)).toEqual({});
   });
 });

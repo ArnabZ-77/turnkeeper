@@ -3,6 +3,7 @@ import type { TraceEntry } from "../state";
 import { fmtTime } from "../format";
 import type { RunMode } from "../types";
 import { MODE_HELP, modeBadge, modeChip } from "../recovery";
+import { resultSummary } from "../trace";
 
 export interface AgentTraceProps {
   entries: TraceEntry[];
@@ -73,7 +74,9 @@ ${MODE_HELP}`}>
       </h2>
       <ol className="tk-trace-list" ref={listRef} onScroll={onScroll} aria-live="polite">
         {entries.length === 0 && <li className="tk-trace-empty">No agent activity yet. Run a round from the judge bar.</li>}
-        {entries.map((e) => (
+        {entries.map((e) => {
+          const summary = e.kind === "tool_result" ? resultSummary(e.text, e.tool) : null;
+          return (
           <li key={e.id} className={`tk-trace-item tk-trace-${e.kind}`}>
             <span className="tk-trace-kind">
               {KIND_LABEL[e.kind] ?? e.kind}
@@ -87,14 +90,25 @@ ${MODE_HELP}`}>
               {e.kind === "tool_call" && e.tool && <span className="tk-trace-tool">{e.tool}</span>}
               {e.kind === "tool_call" && e.tool && argsText(e.args) ? ` ${argsText(e.args)}` : ""}
               {e.kind === "tool_call" && e.tool && e.text ? "\n" : ""}
-              {e.text}
+              {summary ? (
+                <>
+                  {summary}
+                  <details className="tk-trace-raw">
+                    <summary>raw</summary>
+                    <code>{e.text}</code>
+                  </details>
+                </>
+              ) : (
+                e.text
+              )}
               <span className="tk-trace-meta">
                 {fmtTime(e.ts)}
                 {typeof e.ms === "number" ? ` · ${e.ms} ms` : ""}
               </span>
             </span>
           </li>
-        ))}
+          );
+        })}
       </ol>
     </section>
   );

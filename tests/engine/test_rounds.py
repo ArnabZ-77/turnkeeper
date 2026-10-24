@@ -319,16 +319,40 @@ async def test_pay_round_unclaimed_flag_and_live_payout_gate(vaulted_circle, pay
 
 
 async def test_pay_round_paypal_error_is_reported(vaulted_circle, paypal_factory, collector):
-    paypal_factory(payout_error=True)
+    """Live run 2026-10-25: 422 INSUFFICIENT_FUNDS left no trace on the board and no next step."""
+    paypal = paypal_factory(payout_error=True)
     state.set_flag(vaulted_circle, "ravi_declines", False)
     await rounds.collect_round(vaulted_circle, 3, publish=collector)
     res = await rounds.pay_round(vaulted_circle, 3, publish=collector)
-    assert (
-        res["ok"] is False
-        and res["error"] == "INSUFFICIENT_FUNDS"
-        and res["label"].startswith("Payout failed")
+    assert res["ok"] is False and res["error"] == "INSUFFICIENT_FUNDS" and res["code"] == "INSUFFICIENT_FUNDS"
+    assert "sandbox balance too low" in res["label"] and "Add/Edit balance" in res["label"]
+    assert res["amount"] in res["label"] and "Nothing was paid" in res["label"]
+    assert res["circle_available"] and res["source"] in ("balances", "ledger") and "paypal_balance" in res
+    r3 = state.board_model(vaulted_circle)["rounds"][2]
+    assert r3["payout"] is None and r3["status"] != "PAID"
+    assert [(a["rev"], a["status"]) for a in r3["payout_attempts"]] == [(1, "FAILED")]
+    assert "balance too low" in r3["payout_attempts"][0]["label"]
+    assert any("balance too low" in t.get("text", "") for t in collector.of_type("toast"))
+
+    # a second failure updates the same row; after a top-up the accepted batch replaces it
+    await rounds.pay_round(vaulted_circle, 3, publish=collector)
+    assert len(state.board_model(vaulted_circle)["rounds"][2]["payout_attempts"]) == 1
+    paypal.payout_error = False
+    ok = await rounds.pay_round(vaulted_circle, 3, publish=collector)
+    assert ok["ok"] is True
+    attempts = state.board_model(vaulted_circle)["rounds"][2]["payout_attempts"]
+    assert [(a["rev"], a["status"]) for a in attempts] == [(1, "SUCCESS")]
+
+
+def test_payout_error_labels():
+    assert rounds.payout_error_code({"error": "UNPROCESSABLE_ENTITY", "issues": ["INSUFFICIENT_FUNDS"]}) == (
+        "INSUFFICIENT_FUNDS"
     )
-    assert state.board_model(vaulted_circle)["rounds"][2]["payout"] is None
+    assert rounds.payout_error_code({"error": "VALIDATION_ERROR", "issues": []}) == "VALIDATION_ERROR"
+    assert (
+        rounds.payout_error_label("VALIDATION_ERROR", "1.00")
+        == "Payout failed: VALIDATION_ERROR. Nothing was paid."
+    )
 
 
 async def test_payout_status_for_replayed_round(vaulted_circle, paypal):

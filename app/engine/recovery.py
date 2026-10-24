@@ -33,6 +33,7 @@ from sqlmodel import select
 
 from app.config import get_settings
 from app.db import session_scope
+from app.domain import labels as lb
 from app.domain import remedies as rd
 from app.domain.charter import charter_sha256, quorum_tuple
 from app.domain.fees import estimate_fee, net_of
@@ -117,6 +118,14 @@ async def _toast(publish: Publish, level: str, text: str) -> None:
 
 def _member_rows(circle_id: str) -> dict[str, MemberRow]:
     return {m.handle: m for m in state.members_of(circle_id)}
+
+
+def _name(circle_id: str, handle: str) -> str:
+    """A member's full name for toasts ("Ravi Sharma", not "ravi"); the handle when the lookup fails."""
+    try:
+        return lb.display_name(handle, lb.names_of(state.members_of(circle_id)))
+    except Exception:  # noqa: BLE001 - wording must never fail a money step
+        return lb.display_name(handle)
 
 
 def _today(circle: Circle) -> date:
@@ -443,13 +452,15 @@ async def propose(
                 )
             )
     kinds = ", ".join(r.type for r in rs.remedies) or "none"
+    who = _name(circle_id, member)
+    nice = lb.remedy_list(r.type for r in rs.remedies)
     if problems:
-        await _toast(publish, "warn", f"Remedy proposal for {member} rejected by the charter check")
+        await _toast(publish, "warn", f"Remedy proposal for {who} rejected by the charter check")
         await _trace(
             publish, f"Proposal {rs.id} ({kinds}) is not charter-legal: " + "; ".join(problems)[:600]
         )
     else:
-        await _toast(publish, "info", f"Remedies proposed for {member}: {kinds} (charter OK)")
+        await _toast(publish, "info", f"Remedies proposed for {who}: {nice} (charter OK)")
         await _trace(
             publish, f"Proposal {rs.id} for {member}, round {round_n}: {kinds}. Charter check passed."
         )
@@ -608,7 +619,7 @@ async def record_consent(
     await _toast(
         publish,
         "info" if choice == "yes" else "warn",
-        f"{member} {'consents' if choice == 'yes' else 'refuses'}",
+        f"{_name(circle_id, member)} {'consents' if choice == 'yes' else 'refuses'}",
     )
     await publish({"type": "board"})
     return vote_status(circle_id, set_id)
@@ -785,7 +796,11 @@ async def _run_remedies(
         results.append({"remedy_id": remedy.id, **res})
         if not res.get("ok") and remedy.type in ("buffer_advance", "turn_swap"):
             failed_money = True
-            await _toast(publish, "error", f"{remedy.type} stopped: {res.get('denied') or res.get('error')}")
+            await _toast(
+                publish,
+                "error",
+                f"{lb.remedy_label(remedy.type).capitalize()} stopped: {res.get('denied') or res.get('error')}",
+            )
             break
 
     final = "failed" if failed_money else "executed"
@@ -899,7 +914,9 @@ async def _apply_advance(
     _settle_round_if_complete(circle_id, remedy.round_n)
     await publish(chip)
     await _toast(
-        publish, "success", f"Buffer covered {remedy.member}'s round {remedy.round_n} share ({amount})"
+        publish,
+        "success",
+        f"Buffer covered {_name(circle_id, remedy.member)}'s round {remedy.round_n} share ({lb.fmt_money(amount)})",
     )
     return {"ok": True, "type": "buffer_advance", "amount": str(amount), "member": remedy.member}
 
@@ -953,7 +970,8 @@ async def _apply_swap(
     await _toast(
         publish,
         "success",
-        f"Rotation updated: {remedy.member} -> round {new_pos[remedy.member]}, {partner} -> round {new_pos[partner]}",
+        f"Rotation updated: {_name(circle_id, remedy.member)} -> round {new_pos[remedy.member]}, "
+        f"{_name(circle_id, partner)} -> round {new_pos[partner]}",
     )
     return {
         "ok": True,
@@ -1017,8 +1035,27 @@ def _invoice_id(created: dict[str, Any]) -> str | None:
     return None
 
 
+_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+# PayPal's generate-qr-code answer is multipart/form-data: the PNG is base64 text in the part named "image",
+# after that part's headers ("Content-Disposition: ...", "Content-Type: text/plain") and a blank line.
+_MULTIPART_IMAGE_RX = re.compile(
+    r'content-disposition:[^\r\n]*name="?image"?[^\r\n]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n(.*?)(?:\r?\n--|\Z)',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _decodes(b64: str) -> bytes | None:
+    try:
+        return base64.b64decode(b64, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+
+
 def _qr_data_url(result: Any) -> str | None:
-    """The toolkit's generate_invoice_qr_code answer as a data: URL (PNG, base64), when it holds one."""
+    """The toolkit's generate_invoice_qr_code answer as a data: URL (PNG, base64), when it holds one.
+
+    Accepts a data: URL, bare base64, or PayPal's raw multipart/form-data body (the adapter passes non-JSON
+    answers through as text under "result")."""
     raw: Any = None
     if isinstance(result, dict):
         raw = result.get("result") or result.get("qr_code") or result.get("image")
@@ -1029,13 +1066,21 @@ def _qr_data_url(result: Any) -> str | None:
     text = raw.strip()
     if text.startswith("data:image"):
         return text
-    blocks = re.findall(r"[A-Za-z0-9+/=\r\n]{100,}", text)
-    b64 = re.sub(r"\s+", "", max(blocks, key=len) if blocks else text)
-    try:
-        base64.b64decode(b64, validate=True)
-    except (binascii.Error, ValueError):
-        return None
-    return "data:image/png;base64," + b64
+    candidates = [m.group(1) for m in _MULTIPART_IMAGE_RX.finditer(text)]
+    # Otherwise: base64 runs, split at blank lines so a MIME header ("text/plain") never joins the payload.
+    for chunk in re.split(r"\r?\n\s*\r?\n", text):
+        candidates += re.findall(r"[A-Za-z0-9+/=\r\n]{100,}", chunk)
+    candidates.append(text)
+    fallback: str | None = None
+    for cand in candidates:
+        b64 = re.sub(r"\s+", "", cand)
+        data = _decodes(b64) if b64 else None
+        if data is None:
+            continue
+        if data.startswith(_PNG_MAGIC):
+            return "data:image/png;base64," + b64
+        fallback = fallback or b64
+    return "data:image/png;base64," + fallback if fallback else None
 
 
 def _payer_email(m: MemberRow | None) -> str | None:
@@ -1181,8 +1226,8 @@ async def _apply_invoice(
     await _toast(
         publish,
         "success",
-        f"PayPal invoice sent to {member}: {amount} {charter.currency}, due {due.strftime('%a')}"
-        + (" (simulated)" if simulated else " (Agent Toolkit)"),
+        f"PayPal invoice sent to {_name(circle_id, member)}: {lb.fmt_money(amount)} {charter.currency}, "
+        f"due {due.strftime('%a')}" + (" (simulated)" if simulated else " (Agent Toolkit)"),
     )
     await publish({"type": "board"})
     return {
@@ -1314,7 +1359,11 @@ async def on_invoice_paid(
     if chip:
         await publish(chip)
     how = "simulated in sandbox" if simulated else "webhook"
-    await _toast(publish, "success", f"{remedy.member} paid the invoice ({how}): buffer +{repaid}. {label}")
+    await _toast(
+        publish,
+        "success",
+        f"{_name(row.circle_id, remedy.member)} paid the invoice ({how}): buffer +{lb.fmt_money(repaid)}. {label}",
+    )
     await publish({"type": "board"})
     return {
         "handled": True,
@@ -1512,7 +1561,11 @@ async def simulate_round_decline(
         f"Judge: round {round_n} simulated without PayPal ({len(captured)} captures labelled REPLAY-, "
         f"{member} declined: INSTRUMENT_DECLINED, simulated). No sandbox call was made.",
     )
-    await _toast(publish, "warn", f"Round {round_n} simulated: {member}'s charge declined (no sandbox call)")
+    await _toast(
+        publish,
+        "warn",
+        f"Round {round_n} simulated: {_name(circle_id, member)}'s charge declined (no sandbox call)",
+    )
     await publish({"type": "board"})
     return {
         "ok": True,

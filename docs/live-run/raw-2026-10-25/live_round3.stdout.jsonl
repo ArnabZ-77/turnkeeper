@@ -1,0 +1,22 @@
+{"step":"config","ts":"2026-10-23T20:12:38Z","ok":true,"base_url":"https://api-m.sandbox.paypal.com","env":"sandbox"}
+{"step":"reset","ts":"2026-10-23T20:12:38Z","ok":true,"circle_id":"9totxi","run_id":"im3g2qad","vault_seeded":true}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"asha","status":"COMPLETED","order_id":"3FF02195ET4622049","capture_id":"0ML631907M559815F","gross":"200.00","fee":"7.47","net":"192.53","decline_code":null,"label":"Captured","error":null}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"ravi","status":"DECLINED","order_id":null,"capture_id":null,"gross":null,"fee":null,"net":null,"decline_code":"INSTRUMENT_DECLINED","label":"API decline: sandbox-injected","error":"UNPROCESSABLE_ENTITY"}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"meena","status":"COMPLETED","order_id":"73N18862HM6897331","capture_id":"9SK00328S1488121A","gross":"200.00","fee":"7.47","net":"192.53","decline_code":null,"label":"Captured","error":null}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"tomas","status":"COMPLETED","order_id":"11410425NG037541V","capture_id":"7P283733KK802453P","gross":"200.00","fee":"7.47","net":"192.53","decline_code":null,"label":"Captured","error":null}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"lin","status":"COMPLETED","order_id":"56E26099KG7963935","capture_id":"6DL4010260519460J","gross":"200.00","fee":"7.47","net":"192.53","decline_code":null,"label":"Captured","error":null}
+{"step":"charge","ts":"2026-10-23T20:13:01Z","ok":true,"member":"dev","status":"COMPLETED","order_id":"6C39008306877501A","capture_id":"24962340F82993216","gross":"200.00","fee":"7.47","net":"192.53","decline_code":null,"label":"Captured","error":null}
+{"step":"confirm","ts":"2026-10-23T20:13:05Z","ok":true,"member":"asha","order_id":"3FF02195ET4622049","capture_id":"0ML631907M559815F","order_status":"COMPLETED","capture_status":"COMPLETED"}
+{"step":"confirm","ts":"2026-10-23T20:13:10Z","ok":true,"member":"meena","order_id":"73N18862HM6897331","capture_id":"9SK00328S1488121A","order_status":"COMPLETED","capture_status":"COMPLETED"}
+{"step":"confirm","ts":"2026-10-23T20:13:13Z","ok":true,"member":"tomas","order_id":"11410425NG037541V","capture_id":"7P283733KK802453P","order_status":"COMPLETED","capture_status":"COMPLETED"}
+{"step":"confirm","ts":"2026-10-23T20:13:17Z","ok":true,"member":"lin","order_id":"56E26099KG7963935","capture_id":"6DL4010260519460J","order_status":"COMPLETED","capture_status":"COMPLETED"}
+{"step":"confirm","ts":"2026-10-23T20:13:20Z","ok":true,"member":"dev","order_id":"6C39008306877501A","capture_id":"24962340F82993216","order_status":"COMPLETED","capture_status":"COMPLETED"}
+{"step":"reply","ts":"2026-10-23T20:13:20Z","ok":true,"member":"ravi","message_id":2,"payday":"2027-01-01"}
+{"step":"recovery","ts":"2026-10-23T20:13:20Z","ok":true,"mode":"rules","set_id":"rs_3bd72fe4","error":null}
+{"step":"vote","ts":"2026-10-23T20:13:20Z","ok":true,"yes":4,"needed":4,"consents":["ravi","tomas"]}
+{"step":"remedy","ts":"2026-10-23T20:13:30Z","ok":true,"type":"buffer_advance","amount":"192.53","invoice_id":null,"simulated":null,"label":null,"error":null}
+{"step":"remedy","ts":"2026-10-23T20:13:30Z","ok":true,"type":"turn_swap","amount":null,"invoice_id":null,"simulated":null,"label":null,"error":null}
+{"step":"remedy","ts":"2026-10-23T20:13:30Z","ok":true,"type":"repay_by_invoice","amount":"200.00","invoice_id":"INV2-MQLY-KH56-UPNS-D8KR","simulated":false,"label":null,"error":null}
+{"step":"payout","ts":"2026-10-23T20:13:34Z","ok":false,"batch_id":null,"item_id":null,"status":null,"amount":"1154.93","recipient":"dev","fee":null,"funds_check":null,"paypal_balance":null,"paypal_balance_refreshed":null,"paypal_balance_stale":null,"denied":null,"error":"INSUFFICIENT_FUNDS"}
+{"step":"result","ts":"2026-10-23T20:13:34Z","ok":false,"reason":"payout refused: Payout failed: INSUFFICIENT_FUNDS"}
+FAIL

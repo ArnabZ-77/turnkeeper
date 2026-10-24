@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "body": {
+    "sid": "<redacted-session-id>",
+    "run_id": "5tworejn",
+    "circle_id": "ye3d10",
+    "live_ai": false,
+    "paypal_live": true,
+    "frozen": false,
+    "vault_seeded": true
+  }
+}

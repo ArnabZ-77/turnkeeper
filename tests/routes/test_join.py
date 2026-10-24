@@ -206,8 +206,13 @@ def test_start_and_return_store_the_vault_id(client, session, vault):
 
     # the pre-join link is revoked; a second start on the fresh link is harmless
     assert client.get(f"/api/join/{token}").status_code == 404
-    r = client.get(f"/join/{token}/return", follow_redirects=False)
-    assert r.status_code == 404 and vault.kinds().count("payment") == 1
+    # Back / reload on the old return URL lands on the SPA join page (not a raw JSON 404) and saves nothing
+    r = client.get(f"/join/{token}/return?approval_token_id=FAKESETUP1", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == f"/join/{token}?status=invalid"
+    assert vault.kinds().count("payment") == 1
+    r = client.get(f"/join/{token}/cancel", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == f"/join/{token}?status=invalid"
+    assert jn.is_vaulted(_member(cid, "ravi"))
     r = client.post(f"/api/join/{fresh}/start")
     assert r.status_code == 409 and r.json()["detail"]["status"] == "vaulted"
 
@@ -290,7 +295,37 @@ def test_return_without_setup_token_redirects_to_error(client, session, vault):
     r = client.get(f"/join/{token}/return", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == f"/join/{token}?status=error"
     assert vault.calls == []
-    assert client.get("/join/garbage/return", follow_redirects=False).status_code == 404
+    r = client.get("/join/garbage/return", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/join/garbage?status=invalid"
+
+
+def test_return_without_approval_token_id_is_not_paypals_redirect(client, session, vault):
+    cid = session["circle_id"]
+    token = join.invite_token(cid, "asha")
+    assert client.post(f"/api/join/{token}/start").status_code == 200
+    r = client.get(f"/join/{token}/return", follow_redirects=False)
+    assert r.headers["location"] == f"/join/{token}?status=error"
+    assert vault.kinds() == ["setup"] and not jn.is_vaulted(_member(cid, "asha"))
+    assert "does not belong" in _member(cid, "asha").join_message
+
+
+def test_invite_nonce_lookup_failure_fails_closed(client, session, vault, monkeypatch):
+    """A DB error during the nonce lookup must not fall back to a nonce-less check (that would re-accept
+    links revoked when the member vaulted)."""
+    cid = session["circle_id"]
+    token = join.invite_token(cid, "dev")
+
+    def boom(*a, **k):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(jn, "_invite_nonce", boom)
+    with pytest.raises(jn.InviteError) as e:
+        jn.parse_invite(token)
+    assert e.value.kind == "unavailable"
+    assert client.get(f"/api/join/{token}").status_code == 503
+    assert client.post(f"/api/join/{token}/wallet", json={"receiver": "m@example.com"}).status_code == 503
+    r = client.get(f"/join/{token}/return?approval_token_id=X", follow_redirects=False)
+    assert r.headers["location"] == f"/join/{token}?status=error" and vault.calls == []
 
 
 def test_start_paypal_error_is_502_with_a_message(client, session, vault):
@@ -488,3 +523,15 @@ def test_other_sessions_cannot_list_the_mini_circle_invites(app, client, session
         other.get("/api/session")
         assert other.get(f"/api/circles/{mini}/invites").status_code == 403
         assert other.post("/api/join/judge-circle").json()["circle_id"] != mini
+
+
+def test_judge_join_card_names_members_in_full_and_promises_no_buffer(client, session):
+    """Review: 'Members: Judge, Judge' and a $0 buffer that 'covers you' confused the judge join page."""
+    body = client.post("/api/join/judge-circle").json()
+    assert "any US sandbox personal account" in body["notes"][0] and "README" not in body["notes"][0]
+    card = client.get(body["invite"]["path"].replace("/join/", "/api/join/")).json()["circle"]
+    assert card["members"] == [
+        {"handle": "judge_payee", "name": "Judge Payee", "you": False},
+        {"handle": "judge_member", "name": "Judge Member", "you": True},
+    ]
+    assert card["buffer_seed"] == "0.00" and "buffer_advance" not in card["remedy_menu"]

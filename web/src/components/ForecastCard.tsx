@@ -5,13 +5,15 @@ import { fmtDateTime } from "../format";
 
 export interface ForecastCardProps {
   board: BoardModel | null;
+  /** The member's phone is on screen right below: show the nudge's English only, not the same Hindi twice. */
+  phoneShown?: boolean;
 }
 
 /**
  * T-3 shortfall forecast: who is likely to be short this round, why, and the nudge the treasurer sent.
  * Always rendered (with a placeholder) so the rail does not jump when the forecast arrives.
  */
-export function ForecastCard({ board }: ForecastCardProps) {
+export function ForecastCard({ board, phoneShown = false }: ForecastCardProps) {
   const view = forecastCard(board);
   return (
     <section className="tk-card tk-forecast" aria-label="Shortfall forecast">
@@ -40,13 +42,18 @@ export function ForecastCard({ board }: ForecastCardProps) {
             </span>
           </div>
           {f.reason && <p className="tk-forecast-reason">{f.reason}</p>}
-          {f.nudge && (
+          {f.nudge && phoneShown && f.nudge_en && f.nudge_en !== f.nudge ? (
+            <blockquote className="tk-forecast-nudge" lang="en">
+              <span className="tk-small tk-muted">Nudge sent to the inbox (Hindi, on the phone below)</span>
+              <span className="tk-forecast-en">{f.nudge_en}</span>
+            </blockquote>
+          ) : f.nudge ? (
             <blockquote className="tk-forecast-nudge" lang={f.lang ?? undefined}>
               <span className="tk-small tk-muted">Nudge sent to the inbox</span>
               <span>{f.nudge}</span>
               {f.nudge_en && f.nudge_en !== f.nudge && <span className="tk-forecast-en">{f.nudge_en}</span>}
             </blockquote>
-          )}
+          ) : null}
         </div>
       ))}
       {view && (

@@ -262,6 +262,41 @@ summary:focus-visible {
   min-height: 1.4em; /* reserved even when empty: no shift when the first summary arrives */
 }
 
+/* A failed step: red ring on its dot, the reason under the dots until a retry, a pass or a reset. */
+.tk-story-failed .tk-story-dot-mark {
+  border-color: var(--tk-critical);
+  color: var(--tk-critical-ink);
+  background: color-mix(in srgb, var(--tk-critical) 10%, var(--tk-surface));
+  transform: scale(1.12);
+}
+.tk-story-error {
+  grid-area: last;
+  margin: 0;
+  padding: var(--tk-space-1) var(--tk-space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--tk-space-2);
+  color: var(--tk-critical-ink);
+  font-weight: 600;
+  min-height: 1.4em;
+}
+.tk-story-error svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.tk-btn-hero.tk-btn-retry {
+  background: var(--tk-critical-ink);
+  border-color: var(--tk-critical-ink);
+}
+/* Running: keep the accent fill (with its shimmer) rather than the neutral disabled look. */
+.tk-btn-hero.tk-btn-running:disabled {
+  background-color: var(--tk-accent-fill);
+  border-color: var(--tk-accent-fill);
+  color: var(--tk-accent-ink);
+  opacity: 0.85;
+}
+
 .tk-btn-hero {
   padding: 10px 18px;
   font-size: var(--tk-fs-md);
@@ -355,6 +390,28 @@ summary:focus-visible {
   .tk-btn-hero {
     flex: 1;
     width: auto;
+  }
+}
+/* Phone: the judge controls stay under the thumb instead of 4,000 px down the page. */
+@media (max-width: 600px) {
+  .tk-judge {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    gap: 0;
+  }
+  .tk-judge .tk-story {
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    padding: var(--tk-space-2) var(--tk-space-3);
+    row-gap: var(--tk-space-1);
+  }
+  .tk-btn-hero-text {
+    white-space: normal;
+    text-align: left;
+  }
+  .tk-story-last,
+  .tk-judge .tk-advanced {
+    display: none;
   }
 }
 @media (max-width: 480px) {
@@ -568,7 +625,7 @@ summary:focus-visible {
   transition: background-color var(--tk-dur) ease, color var(--tk-dur) ease;
 }
 .tk-seg button[aria-pressed="true"] {
-  background: var(--tk-accent);
+  background: var(--tk-accent-fill);
   color: var(--tk-accent-ink);
 }
 .tk-seg button:disabled {
@@ -636,6 +693,16 @@ summary:focus-visible {
   font-size: var(--tk-fs-xs);
   color: var(--tk-muted);
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .tk-charter-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
 }
 .tk-charter-problem {
   font-size: var(--tk-fs-xs);
@@ -899,4 +966,9 @@ summary:focus-visible {
 .tk-join-foot {
   text-align: center;
   margin: var(--tk-space-2) 0 0;
+}
+.tk-join-back {
+  align-self: flex-start;
+  margin-top: var(--tk-space-2);
+  text-decoration: none;
 }

@@ -8,7 +8,7 @@ import type { BoardModel } from "../types";
 import { describeError } from "../api";
 import { copyText } from "../format";
 import { GridBoard } from "./GridBoard";
-import { detailRows, detailTitle, mapBoard, STATUS_COLOR, STATUS_LABEL, type EventMeta } from "./mapping";
+import { detailRows, detailTitle, focusHandle, mapBoard, STATUS_COLOR, STATUS_LABEL, type EventMeta } from "./mapping";
 import type { SchedulerBoardProps } from "./SchedulerBoard";
 import { IconCopy } from "../components/icons";
 
@@ -16,6 +16,25 @@ export interface RotationBoardProps {
   board: BoardModel | null;
   /** Handles whose turn just moved (schedule_changed); highlighted and animated. */
   moved?: readonly string[];
+  /** Member of the open recovery, kept in view on a short board. */
+  recoveryMember?: string | null;
+}
+
+/** Phones get the list board: a time axis is unreadable in 350 px. */
+export const NARROW_QUERY = "(max-width: 600px)";
+
+function useMediaQuery(query: string): boolean {
+  const get = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches;
+  const [matches, setMatches] = useState(get);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(query);
+    const on = () => setMatches(mql.matches);
+    on();
+    mql.addEventListener?.("change", on);
+    return () => mql.removeEventListener?.("change", on);
+  }, [query]);
+  return matches;
 }
 
 const NO_MOVES: readonly string[] = [];
@@ -101,10 +120,12 @@ function SelectedDetail({ meta, currency, onClose }: { meta: EventMeta; currency
   );
 }
 
-export function RotationBoard({ board, moved = NO_MOVES }: RotationBoardProps) {
+export function RotationBoard({ board, moved = NO_MOVES, recoveryMember = null }: RotationBoardProps) {
   const [loader, setLoader] = useState<Loader>({ status: "loading" });
   const [selected, setSelected] = useState<EventMeta | null>(null);
   const mapping = useMemo(() => mapBoard(board, moved), [board, moved]);
+  const focus = useMemo(() => focusHandle(board, moved, recoveryMember), [board, moved, recoveryMember]);
+  const narrow = useMediaQuery(NARROW_QUERY);
 
   useEffect(() => {
     let alive = true;
@@ -128,13 +149,15 @@ export function RotationBoard({ board, moved = NO_MOVES }: RotationBoardProps) {
   let body: ReactNode;
   if (!mapping) {
     body = <div className="tk-board-empty">{board ? "No rounds in this circle yet." : "Loading the circle…"}</div>;
+  } else if (narrow) {
+    body = <GridBoard mapping={mapping} selected={selected} onSelect={onSelect} reason={null} compact />;
   } else if (loader.status === "failed") {
     body = <GridBoard mapping={mapping} selected={selected} onSelect={onSelect} reason={loader.reason} />;
   } else if (loader.status === "ready") {
     const Impl = loader.Impl;
     body = (
       <SchedulerBoundary onError={onSchedulerError}>
-        <Impl mapping={mapping} onSelect={onSelect} />
+        <Impl mapping={mapping} onSelect={onSelect} focus={focus} />
       </SchedulerBoundary>
     );
   } else {
@@ -152,6 +175,10 @@ export function RotationBoard({ board, moved = NO_MOVES }: RotationBoardProps) {
               {STATUS_LABEL[s]}
             </span>
           ))}
+          <span title="Rounds 1-2 are replayed from the fixture: no PayPal call was made for them">
+            <span className="tk-swatch tk-swatch-replay" />
+            seeded
+          </span>
           <span>
             <span className="tk-swatch" style={{ background: "transparent", border: "2px solid currentColor", transform: "rotate(45deg)", width: 9, height: 9 }} />
             pot milestone

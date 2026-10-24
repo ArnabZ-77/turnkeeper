@@ -1,0 +1,72 @@
+2026-10-24 01:38:03,276 INFO turnkeeper.mcp.auth: public MCP mounted at /mcp
+INFO:     Started server process [36508]
+INFO:     Waiting for application startup.
+2026-10-24 01:38:03,456 INFO turnkeeper: starting turnkeeper env=sandbox paypal_configured=True llm_provider=none llm_configured=False llm_cache=auto
+2026-10-24 01:38:03,485 INFO mcp.server.streamable_http_manager: StreamableHTTP session manager started
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8020 (Press CTRL+C to quit)
+2026-10-24 01:38:37,352 INFO turnkeeper.db: database ready at C:/Users/arnab/AppData/Local/Temp/claude/d--Desktop-PayPal/4c67f0e7-170f-41c5-9365-65014928eeab/scratchpad/live/run.db
+2026-10-24 01:38:37,443 INFO turnkeeper.engine.sessions: session created sid=SVX7GL... circle=ye3d10 run=5tworejn
+2026-10-24 01:38:37,503 INFO turnkeeper.engine.sessions: session reset sid=SVX7GL... circle=5wsg4b run=oqmxwklk
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/reset HTTP/1.1" 200 OK
+2026-10-24 01:38:37,600 INFO turnkeeper.engine.inbox: inbox out ravi (hi, 141 chars)
+2026-10-24 01:38:37,602 INFO turnkeeper.engine.forecast_job: forecast round 3 for 5wsg4b: 1 flagged
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+2026-10-24 01:38:37,644 INFO turnkeeper.routes.circles: task dc84ab6c6ce66424 started kind=collect_round circle=5wsg4b round=3
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+2026-10-24 01:38:40,206 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v1/oauth2/token "HTTP/1.1 200 OK"
+2026-10-24 01:38:40,216 INFO turnkeeper.paypal.client: paypal token refreshed (expires_in=32400s, cached for 32100s)
+2026-10-24 01:38:42,393 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 201 Created"
+2026-10-24 01:38:42,400 INFO turnkeeper.engine.rounds: charge asha r3 a1 -> COMPLETED order=8T1143089H385430U
+2026-10-24 01:38:43,407 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 422 Unknown Error"
+2026-10-24 01:38:43,409 WARNING turnkeeper.paypal.client: POST /v2/checkout/orders -> 422 UNPROCESSABLE_ENTITY debug_id=70c28ae654da issues=['INSTRUMENT_DECLINED'] ms=984
+2026-10-24 01:38:43,417 INFO turnkeeper.engine.rounds: charge ravi r3 a1 -> DECLINED (API decline: sandbox-injected)
+2026-10-24 01:38:43,433 INFO turnkeeper.engine.inbox: inbox out ravi (hi, 77 chars)
+2026-10-24 01:38:46,018 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 201 Created"
+2026-10-24 01:38:46,038 INFO turnkeeper.engine.rounds: charge meena r3 a1 -> COMPLETED order=0SW43656B4565112J
+2026-10-24 01:38:48,702 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 201 Created"
+2026-10-24 01:38:48,712 INFO turnkeeper.engine.rounds: charge tomas r3 a1 -> COMPLETED order=8FC03630SU3564421
+2026-10-24 01:38:51,340 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 201 Created"
+2026-10-24 01:38:51,346 INFO turnkeeper.engine.rounds: charge lin r3 a1 -> COMPLETED order=53U38611864426307
+2026-10-24 01:38:54,120 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v2/checkout/orders "HTTP/1.1 201 Created"
+2026-10-24 01:38:54,132 INFO turnkeeper.engine.rounds: charge dev r3 a1 -> COMPLETED order=5CS55694E6169762M
+2026-10-24 01:39:04,495 INFO httpx: HTTP Request: GET https://api-m.sandbox.paypal.com/v1/reporting/balances?currency_code=USD "HTTP/1.1 200 OK"
+2026-10-24 01:39:04,697 INFO turnkeeper.engine.inbox: inbox in ravi (hi, 35 chars)
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+2026-10-24 01:39:04,754 INFO turnkeeper.routes.recovery: recover task 35130e424889c3be started circle=5wsg4b round=3 member=ravi
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+2026-10-24 01:39:12,393 WARNING root: Response body is not valid JSON or empty, Headers: {
+  "Connection": "keep-alive",
+  "Content-Length": "1016",
+  "http_x_pp_az_locator": "ccg18.slc",
+  "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
+  "paypal-debug-id": "f116225b11ec4",
+  "server": "nginx",
+  "server-timing": "traceparent;desc=\"00-0000000000000000000f116225b11ec4-9fd27447239c29b7-01\"",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "content-type": "multipart/form-data; boundary=286d91e0-80f6-4be8-9a1a-b73b672748ea",
+  "access-control-expose-headers": "Server-Timing",
+  "Accept-Ranges": "bytes",
+  "Via": "1.1 varnish, 1.1 varnish",
+  "Edge-Control": "max-age=0",
+  "Date": "Fri, 23 Oct 2026 20:09:12 GMT",
+  "X-Served-By": "cache-sin-wsss1830099-SIN, cache-sin-wsss1830091-SIN, cache-ccu830051-CCU",
+  "X-Cache": "MISS, MISS, MISS",
+  "X-Cache-Hits": "0, 0, 0",
+  "X-Timer": "S1792786152.865197,VS0,VE439",
+  "Vary": "Accept-Encoding"
+}
+2026-10-24 01:39:12,393 INFO turnkeeper.engine.inbox: inbox out ravi (hi, 92 chars)
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 200 OK
+2026-10-24 01:39:13,663 INFO httpx: HTTP Request: GET https://api-m.sandbox.paypal.com/v1/reporting/balances?currency_code=USD "HTTP/1.1 200 OK"
+2026-10-24 01:39:14,622 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v1/payments/payouts "HTTP/1.1 422 Unknown Error"
+2026-10-24 01:39:14,623 WARNING turnkeeper.paypal.client: POST /v1/payments/payouts -> 422 INSUFFICIENT_FUNDS debug_id=f541219482667 issues=[] ms=938
+INFO:     127.0.0.1:56106 - "POST /api/judge/story/next HTTP/1.1" 409 Conflict
+INFO:     127.0.0.1:56106 - "GET /api/replay HTTP/1.1" 200 OK
+2026-10-24 01:44:10,462 INFO httpx: HTTP Request: GET https://api-m.sandbox.paypal.com/v1/reporting/balances?currency_code=USD "HTTP/1.1 200 OK"
+2026-10-24 01:44:12,832 INFO httpx: HTTP Request: POST https://api-m.sandbox.paypal.com/v1/payments/payouts "HTTP/1.1 422 Unprocessable Entity"
+2026-10-24 01:44:12,832 WARNING turnkeeper.paypal.client: POST /v1/payments/payouts -> 422 INSUFFICIENT_FUNDS debug_id=ca4f368135c95 issues=[] ms=2359
+INFO:     127.0.0.1:62234 - "POST /api/judge/story/next HTTP/1.1" 409 Conflict

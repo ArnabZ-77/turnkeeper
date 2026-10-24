@@ -186,7 +186,11 @@ export function CompilePage() {
                   <dt>{r.label}</dt>
                   <dd>
                     <span className="tk-charter-value">{r.value}</span>
-                    {r.explanation && <span className="tk-charter-why">{r.explanation}</span>}
+                    {r.explanation && (
+                      <span className="tk-charter-why" title={r.fullExplanation ?? r.explanation}>
+                        {r.explanation}
+                      </span>
+                    )}
                     {r.problems.map((p) => (
                       <span key={p} className="tk-charter-problem">
                         {p}
@@ -207,9 +211,15 @@ export function CompilePage() {
                 </span>
               )}
               <span className="tk-spacer" />
-              <button type="button" className="tk-btn tk-btn-primary" onClick={() => void onFreeze(false)} disabled={busy !== null || !session}>
-                {busy === "freeze" ? "Freezing…" : "Freeze charter"}
-              </button>
+              {freeze ? (
+                <span className="tk-chip tk-chip-good">
+                  <IconCheck /> Frozen
+                </span>
+              ) : (
+                <button type="button" className="tk-btn tk-btn-primary" onClick={() => void onFreeze(false)} disabled={busy !== null || !session}>
+                  {busy === "freeze" ? "Freezing…" : "Freeze charter"}
+                </button>
+              )}
             </div>
           )}
         </section>

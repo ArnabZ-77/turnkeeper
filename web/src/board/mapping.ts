@@ -21,19 +21,22 @@ import { emptyContribution } from "../state";
 
 export const DAY_MS = 86_400_000;
 
-/** Status colours (same hues in both themes; the label and icon always accompany the colour). */
+/**
+ * Status colours (legend swatches and the grid fallback; the scheduler reads the same values from
+ * theme/tokens.css). White text on each fill passes WCAG AA; the label and icon always accompany it.
+ */
 export const STATUS_COLOR: Record<ContributionStatus, string> = {
-  PENDING: "#898781",
-  COMPLETED: "#0ca30c",
+  PENDING: "#6f6d68",
+  COMPLETED: "#0a7f0a",
   DECLINED: "#d03b3b",
   COVERED: "#fab219",
 };
 
 export const ROUND_COLOR: Record<RoundStatus, string> = {
-  PENDING: "#898781",
-  COLLECTING: "#2a78d6",
+  PENDING: "#6f6d68",
+  COLLECTING: "#1f66c1",
   COLLECTED: "#fab219",
-  PAID: "#0ca30c",
+  PAID: "#0a7f0a",
   VOID: "#d03b3b",
 };
 
@@ -129,18 +132,63 @@ export interface BoardTimeRange {
   cls: string;
 }
 
+/**
+ * Two header rows: the month (with its year) on top, and an empty bottom row that only the round
+ * bands' labels ("Round 3 · Dev Mehta") draw into, so the two never print over each other.
+ */
+export interface BoardViewPreset {
+  id: string;
+  base: string;
+  tickWidth: number;
+  headers: { unit: string; dateFormat?: string; renderer?: () => string }[];
+}
+
+const blankHeader = (): string => "";
+
+const PRESETS = new Map<string, BoardViewPreset>();
+
+/** Cached per (cadence, tick size): the scheduler re-applies a preset whenever the object changes. */
+export function boardViewPreset(weekly: boolean, tickSize: number): BoardViewPreset {
+  const key = `${weekly ? "w" : "m"}${tickSize}`;
+  const hit = PRESETS.get(key);
+  if (hit) return hit;
+  const preset = makePreset(weekly, tickSize);
+  PRESETS.set(key, preset);
+  return preset;
+}
+
+function makePreset(weekly: boolean, tickSize: number): BoardViewPreset {
+  return weekly
+    ? {
+        id: "tkWeekly",
+        base: "weekAndMonth",
+        tickWidth: tickSize,
+        headers: [{ unit: "month", dateFormat: "MMM YYYY" }, { unit: "week", renderer: blankHeader }],
+      }
+    : {
+        id: "tkMonthly",
+        base: "monthAndYear",
+        tickWidth: tickSize,
+        headers: [{ unit: "month", dateFormat: "MMM YYYY" }, { unit: "month", renderer: blankHeader }],
+      };
+}
+
 export interface BoardMapping {
   resources: BoardResource[];
   events: BoardEvent[];
   timeRanges: BoardTimeRange[];
   startDate: Date;
   endDate: Date;
-  viewPreset: string;
+  viewPreset: BoardViewPreset;
   /** Pixels per time-axis tick (month for monthly circles, week for weekly ones). */
   tickSize: number;
   /** Days before the due date that a contribution bar starts. */
   windowDays: number;
   currency: string;
+}
+
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
 }
 
 export function addDays(d: Date, days: number): Date {
@@ -179,27 +227,70 @@ export function cadenceDays(board: BoardModel, dues: Date[]): number {
   return board.circle?.cadence === "weekly" ? 7 : 30;
 }
 
-/** Short chip text: "$200.00 ✓", "DECLINED: API decline: sandbox-injected", ... */
+/**
+ * Chip text that fits a 16-day chip at 1080p without truncating: the whole-dollar amount ("$200"), or
+ * one word for the states the story is about ("Declined", "Covered", "At risk"). The status itself is
+ * carried by the chip's colour, icon and the legend; seeded rounds get their own hatched style
+ * (`isReplay`), and every detail (cents, capture or webhook state, decline code) is in the tooltip.
+ */
 export function chipLabel(c: ContributionInfo, amount: string, currency: string): string {
-  const money = fmtMoney(c.gross ?? amount, currency);
+  const money = fmtMoney(c.gross ?? amount, currency, { cents: false });
   switch (c.status) {
     case "COMPLETED":
-      // Rounds 1-2 are replayed from the fixture (REPLAY- ids): never call them captured or verified.
-      if (c.order_id?.startsWith("REPLAY-")) return `${money} replay`;
-      return `${money}${c.webhook_verified ? " verified" : " captured"}`;
+      return money;
     case "DECLINED":
-      return `Declined${c.label ? `: ${c.label}` : c.decline_code ? `: ${c.decline_code}` : ""}`;
+      return "Declined";
     case "COVERED":
-      return `Covered${c.label ? `: ${c.label}` : " by buffer"}`;
+      return "Covered";
     case "PENDING":
     default:
-      return c.predicted ? `${money} at risk` : `${money} due`;
+      return c.predicted ? "At risk" : money;
   }
 }
 
+/** Rounds 1-2 are replayed from the fixture (REPLAY- ids): never presented as live captures. */
+export function isReplay(c: Pick<ContributionInfo, "order_id">): boolean {
+  return Boolean(c.order_id?.startsWith("REPLAY-"));
+}
+
+/** Pot milestone text: "Pot $1,155" once paid (whole dollars; cents in the tooltip), else "Pot". */
 export function potLabel(round: RoundInfo, currency: string): string {
-  if (round.payout?.amount) return `Pot ${fmtMoney(round.payout.amount, currency)}`;
-  return `Pot · round ${round.n}`;
+  if (round.payout?.amount) return `Pot ${fmtMoney(round.payout.amount, currency, { cents: false })}`;
+  return "Pot";
+}
+
+/** Pixels per month (monthly circles) or per week (weekly ones). */
+export const TICK_SIZE = 200;
+
+/**
+ * Days before the due date a contribution chip starts. Monthly chips leave room after the due date
+ * for the pot milestone and its label, which share the row's single lane.
+ */
+export function chipWindowDays(gap: number, weekly: boolean): number {
+  return weekly ? Math.max(2, Math.min(16, gap - 3)) : Math.max(2, Math.min(18, gap - 12));
+}
+
+/** Last day of a contribution chip, relative to the due date (the pot diamond sits on the due date). */
+export const CHIP_END_OFFSET_DAYS = -2;
+
+/**
+ * The member the story is about right now, to keep in view on a short board: a member whose turn
+ * just moved, else the member being recovered, else the first DECLINED contribution's member.
+ */
+export function focusHandle(
+  board: BoardModel | null,
+  moved: readonly string[] = [],
+  recoveryMember: string | null = null,
+): string | null {
+  if (!board) return null;
+  const known = (h: string | null | undefined) => (h && board.members.some((m) => m.handle === h) ? h : null);
+  const fromMoved = moved.map(known).find(Boolean);
+  if (fromMoved) return fromMoved;
+  if (known(recoveryMember)) return recoveryMember;
+  const declined = [...(board.contributions ?? [])]
+    .filter((c) => c.status === "DECLINED" || c.status === "COVERED")
+    .sort((a, b) => b.round_n - a.round_n)[0];
+  return known(declined?.member);
 }
 
 export function contributionMeta(c: ContributionInfo, member: MemberInfo | undefined, round: RoundInfo): ContributionMeta {
@@ -242,8 +333,9 @@ export function potMeta(round: RoundInfo, recipient: MemberInfo | undefined): Po
 
 export function contributionCls(meta: ContributionMeta): string {
   const parts = ["tk-contrib", `tk-st-${meta.status.toLowerCase()}`];
+  if (meta.orderId?.startsWith("REPLAY-")) parts.push("tk-replay");
   if (meta.predicted) parts.push("tk-predicted");
-  if (meta.webhookVerified) parts.push("tk-verified");
+  if (meta.webhookVerified && !meta.orderId?.startsWith("REPLAY-")) parts.push("tk-verified");
   return parts.join(" ");
 }
 
@@ -265,7 +357,7 @@ export function mapBoard(board: BoardModel | null, moved: readonly string[] = []
   if (!valid.length) return null;
   const gap = cadenceDays(board, valid);
   const weekly = gap <= 10;
-  const windowDays = Math.max(2, Math.min(16, gap - 3));
+  const windowDays = chipWindowDays(gap, weekly);
 
   const resources: BoardResource[] = members.map((m) => ({
     id: m.handle,
@@ -287,11 +379,12 @@ export function mapBoard(board: BoardModel | null, moved: readonly string[] = []
     const due = dues[i];
     if (Number.isNaN(due.getTime())) return;
     const barStart = addDays(due, -windowDays);
-    const barEnd = addDays(due, -1);
+    const barEnd = addDays(due, weekly ? -1 : CHIP_END_OFFSET_DAYS);
 
     timeRanges.push({
       id: `round-${round.n}`,
-      name: `Round ${round.n} · ${byHandle.get(round.recipient)?.name ?? round.recipient}`,
+      // First name only: the band is about 19 days wide, and the full name is in the member column.
+      name: `Round ${round.n} · ${firstName(byHandle.get(round.recipient)?.name ?? round.recipient)}`,
       startDate: barStart,
       endDate: addDays(due, 1),
       cls: `tk-round tk-round-${round.status.toLowerCase()}`,
@@ -324,7 +417,8 @@ export function mapBoard(board: BoardModel | null, moved: readonly string[] = []
         endDate: due,
         cls: potCls(meta),
         eventColor: ROUND_COLOR[round.status] ?? ROUND_COLOR.PENDING,
-        iconCls: iconCls("coins"),
+        // A plain diamond (the legend's "pot milestone"); an icon would cover the chip before it.
+        iconCls: "",
         tk: meta,
       });
     }
@@ -332,7 +426,8 @@ export function mapBoard(board: BoardModel | null, moved: readonly string[] = []
 
   const now = parseDateTime(board.circle?.virtual_now);
   if (now) {
-    timeRanges.push({ id: "now", name: "now", startDate: now, cls: "tk-now" });
+    // No header text: a label here would print over the round band; the accent line says "now".
+    timeRanges.push({ id: "now", name: "", startDate: now, cls: "tk-now" });
   }
 
   const first = valid[0];
@@ -342,9 +437,9 @@ export function mapBoard(board: BoardModel | null, moved: readonly string[] = []
     events,
     timeRanges,
     startDate: addDays(first, -(windowDays + 4)),
-    endDate: addDays(last, 20),
-    viewPreset: weekly ? "weekAndMonth" : "monthAndYear",
-    tickSize: 170,
+    endDate: addDays(last, 16),
+    viewPreset: boardViewPreset(weekly, TICK_SIZE),
+    tickSize: TICK_SIZE,
     windowDays,
     currency,
   };
@@ -390,7 +485,8 @@ export function detailRows(meta: EventMeta, currency = "USD"): DetailRow[] {
   if (meta.fee) rows.push({ k: "PayPal fee", v: fmtMoney(meta.fee, currency) });
   if (meta.net) rows.push({ k: "Net", v: fmtMoney(meta.net, currency) });
   if (meta.attempt > 1) rows.push({ k: "Attempt", v: String(meta.attempt) });
-  rows.push({ k: "Webhook", v: meta.webhookVerified ? "capture verified" : "not verified yet" });
+  if (meta.orderId?.startsWith("REPLAY-")) rows.push({ k: "Source", v: "seeded history · no PayPal call" });
+  else rows.push({ k: "Webhook", v: meta.webhookVerified ? "capture verified" : "not verified yet" });
   if (meta.predicted) rows.push({ k: "Forecast", v: "flagged at risk" });
   return rows;
 }

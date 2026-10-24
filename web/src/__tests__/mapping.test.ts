@@ -3,6 +3,9 @@ import { demoBoard } from "./fixtures";
 import {
   addDays,
   cadenceDays,
+  chipWindowDays,
+  DAY_MS,
+  focusHandle,
   chipLabel,
   contributionFor,
   detailRows,
@@ -34,40 +37,48 @@ describe("mapBoard", () => {
     const pot1 = pots.find((p) => p.tk.roundN === 1)!;
     expect(pot1.resourceId).toBe("meena");
     expect(pot1.startDate.getTime()).toBe(pot1.endDate.getTime());
-    expect(pot1.name).toContain("577.59");
+    expect(pot1.name).toBe("Pot $578"); // whole dollars on the board; the cents stay in the tooltip
+    expect(tooltipHtml(pot1.tk)).toContain("$577.59");
     expect(pot1.cls).toContain("tk-pot-paid");
   });
 
   it("colours and labels contributions by status", () => {
     const m = mapBoard(demoBoard())!;
     const byId = (id: string) => m.events.find((e) => e.id === id)!;
-    expect(byId("c-1-meena").eventColor).toBe("#0ca30c");
-    // Fixture rows (REPLAY- ids) are labelled replay, never captured/verified.
-    expect(byId("c-1-meena").name).toContain("replay");
-    expect(byId("c-1-asha").name).toContain("replay");
+    expect(byId("c-1-meena").eventColor).toBe("#0a7f0a");
+    // Fixture rows (REPLAY- ids) get the hatched replay style and are never called captured/verified.
+    expect(byId("c-1-meena").name).toBe("$200");
+    expect(byId("c-1-meena").cls).toContain("tk-replay");
+    expect(byId("c-1-meena").cls).not.toContain("tk-verified");
+    expect(tooltipHtml(byId("c-1-meena").tk)).toContain("seeded history");
+    expect(tooltipHtml(byId("c-1-meena").tk)).not.toContain("capture verified");
     const live = demoBoard();
     live.contributions = live.contributions.map((c) =>
       c.order_id ? { ...c, order_id: c.order_id.replace("REPLAY-", "SBX-") } : c,
     );
     const lm = mapBoard(live)!;
-    expect(lm.events.find((e) => e.id === "c-1-meena")!.name).toContain("verified");
-    expect(lm.events.find((e) => e.id === "c-1-asha")!.name).toContain("captured");
+    expect(lm.events.find((e) => e.id === "c-1-meena")!.cls).toContain("tk-verified");
+    expect(lm.events.find((e) => e.id === "c-1-meena")!.cls).not.toContain("tk-replay");
+    expect(tooltipHtml(lm.events.find((e) => e.id === "c-1-meena")!.tk)).toContain("capture verified");
     const declined = byId("c-2-ravi");
     expect(declined.eventColor).toBe("#d03b3b");
-    expect(declined.name).toContain("API decline: sandbox-injected");
+    expect(declined.name).toBe("Declined");
+    expect(tooltipHtml(declined.tk)).toContain("API decline: sandbox-injected");
     expect(declined.cls).toContain("tk-st-declined");
     const pending = byId("c-3-asha");
-    expect(pending.eventColor).toBe("#898781");
-    expect(pending.name).toContain("$200.00");
+    expect(pending.eventColor).toBe("#6f6d68");
+    expect(pending.name).toBe("$200");
   });
 
   it("builds a monthly axis around the due dates with the bars ending before the pot", () => {
     const m = mapBoard(demoBoard())!;
-    expect(m.viewPreset).toBe("monthAndYear");
+    expect(m.viewPreset.base).toBe("monthAndYear");
+    expect(m.viewPreset.headers.map((h) => h.unit)).toEqual(["month", "month"]);
+    expect(m.viewPreset.headers[1].renderer?.()).toBe("");
     const first = new Date(2026, 10, 1);
     const last = new Date(2027, 0, 1);
     expect(m.startDate.getTime()).toBeLessThan(addDays(first, -9).getTime());
-    expect(m.endDate.getTime()).toBe(addDays(last, 20).getTime());
+    expect(m.endDate.getTime()).toBe(addDays(last, 16).getTime());
     const c = m.events.find((e) => e.id === "c-1-meena")!;
     const pot = m.events.find((e) => e.id === "pot-1")!;
     expect(c.endDate.getTime()).toBeLessThanOrEqual(pot.startDate.getTime());
@@ -81,7 +92,7 @@ describe("mapBoard", () => {
     board.rounds = board.rounds.map((r, i) => ({ ...r, due_at: `2026-11-${String(1 + 7 * i).padStart(2, "0")}` }));
     const m = mapBoard(board)!;
     expect(cadenceDays(board, [new Date(2026, 10, 1), new Date(2026, 10, 8)])).toBe(7);
-    expect(m.viewPreset).toBe("weekAndMonth");
+    expect(m.viewPreset.base).toBe("weekAndMonth");
     expect(m.windowDays).toBeLessThan(7);
   });
 
@@ -101,7 +112,7 @@ describe("helpers", () => {
   it("contributionFor returns a PENDING placeholder", () => {
     const c = contributionFor(demoBoard(), 3, "meena");
     expect(c.status).toBe("PENDING");
-    expect(chipLabel(c, "200.00", "USD")).toBe("$200.00 due");
+    expect(chipLabel(c, "200.00", "USD")).toBe("$200");
   });
 
   it("tooltipHtml escapes values and lists order/capture ids", () => {
@@ -152,5 +163,33 @@ describe("helpers", () => {
     expect(rows.find((r) => r.k === "Batch id")?.v).toBe("B1");
     expect(rows.find((r) => r.k === "Item id")?.v).toBe("I1");
     expect(rows.find((r) => r.k === "Amount")?.v).toBe("$577.59");
+  });
+});
+
+describe("board layout helpers", () => {
+  it("chips never truncate mid-number: whole dollars, honest suffixes", () => {
+    const c = contributionFor(demoBoard(), 3, "meena");
+    expect(chipLabel({ ...c, status: "COMPLETED", gross: "1154.93", order_id: "SBX-1" }, "200.00", "USD")).toBe("$1,155");
+    expect(chipLabel({ ...c, status: "PENDING", predicted: true }, "200.00", "USD")).toBe("At risk");
+    expect(chipLabel({ ...c, status: "COVERED", label: "covered by buffer, invoice due Fri" }, "200.00", "USD")).toBe("Covered");
+  });
+
+  it("monthly chips end before the due date and leave room for the pot label", () => {
+    expect(chipWindowDays(30, false)).toBe(18);
+    expect(chipWindowDays(7, true)).toBe(4);
+    const m = mapBoard(demoBoard())!;
+    const c = m.events.find((e) => e.id === "c-2-meena")!;
+    const pot = m.events.find((e) => e.id === "pot-2")!;
+    expect((pot.startDate.getTime() - c.endDate.getTime()) / DAY_MS).toBe(2);
+    expect(m.timeRanges.find((t) => t.id === "now")?.name).toBe("");
+  });
+
+  it("focusHandle prefers a moved member, then the recovery member, then the latest decline", () => {
+    const board = demoBoard();
+    expect(focusHandle(null)).toBeNull();
+    expect(focusHandle(board, ["asha"], "ravi")).toBe("asha");
+    expect(focusHandle(board, ["ghost"], "ravi")).toBe("ravi");
+    expect(focusHandle(board, [], null)).toBe("ravi"); // fixture: ravi declined round 2
+    expect(focusHandle({ ...board, contributions: [] }, [], null)).toBeNull();
   });
 });

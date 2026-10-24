@@ -98,6 +98,8 @@ export interface CharterRow {
   label: string;
   value: string;
   explanation: string | null;
+  /** The explanation before de-duplication (for the hover title). */
+  fullExplanation?: string | null;
   problems: string[];
 }
 
@@ -115,14 +117,24 @@ export function generalProblems(problems: string[] | null | undefined): string[]
 export function charterRows(result: Pick<CompileResult, "charter" | "explanations" | "problems">): CharterRow[] {
   const c = result.charter;
   if (!c) return [];
-  return FIELD_ORDER.map((field) => ({
-    field,
-    label: FIELD_LABEL[field],
-    value: fieldValue(c, field),
-    explanation: result.explanations?.[field] ?? null,
-    problems: fieldProblems(field, result.problems),
-  }));
+  let previous: string | null = null;
+  return FIELD_ORDER.map((field) => {
+    const raw = result.explanations?.[field] ?? null;
+    // The same source quote under consecutive rows says nothing new: show it once.
+    const explanation = raw && raw === previous ? SAME_AS_ABOVE : raw;
+    if (raw) previous = raw;
+    return {
+      field,
+      label: FIELD_LABEL[field],
+      value: fieldValue(c, field),
+      explanation,
+      fullExplanation: raw,
+      problems: fieldProblems(field, result.problems),
+    };
+  });
 }
+
+export const SAME_AS_ABOVE = "same source line as above";
 
 /** "Fees ≈ $7.47 per contribution; pot paid net" (wording follows the fee policy). */
 export function feeLine(fees: Pick<FeesInfo, "fee_policy" | "fee_estimate"> | null | undefined, currency = "USD"): string {

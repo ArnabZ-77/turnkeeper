@@ -1,0 +1,109 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "circle_id": "ye3d10",
+    "run_id": null,
+    "steps": [
+      {
+        "step": "reset",
+        "label": "Reset demo (new circle, new run id)",
+        "status": "next",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "advance_to_t3",
+        "label": "Advance to T-3 (forecast)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "run_round3",
+        "label": "Run Round 3 (Ravi declines)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "reply_as_ravi",
+        "label": "Reply as Ravi (Hindi)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "start_recovery",
+        "label": "Start recovery",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "consents",
+        "label": "Consent as the affected members",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "votes",
+        "label": "Vote as members (quorum)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "approve",
+        "label": "Approve as Priya (one tap)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "execute",
+        "label": "Execute remedies",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "payout",
+        "label": "Pay Round 3",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "clean_round4",
+        "label": "Clean Round 4 (no clicks)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      }
+    ],
+    "current": null,
+    "next": {
+      "step": "reset",
+      "label": "Reset demo (new circle, new run id)",
+      "action_label": "Next: Reset demo (new circle, new run id)",
+      "index": 0
+    },
+    "running": null,
+    "complete": false,
+    "paypal": "live",
+    "replay_url": "/api/replay"
+  }
+}

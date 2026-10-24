@@ -54,9 +54,9 @@ code,
 .tk-header {
   grid-area: header;
   display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) minmax(300px, 1fr) minmax(200px, 0.8fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .tk-main {
@@ -76,6 +76,10 @@ code,
   gap: 12px;
   overflow: auto;
 }
+/* Cards keep their natural height (the rail scrolls); flex-shrink used to squeeze text out of them. */
+.tk-rail > * {
+  flex: 0 0 auto;
+}
 
 .tk-judge {
   grid-area: judge;
@@ -83,10 +87,7 @@ code,
 
 @media (max-width: 1100px) {
   .tk-header {
-    grid-template-columns: 1fr 1fr;
-  }
-  .tk-header > :first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -267,12 +268,20 @@ button.tk-chip {
   cursor: not-allowed;
 }
 .tk-btn-primary {
-  background: var(--tk-accent);
-  border-color: var(--tk-accent);
+  background: var(--tk-accent-fill);
+  border-color: var(--tk-accent-fill);
   color: var(--tk-accent-ink);
 }
 .tk-btn-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--tk-accent) 88%, #000);
+  background: color-mix(in srgb, var(--tk-accent-fill) 88%, #000);
+}
+/* Disabled primary: a quiet neutral, never white-on-pale-blue. */
+.tk-btn-primary:disabled {
+  opacity: 1;
+  background: var(--tk-surface-2);
+  border-color: var(--tk-border);
+  color: var(--tk-ink-2);
+  box-shadow: none;
 }
 .tk-btn-ghost {
   background: transparent;
@@ -305,8 +314,31 @@ button.tk-chip {
 
 .tk-counters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.tk-counters > .tk-stat + .tk-stat {
+  border-left: 1px solid var(--tk-hairline);
+  padding-left: 12px;
+}
+@media (max-width: 600px) {
+  .tk-counters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tk-counters > .tk-stat:nth-child(odd) {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
+/* Charter facts in two columns (dt dd dt dd per row), so the header stays about 150 px tall. */
+.tk-charter .tk-kv {
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+}
+@media (max-width: 760px) {
+  .tk-charter .tk-kv {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
 }
 .tk-stat {
   display: flex;
@@ -331,10 +363,10 @@ button.tk-chip {
   font-size: 12px;
   color: var(--tk-muted);
 }
-.tk-ticker {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.tk-ticker .tk-stat-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tk-ticker-live .tk-stat-value {
   color: var(--tk-accent);
@@ -345,24 +377,16 @@ button.tk-chip {
 
 /* ---- rotation board ---------------------------------------------------------------------- */
 
+/* The board is as tall as its rows (scheduler autoHeight): no empty canvas, no layout jump. */
 .tk-board {
   position: relative;
-  flex: 1;
-  min-height: 360px;
+  flex: none;
   display: flex;
   flex-direction: column;
 }
 .tk-board-host {
-  flex: 1;
-  min-height: 0;
-}
-/* The React wrapper adds a container div; the chain needs explicit heights or the scheduler collapses. */
-.tk-board-host > .b-react-scheduler-base-container,
-.tk-board-host > .tk-scheduler {
-  height: 100%;
-}
-.tk-board-host .b-react-scheduler-base-container > .tk-scheduler {
-  height: 100%;
+  flex: none;
+  min-height: 120px;
 }
 .tk-board-empty {
   position: absolute;
@@ -376,7 +400,7 @@ button.tk-chip {
 .tk-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 4px 12px;
   align-items: center;
   font-size: 12px;
   color: var(--tk-ink-2);
@@ -453,11 +477,10 @@ button.tk-chip {
 .tk-trace {
   display: flex;
   flex-direction: column;
-  min-height: 260px;
-  max-height: 46vh;
 }
 .tk-trace-list {
   flex: 1;
+  max-height: 260px;
   overflow: auto;
   margin: 0;
   padding: 0;
@@ -509,6 +532,21 @@ button.tk-chip {
   display: block;
   color: var(--tk-muted);
   font-size: 11px;
+}
+.tk-trace-raw {
+  margin-top: 2px;
+}
+.tk-trace-raw > summary {
+  cursor: pointer;
+  color: var(--tk-muted);
+  font-size: 11px;
+  width: fit-content;
+}
+.tk-trace-raw > code {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--tk-ink-2);
 }
 .tk-trace-empty {
   color: var(--tk-muted);
@@ -608,15 +646,16 @@ button.tk-chip {
 
 /* ---- toasts ------------------------------------------------------------------------------ */
 
+/* Bottom right, above the judge bar and over the rail's lower part: never over the header chips. */
 .tk-toasts {
   position: fixed;
-  top: 12px;
-  right: 16px;
+  bottom: 184px;
+  right: 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   z-index: 1000;
-  max-width: min(420px, calc(100vw - 32px));
+  max-width: min(380px, calc(100vw - 32px));
 }
 .tk-toast {
   display: flex;
@@ -673,4 +712,69 @@ button.tk-chip {
 .tk-flag-on {
   color: var(--tk-critical-ink);
   font-weight: 600;
+}
+
+/* ---- phone list board (<= 600 px) ---------------------------------------------------------- */
+
+.tk-board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tk-board-member {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--tk-hairline);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface);
+}
+.tk-board-member-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.tk-board-member-rounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tk-board-member-rounds .tk-chip {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 1px 8px;
+}
+.tk-board-member-rounds .tk-chip[aria-pressed="true"] {
+  border-color: var(--tk-accent);
+}
+.tk-board-round {
+  font-weight: 700;
+  color: var(--tk-ink-2);
+}
+@media (max-width: 600px) {
+  .tk-board {
+    min-height: 0;
+  }
+  .tk-legend {
+    font-size: 11px;
+    gap: 4px 10px;
+  }
+  .tk-board .tk-card-title {
+    flex-wrap: wrap;
+  }
+  .tk-toasts {
+    left: 12px;
+    right: 12px;
+    bottom: 132px;
+    max-width: none;
+  }
+}
+.tk-legend .tk-swatch-replay {
+  background: repeating-linear-gradient(135deg, var(--tk-good) 0 3px, color-mix(in srgb, var(--tk-good) 60%, #fff) 3px 6px);
 }

@@ -66,7 +66,7 @@ async def get_session_route(request: Request, response: Response) -> Any:
                 "retry_after_s": 120,
                 # read-only recorded run of the Judge Mode story while every live slot is taken
                 "replay_url": story.REPLAY_URL,
-                "replay_available": story.latest_recording() is not None,
+                "replay_available": story.replay_available(),
             },
             status_code=429,
             headers={"Retry-After": "120"},

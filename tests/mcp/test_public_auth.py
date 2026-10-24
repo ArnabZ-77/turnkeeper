@@ -210,6 +210,18 @@ def test_client_ip_prefers_forwarded_for():
     assert auth_mod.client_ip({"headers": []}) == "unknown"
 
 
+def test_client_ip_strips_the_port_azure_adds():
+    """Azure App Service sends X-Forwarded-For hops with the client port: one bucket per IP, not per port."""
+
+    def ip(xff: bytes) -> str:
+        return auth_mod.client_ip({"headers": [(b"x-forwarded-for", xff)], "client": ("10.0.0.2", 1)})
+
+    assert ip(b"203.0.113.5:54321") == "203.0.113.5" == ip(b"203.0.113.5:61000")
+    assert ip(b"1.2.3.4, 203.0.113.5:443, 10.1.1.1:80") == "203.0.113.5"
+    assert ip(b"[2001:db8::1]:443") == "2001:db8::1" and ip(b"2001:db8::1") == "2001:db8::1"
+    assert ip(b"198.51.100.9:1, [::1]:8080") == "198.51.100.9"  # an internal hop with a port is skipped
+
+
 @pytest.mark.parametrize("token_header", ["Bearer test-demo-token", "bearer test-demo-token"])
 def test_bearer_scheme_is_case_insensitive(demo_token, token_header):
     with TestClient(_app_with_public_mcp()) as c:

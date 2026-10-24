@@ -70,6 +70,14 @@ def _active_set(circle_id: str) -> Any:
     return row
 
 
+def _taint(circle_id: str, action: str) -> None:
+    """A direct Judge action during a story run: that run will not become the public canonical replay
+    (no-op for the story's own step executors and when no story is in progress)."""
+    from app.engine import story
+
+    story.taint(circle_id, action)
+
+
 def _conflict(e: Exception) -> HTTPException:
     return HTTPException(status_code=409, detail=str(e))
 
@@ -156,10 +164,13 @@ async def get_invoice_qr(circle_id: str, sess: CurrentSession) -> Response:
 @router.post("/api/judge/reply_as_ravi")
 async def reply_as_ravi(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "reply_as_ravi")
     text = (body.text or "").strip() or inbox.DEFAULT_RAVI_REPLY
     lang = "hi" if any("ऀ" <= ch <= "ॿ" for ch in text) else "en"
     try:
-        msg = inbox.add_message(body.circle_id, DEMO_MEMBER, text, lang=lang, direction="in", source="judge")
+        msg = inbox.add_message(
+            body.circle_id, DEMO_MEMBER, text, lang=lang, direction="in", source="judge", round_n=DEMO_ROUND
+        )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     circle = state.load_circle(body.circle_id)
@@ -181,6 +192,7 @@ async def reply_as_ravi(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[s
 @router.post("/api/judge/vote_as_members")
 async def vote_as_members(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "vote_as_members")
     row = _active_set(body.circle_id)
     charter = state.load_charter(body.circle_id)
     k, _n = quorum_tuple(charter)
@@ -221,6 +233,7 @@ async def vote_as_members(body: RecoveryJudgeBody, sess: CurrentSession) -> dict
 @router.post("/api/judge/consent_as_affected")
 async def consent_as_affected(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "consent_as_affected")
     row = _active_set(body.circle_id)
     publish = _publisher(sess)
     needed = recovery.domain_set(row).affected_members()
@@ -243,6 +256,7 @@ async def consent_as_affected(body: RecoveryJudgeBody, sess: CurrentSession) -> 
 @router.post("/api/judge/approve_as_priya")
 async def approve_as_priya(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "approve_as_priya")
     row = _active_set(body.circle_id)
     publish = _publisher(sess)
     result = await recovery.approve(
@@ -256,6 +270,7 @@ async def approve_as_priya(body: RecoveryJudgeBody, sess: CurrentSession) -> dic
 @router.post("/api/judge/mark_invoice_paid")
 async def mark_invoice_paid(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "mark_invoice_paid")
     try:
         result = await recovery.simulate_invoice_paid(body.circle_id, publish=_publisher(sess))
     except recovery.RecoveryError as e:
@@ -267,6 +282,7 @@ async def mark_invoice_paid(body: RecoveryJudgeBody, sess: CurrentSession) -> di
 async def simulate_round3_decline(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[str, Any]:
     """Stand-in for Run Round 3 when the sandbox cannot charge (no credentials or no seeded vault ids)."""
     sessions.owns_circle(sess, body.circle_id)
+    _taint(body.circle_id, "simulate_round3_decline")
     from app.routes.circles import circle_vault_seeded
 
     if get_settings().paypal_configured and circle_vault_seeded(body.circle_id):

@@ -1294,3 +1294,39 @@ Only `web/**` changed. `npm run build` and `npx vitest run` are green: 71 tests,
 - **Shipped replay.** `app/fixtures/replay_canonical.json` is a SIMULATED run recorded offline by `scripts/record_replay.py`
   (blanks PayPal and model credentials, in-memory DB, refuses to run if anything is configured). `GET /api/replay` serves it
   (`source: "shipped"`) until the deployment records its own run; a live recording still wins. Re-record it after story changes.
+
+## Backend fixer: live run 2026-10-25 and M3 review (2026-10-24, additive)
+
+- **Fee policy.** Only `net_pot` is implemented: `charter.assemble` maps `gross_up` / `organizer_absorbs` to `net_pot` with the
+  problem `fee_policy: ... not supported in this build`; `join.fees_summary` only tells the net-of-fees story.
+- **Story step records** gain `paypal` (`live | simulated | null` = no PayPal call) and `ai` (`live | replay | rules | null`).
+  `mode` stays the one-word label: round and payout steps carry the PayPal mode (`live`/`simulated`), `execute` carries the
+  invoice's PayPal mode (else `engine`), judge actions `judge`. POST `/api/judge/story/{step}` answers `paypal` and `ai` too.
+- **Story errors.** A failed attempt at the next step is kept: `GET /api/judge/story` -> `last_error` `{step, code, label, at,
+  debug_id?}` and `steps[i].error` (the label as text) on the next step; cleared by a success or reset. A payout failure is
+  409 with the label as `detail`; `INSUFFICIENT_FUNDS` reads "PayPal sandbox balance too low for the X pot: add balance ...".
+- **Failed payouts** write a `PayoutAttempt` row (`status FAILED`, `label` with the debug_id) for the round's current rev; a
+  retry updates it and an accepted batch replaces it. `pay_round` failure result adds `code`, `debug_id`, `circle_available`,
+  `paypal_balance`, `source`.
+- **Replay.** `story.save_recording(circle_id)` (no `paypal_mode` arg): `paypal_mode` is `live` only if `run_round3`, `payout`
+  and `clean_round4` all recorded `paypal == "live"`; `canonical = not JudgeStoryRow.tainted`. Any `/api/judge/{action}` (not
+  reset) or `/api/judge/{reply_as_ravi|vote_as_members|consent_as_affected|approve_as_priya|mark_invoice_paid|
+  simulate_round3_decline}` call while a story is in progress taints it (`story.IN_STORY_STEP` exempts the story's own
+  executors). `latest_recording` reads one row (newest live first) and caches the parsed payload; 5 recordings are kept per
+  (canonical, mode). `story.replay_available()` is the cheap waitlist check.
+- **Invoice QR.** `CachedTokenClient.post` returns the response text for non-JSON answers (generate-qr-code is
+  `multipart/form-data`); `recovery._qr_data_url` reads the `name="image"` part (base64 PNG).
+- **Join.** `parse_invite` fails closed (`InviteError("unavailable")` -> 503) when the nonce lookup errors. `GET
+  /join/{t}/return|cancel` with a link that no longer verifies -> 303 `/join/{t}?status=invalid|expired|error`, never JSON.
+  `/return` without `approval_token_id` (or a foreign one) -> `status=error`, nothing saved. Card `members` are
+  `{handle, name (full), you}`. The judge mini-circle has no `buffer_advance` in its remedy menu (its buffer is $0).
+- **Compile caps.** Drafts: the newest 20 per session are kept. A session can create at most 3 compiled circles (429).
+  A new circle's past or same-day `start_date` moves to the 1st of next month at freeze (`adjustments` in the preview, hash
+  of the moved charter); more than 366 days ahead -> 422.
+- **Forecast.** The `uncertain` payday factor detail is built from the parsed spec ("payday is biweekly on Fridays with no
+  anchor date"), never the member-written rule. Rules reasons read "Ravi at risk (score 0.85): ...".
+- **Wording.** `app/domain/labels.py`: `REMEDY_LABEL`, `remedy_label`, `display_name`, `fmt_money`. Toasts, remedy reasons and
+  story summaries use names, plain remedy words and `$` amounts ("Votes: 4 of 6 yes (quorum 4)", "Round 3: 5 of 6 paid,
+  Ravi Sharma declined"). Traces and logs keep the identifiers.
+- **client_ip** strips a port from each X-Forwarded-For hop (`203.0.113.5:54321`, `[2001:db8::1]:443`).
+- **Live-AI budget.** The story's `advance_to_t3` charges `live_allowed_for` only when no forecast is stored yet.

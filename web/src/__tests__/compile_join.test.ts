@@ -64,6 +64,15 @@ describe("charter compiler mappers", () => {
     expect(charterRows({ charter: null, explanations: {}, problems: [] })).toEqual([]);
   });
 
+  it("shows a repeated source quote once", () => {
+    const quote = 'Rules parser read: "every member pays $200 each month"';
+    const rows = charterRows({ charter: CHARTER, explanations: { amount: quote, cadence: quote }, problems: [] });
+    expect(rows.find((r) => r.field === "amount")!.explanation).toBe(quote);
+    const cadence = rows.find((r) => r.field === "cadence")!;
+    expect(cadence.explanation).toBe("same source line as above");
+    expect(cadence.fullExplanation).toBe(quote);
+  });
+
   it("splits field problems from general ones", () => {
     const problems = ["amount: no positive contribution amount found ('x')", "the model said hi"];
     expect(fieldProblems("amount", problems)).toEqual(["no positive contribution amount found ('x')"]);

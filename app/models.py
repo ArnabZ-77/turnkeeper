@@ -394,6 +394,11 @@ class JudgeStoryRow(SQLModel, table=True):
     started_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     completed_at: datetime | None = None
+    # Advanced Judge controls (clock, toggles, custom replies, ...) were used mid-story: the finished run is
+    # still recorded but never becomes the public canonical replay. NULL (older rows) reads as False.
+    tainted: bool | None = False
+    # The last failed attempt at the next step ({step, code, label, at, debug_id}), JSON; cleared on success.
+    last_error_json: str | None = None
 
 
 class ReplayRecording(SQLModel, table=True):

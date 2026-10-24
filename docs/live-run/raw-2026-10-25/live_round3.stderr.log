@@ -1,0 +1,23 @@
+POST /v2/checkout/orders -> 422 UNPROCESSABLE_ENTITY debug_id=70c28ae654da issues=['INSTRUMENT_DECLINED'] ms=1531
+WARNING:root:Response body is not valid JSON or empty, Headers: {
+  "Connection": "keep-alive",
+  "Content-Length": "1004",
+  "http_x_pp_az_locator": "ccg18.slc",
+  "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
+  "paypal-debug-id": "f618644a61292",
+  "server": "nginx",
+  "server-timing": "traceparent;desc=\"00-0000000000000000000f618644a61292-4718338c68a24656-01\"",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "content-type": "multipart/form-data; boundary=df638c34-aa1b-4f12-8d65-ff6ef8ef05e4",
+  "access-control-expose-headers": "Server-Timing",
+  "Accept-Ranges": "bytes",
+  "Via": "1.1 varnish, 1.1 varnish",
+  "Edge-Control": "max-age=0",
+  "Date": "Fri, 23 Oct 2026 20:13:29 GMT",
+  "X-Served-By": "cache-sin-wsss1830084-SIN, cache-sin-wsss1830084-SIN, cache-ccu830055-CCU",
+  "X-Cache": "MISS, MISS, MISS",
+  "X-Cache-Hits": "0, 0, 0",
+  "X-Timer": "S1792786409.929640,VS0,VE465",
+  "Vary": "Accept-Encoding"
+}
+WARNING:turnkeeper.paypal.client:POST /v1/payments/payouts -> 422 INSUFFICIENT_FUNDS debug_id=f754272ebdc44 issues=[] ms=1592

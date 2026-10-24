@@ -56,7 +56,9 @@ curl -b jar -X POST http://localhost:8000/api/judge/story/next
 **Labels are honest.** Without sandbox credentials or seeded vault ids, Round 3 and Round 4 are **simulated** (no
 PayPal call) and labelled so, and a simulated round is never paid out. With six active visitors the app answers
 429 with a `replay_url`: `GET /api/replay` serves the most recent completed story recording on that deployment
-(a live-sandbox run preferred over a simulated one) as JSON. Before any story has completed there, it serves the
+(a live-sandbox run preferred over a simulated one) as JSON. A run counts as live only if Round 3, its payout and
+Round 4 all ran live, and a run where the Advanced Judge controls were used mid-story is never served. Before any
+story has completed there, it serves the
 shipped `app/fixtures/replay_canonical.json`, a **simulated** run recorded offline by `scripts/record_replay.py`
 (no PayPal or model call; labelled `paypal_mode: simulated`).
 Other Judge actions: `POST /api/judge/{reroute_unclaimed|run_forecast|advance_clock|toggle_ravi_declines|make_next_payout_unclaimed}`.
@@ -106,7 +108,10 @@ All model use goes through one provider layer, [`app/agent/llm.py`](app/agent/ll
   handles, and stored in the `llm_cache` table. A recorded turn is replayed instead of spending quota; a run that
   replays is labelled "AI replay". Recordings can be shipped with `scripts/export_llm_cache.py` (none ship yet).
 - **Rules mode.** Any failure (no key, 429, refusal, bad JSON, a replay miss) falls back to a deterministic path,
-  labelled "rules mode". Live calls are capped per visitor IP per hour (`TK_LIVE_LLM_PER_IP_HOUR`, default 10).
+  labelled "rules mode". Live AI **runs** are capped per visitor IP per hour (`TK_LIVE_LLM_PER_IP_HOUR`,
+  default 10). The cap counts runs, not model calls: one treasurer task makes up to 26 model turns (25 tool
+  calls), one forecast up to 3 explanation calls and one compile one call. A compile that replays from the
+  cache, or a forecast that is already stored, is not counted.
 
 | Feature | Model's job | Without a model |
 |---|---|---|
@@ -157,7 +162,9 @@ Measured in the sandbox (D1 b, d) and matching PayPal's US merchant fee page (up
 - Checkout capture: **3.49% + $0.49**, about **$7.47 per $200** contribution (net $192.53).
 - Payouts API to a US account: **flat $0.25** per payout item, reserved from each pot.
 - Demo charter (`fee_policy: net_pot`): the pot is paid net of fees, and the charter card and join page show
-  the fees before anyone consents. `gross_up` and `organizer_absorbs` are also supported.
+  the fees before anyone consents. Only `net_pot` is implemented: if pasted rules ask for fees on top
+  (`gross_up`) or paid by the organizer (`organizer_absorbs`), the compiler uses `net_pot` and lists that as a
+  problem on the draft.
 
 ## Limitations and custody
 

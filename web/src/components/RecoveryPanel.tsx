@@ -1,7 +1,7 @@
 import type { BoardModel, InvoiceInfo, RecoveryInfo, RemedyInfo } from "../types";
 import { fmtDate, fmtDateTime, fmtMoney, shortId } from "../format";
 import { consentRows, nameOf, remedyHeadline, remedyProblems, setProblems, voteBar } from "../recovery";
-import { IconCheck, IconX } from "./icons";
+import { IconCheck, IconClock, IconX } from "./icons";
 
 const STATUS_TEXT: Record<string, string> = {
   invalid: "proposal rejected by the charter",
@@ -35,7 +35,9 @@ export function RemedyCard({ remedy, problems, board, currency }: RemedyCardProp
           {ok ? "charter OK" : `${own.length} problem${own.length > 1 ? "s" : ""}`}
         </span>
       </div>
-      <p className="tk-remedy-reason">{remedy.reason}</p>
+      <p className="tk-remedy-reason" title={remedy.reason}>
+        {remedy.reason}
+      </p>
       {!ok && (
         <ul className="tk-remedy-problems">
           {own.map((p) => (
@@ -117,15 +119,26 @@ export function VotePanel({ recovery, board, busy, approveBlocked, onApprove }: 
             {approved ? `approved ${fmtDateTime(approval?.at)}` : approval?.status === "requested" ? "approval requested" : "not asked yet"}
           </span>
         </span>
-        <button
-          type="button"
-          className="tk-btn tk-btn-primary"
-          disabled={busy || approved || approveBlocked !== null}
-          title={approveBlocked ?? "Priya's one tap: the policy engine re-checks every remedy, then executes"}
-          onClick={onApprove}
-        >
-          <IconCheck /> {approved ? "Approved" : "Approve as Priya"}
-        </button>
+        {approved ? (
+          <span className="tk-chip tk-chip-good tk-approved-chip">
+            <IconCheck /> Approved by Priya
+          </span>
+        ) : approveBlocked !== null ? (
+          // Not a live-looking primary before quorum: the button says what it waits for.
+          <button type="button" className="tk-btn tk-btn-wait" disabled title={approveBlocked}>
+            <IconClock /> {approveBlocked}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="tk-btn tk-btn-primary"
+            disabled={busy}
+            title="Priya's one tap: the policy engine re-checks every remedy, then executes"
+            onClick={onApprove}
+          >
+            <IconCheck /> Approve as Priya
+          </button>
+        )}
       </div>
       {recovery.blockers && recovery.blockers.length > 0 && !approved && (
         <p className="tk-muted tk-small tk-vote-blockers">Waiting on: {recovery.blockers.join(" · ")}</p>

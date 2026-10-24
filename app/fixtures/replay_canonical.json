@@ -1,16 +1,18 @@
 {
  "label": "Recorded replay of a canonical Judge Mode run: read-only, no PayPal or AI calls",
- "run_id": "nveuwxne",
+ "run_id": "6ckek5po",
  "paypal_mode": "simulated",
- "started_at": "2026-10-23T19:00:24Z",
- "completed_at": "2026-10-23T19:00:26Z",
+ "started_at": "2026-10-24T03:09:34Z",
+ "completed_at": "2026-10-24T03:09:38Z",
  "steps": [
   {
    "step": "reset",
    "label": "Reset demo (new circle, new run id)",
-   "at": "2026-10-23T19:00:24Z",
+   "at": "2026-10-24T03:09:34Z",
    "mode": "judge",
-   "summary": "New circle di1l0t, run nveuwxne",
+   "paypal": null,
+   "ai": null,
+   "summary": "New circle 859okx, run 6ckek5po",
    "result": {},
    "events": [
     {
@@ -19,27 +21,29 @@
      "step": "reset",
      "index": 0,
      "label": "Reset demo (new circle, new run id)",
-     "circle_id": "wrbyvp",
-     "ts": "2026-10-23T19:00:24Z"
+     "circle_id": "zep7zy",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Story reset: new circle, new run id",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     }
    ]
   },
   {
    "step": "advance_to_t3",
    "label": "Advance to T-3 (forecast)",
-   "at": "2026-10-23T19:00:24Z",
+   "at": "2026-10-24T03:09:34Z",
    "mode": "rules",
-   "summary": "T-3 for round 3 (+0 d); flagged: ravi (rules)",
+   "paypal": null,
+   "ai": "rules",
+   "summary": "Forecast at T-3 for round 3; flagged: Ravi Sharma",
    "result": {
     "flagged": [
      "ravi"
@@ -50,7 +54,7 @@
       "member": "ravi",
       "score": 0.85,
       "flagged": true,
-      "reason": "ravi at risk (0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+      "reason": "Ravi at risk (score 0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
       "nudge": "नमस्ते Ravi, याद दिला दें: राउंड 3 के $200.00 2027-01-01 को देय हैं। अगर सैलरी बाद में आएगी, तो तारीख बता दें, सर्कल पहले से इंतज़ाम कर लेगा।",
       "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
       "lang": "hi",
@@ -89,7 +93,7 @@
       "member": "tomas",
       "score": 0.1,
       "flagged": false,
-      "reason": "tomas (0.10): no track record in earlier circles",
+      "reason": "Tomas (score 0.10): no track record in earlier circles",
       "nudge": null,
       "nudge_en": null,
       "lang": "en",
@@ -113,7 +117,7 @@
       "member": "asha",
       "score": 0.05,
       "flagged": false,
-      "reason": "asha (0.05): no risk factors",
+      "reason": "Asha (score 0.05): no risk factors",
       "nudge": null,
       "nudge_en": null,
       "lang": "en",
@@ -132,7 +136,7 @@
       "member": "dev",
       "score": 0.05,
       "flagged": false,
-      "reason": "dev (0.05): no risk factors",
+      "reason": "Dev (score 0.05): no risk factors",
       "nudge": null,
       "nudge_en": null,
       "lang": "en",
@@ -151,7 +155,7 @@
       "member": "lin",
       "score": 0.05,
       "flagged": false,
-      "reason": "lin (0.05): no risk factors",
+      "reason": "Lin (score 0.05): no risk factors",
       "nudge": null,
       "nudge_en": null,
       "lang": "en",
@@ -170,7 +174,7 @@
       "member": "meena",
       "score": 0.05,
       "flagged": false,
-      "reason": "meena (0.05): no risk factors",
+      "reason": "Meena (score 0.05): no risk factors",
       "nudge": null,
       "nudge_en": null,
       "lang": "en",
@@ -194,8 +198,8 @@
      "step": "advance_to_t3",
      "index": 1,
      "label": "Advance to T-3 (forecast)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:24Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -204,19 +208,19 @@
      "status": "PENDING",
      "predicted": true,
      "label": null,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "forecast",
      "round_n": 3,
      "member": "ravi",
      "score": 0.85,
-     "reason": "ravi at risk (0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+     "reason": "Ravi at risk (score 0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
      "nudge": "नमस्ते Ravi, याद दिला दें: राउंड 3 के $200.00 2027-01-01 को देय हैं। अगर सैलरी बाद में आएगी, तो तारीख बता दें, सर्कल पहले से इंतज़ाम कर लेगा।",
      "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
      "lang": "hi",
      "mode": "rules",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "trace",
@@ -224,24 +228,26 @@
      "source": "forecast",
      "mode": "rules",
      "text": "T-3 forecast for round 3: flagged ravi (0.85) (threshold 0.5; score = rules, wording = rules)",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     }
    ]
   },
   {
    "step": "run_round3",
    "label": "Run Round 3 (Ravi declines)",
-   "at": "2026-10-23T19:00:24Z",
+   "at": "2026-10-24T03:09:34Z",
    "mode": "simulated",
-   "summary": "Round 3: 5/5 captured, ravi DECLINED (simulated, no PayPal call)",
+   "paypal": "simulated",
+   "ai": null,
+   "summary": "Round 3: 5 of 6 paid, Ravi Sharma declined (simulated, no PayPal call)",
    "result": {
     "ok": true,
     "round_n": 3,
@@ -264,8 +270,8 @@
      "step": "run_round3",
      "index": 2,
      "label": "Run Round 3 (Ravi declines)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:24Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -278,7 +284,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -291,7 +297,7 @@
      "decline_code": "INSTRUMENT_DECLINED",
      "webhook_verified": false,
      "predicted": true,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -304,7 +310,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -317,7 +323,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -330,7 +336,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "chip",
@@ -343,33 +349,35 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "trace",
      "kind": "system",
      "text": "Judge: round 3 simulated without PayPal (5 captures labelled REPLAY-, ravi declined: INSTRUMENT_DECLINED, simulated). No sandbox call was made.",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "toast",
      "level": "warn",
-     "text": "Round 3 simulated: ravi's charge declined (no sandbox call)",
-     "ts": "2026-10-23T19:00:24Z"
+     "text": "Round 3 simulated: Ravi Sharma's charge declined (no sandbox call)",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     }
    ]
   },
   {
    "step": "reply_as_ravi",
    "label": "Reply as Ravi (Hindi)",
-   "at": "2026-10-23T19:00:24Z",
+   "at": "2026-10-24T03:09:34Z",
    "mode": "judge",
-   "summary": "Ravi replied; payday 2027-01-01",
+   "paypal": null,
+   "ai": null,
+   "summary": "Ravi Sharma replied; payday 2027-01-01",
    "result": {
     "ok": true,
     "action": "reply_as_ravi",
@@ -380,8 +388,8 @@
      "text": "शुक्रवार को सैलरी आएगी, तब भर दूंगा",
      "direction": "in",
      "source": "judge",
-     "round_n": null,
-     "ts": "2026-10-23T19:00:24Z"
+     "round_n": 3,
+     "ts": "2026-10-24T03:09:34Z"
     },
     "translation": "Salary comes on Friday, I will pay then.",
     "payday": "2027-01-01"
@@ -393,27 +401,29 @@
      "step": "reply_as_ravi",
      "index": 3,
      "label": "Reply as Ravi (Hindi)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:24Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Ravi replied (hi)",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:24Z"
+     "ts": "2026-10-24T03:09:34Z"
     }
    ]
   },
   {
    "step": "start_recovery",
    "label": "Start recovery",
-   "at": "2026-10-23T19:00:25Z",
+   "at": "2026-10-24T03:09:37Z",
    "mode": "rules",
-   "summary": "Remedy proposal voting (rules)",
+   "paypal": null,
+   "ai": "rules",
+   "summary": "Proposed for Ravi Sharma: buffer advance, repay by PayPal invoice, turn swap (voting)",
    "result": {},
    "events": [
     {
@@ -422,91 +432,91 @@
      "step": "start_recovery",
      "index": 4,
      "label": "Start recovery",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:24Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:34Z"
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:24.690657+00:00",
+     "ts": "2026-10-24T03:09:35.005824+00:00",
      "kind": "system",
      "text": "Rules mode (AI switched off (TK_LLM_PROVIDER=none)): deterministic treasurer, no model in the loop.",
      "mode": "rules"
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.355840+00:00",
+     "ts": "2026-10-24T03:09:36.853918+00:00",
      "kind": "tool_call",
-     "text": "get_round_matrix({\"circle_id\": \"di1l0t\"})",
+     "text": "get_round_matrix({\"circle_id\": \"859okx\"})",
      "mode": "rules",
      "tool": "get_round_matrix",
      "args": {
-      "circle_id": "di1l0t"
+      "circle_id": "859okx"
      }
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.738836+00:00",
+     "ts": "2026-10-24T03:09:37.637942+00:00",
      "kind": "tool_result",
      "text": "{\"contributions\": [{\"attempt\": 1, \"capture_id\": \"REPLAY-CAP-1-ASHA\", \"decline_code\": null, \"decline_source\": null, \"fee\": \"7.47\", \"gross\": \"200.00\", \"label\": \"Captured (replay)\", \"member\": \"asha\", \"net\": \"192.53\", \"order_id\": \"REPLAY-ORD-1-ASHA\", \"predicted\": false, \"round_n\": 1, \"status\": \"COMPLETED\", \"webhook_verified\": false}, {\"attempt\": 1, \"capture_id\": \"REPLAY-CAP-1-RAVI\", \"decline_code\": n…",
      "mode": "rules",
      "tool": "get_round_matrix",
-     "ms": 364,
+     "ms": 776,
      "is_error": false
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.738836+00:00",
+     "ts": "2026-10-24T03:09:37.643471+00:00",
      "kind": "tool_call",
-     "text": "get_member_history({\"circle_id\": \"di1l0t\", \"member\": \"ravi\"})",
+     "text": "get_member_history({\"circle_id\": \"859okx\", \"member\": \"ravi\"})",
      "mode": "rules",
      "tool": "get_member_history",
      "args": {
-      "circle_id": "di1l0t",
+      "circle_id": "859okx",
       "member": "ravi"
      }
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.759247+00:00",
+     "ts": "2026-10-24T03:09:37.667767+00:00",
      "kind": "tool_result",
      "text": "{\"commitments\": [], \"late_rounds\": [1, 2, 3], \"member\": \"ravi\", \"ok\": true, \"payday_rule\": \"every 2nd Friday\", \"replies\": [{\"source\": \"member\", \"text\": \"<member_reply>\\u0936\\u0941\\u0915\\u094d\\u0930\\u0935\\u093e\\u0930 \\u0915\\u094b \\u0938\\u0948\\u0932\\u0930\\u0940 \\u0906\\u090f\\u0917\\u0940, \\u0924\\u092c \\u092d\\u0930 \\u0926\\u0942\\u0902\\u0917\\u093e</member_reply>\", \"untrusted\": true}, {\"source\": \"member\"…",
      "mode": "rules",
      "tool": "get_member_history",
-     "ms": 15,
+     "ms": 21,
      "is_error": false
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.759247+00:00",
+     "ts": "2026-10-24T03:09:37.672352+00:00",
      "kind": "tool_call",
-     "text": "record_note({\"circle_id\": \"di1l0t\", \"text\": \"ravi is outstanding (late rounds: [1, 2, 3]; payday rule: every 2nd Friday). Remedies need a human decision in this version.\"})",
+     "text": "record_note({\"circle_id\": \"859okx\", \"text\": \"ravi is outstanding (late rounds: [1, 2, 3]; payday rule: every 2nd Friday). Remedies need a human decision in this version.\"})",
      "mode": "rules",
      "tool": "record_note",
      "args": {
-      "circle_id": "di1l0t",
+      "circle_id": "859okx",
       "text": "ravi is outstanding (late rounds: [1, 2, 3]; payday rule: every 2nd Friday). Remedies need a human decision in this version."
      }
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.774179+00:00",
+     "ts": "2026-10-24T03:09:37.681703+00:00",
      "kind": "text",
      "text": "ravi is outstanding (late rounds: [1, 2, 3]; payday rule: every 2nd Friday). Remedies need a human decision in this version.",
      "source": "note"
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.774179+00:00",
+     "ts": "2026-10-24T03:09:37.688083+00:00",
      "kind": "tool_result",
      "text": "{\"chars\": 124, \"ok\": true}",
      "mode": "rules",
      "tool": "record_note",
-     "ms": 19,
+     "ms": 13,
      "is_error": false
     },
     {
      "type": "trace",
-     "ts": "2026-10-23T19:00:25.791846+00:00",
+     "ts": "2026-10-24T03:09:37.693101+00:00",
      "kind": "text",
      "text": "ravi is outstanding (late rounds: [1, 2, 3]; payday rule: every 2nd Friday). Remedies need a human decision in this version.",
      "mode": "rules"
@@ -516,7 +526,7 @@
      "kind": "system",
      "text": "agent left no remedy proposal; running the rules-mode recovery sequence",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "trace",
@@ -524,64 +534,66 @@
      "text": "record_commitment: ravi pays 200.00 on 2027-01-01 (from the reply)",
      "source": "recovery",
      "tool": "record_commitment",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "toast",
      "level": "info",
-     "text": "Remedies proposed for ravi: buffer_advance, repay_by_invoice, turn_swap (charter OK)",
-     "ts": "2026-10-23T19:00:25Z"
+     "text": "Remedies proposed for Ravi Sharma: buffer advance, repay by PayPal invoice, turn swap (charter OK)",
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "trace",
      "kind": "system",
-     "text": "Proposal rs_b8332087 for ravi, round 3: buffer_advance, repay_by_invoice, turn_swap. Charter check passed.",
+     "text": "Proposal rs_15fec9df for ravi, round 3: buffer_advance, repay_by_invoice, turn_swap. Charter check passed.",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Vote open: 4/6 yes votes needed; consent needed from ravi, tomas",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Priya: one tap to approve the remedy once the vote passes",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "trace",
      "kind": "text",
-     "text": "Recovery rs_b8332087 waiting on: 0/4 yes votes; consent missing from ravi, tomas; organizer approval missing",
+     "text": "Recovery rs_15fec9df waiting on: 0/4 yes votes; consent missing from ravi, tomas; organizer approval missing",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     }
    ]
   },
   {
    "step": "consents",
    "label": "Consent as the affected members",
-   "at": "2026-10-23T19:00:25Z",
+   "at": "2026-10-24T03:09:37Z",
    "mode": "judge",
-   "summary": "Consents: ravi, tomas",
+   "paypal": null,
+   "ai": null,
+   "summary": "Consents: Ravi Sharma, Tomas Alvarez",
    "result": {
     "ok": true,
     "action": "consent_as_affected",
@@ -589,7 +601,7 @@
      "ravi",
      "tomas"
     ],
-    "set_id": "rs_b8332087",
+    "set_id": "rs_15fec9df",
     "status": "voting",
     "votes": {
      "yes": 0,
@@ -655,37 +667,39 @@
      "step": "consents",
      "index": 5,
      "label": "Consent as the affected members",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:25Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "toast",
      "level": "info",
-     "text": "ravi consents",
-     "ts": "2026-10-23T19:00:25Z"
+     "text": "Ravi Sharma consents",
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "toast",
      "level": "info",
-     "text": "tomas consents",
-     "ts": "2026-10-23T19:00:25Z"
+     "text": "Tomas Alvarez consents",
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:37Z"
     }
    ]
   },
   {
    "step": "votes",
    "label": "Vote as members (quorum)",
-   "at": "2026-10-23T19:00:25Z",
+   "at": "2026-10-24T03:09:38Z",
    "mode": "judge",
-   "summary": "Votes 4/4 yes",
+   "paypal": null,
+   "ai": null,
+   "summary": "Votes: 4 of 6 yes (quorum 4)",
    "result": {
     "ok": true,
     "action": "vote_as_members",
@@ -695,7 +709,7 @@
      "lin",
      "dev"
     ],
-    "set_id": "rs_b8332087",
+    "set_id": "rs_15fec9df",
     "status": "voting",
     "votes": {
      "yes": 4,
@@ -760,42 +774,44 @@
      "step": "votes",
      "index": 6,
      "label": "Vote as members (quorum)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:25Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:37Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Votes: 4/4 yes (asha, meena, lin, dev)",
-     "ts": "2026-10-23T19:00:25Z"
+     "ts": "2026-10-24T03:09:38Z"
     }
    ]
   },
   {
    "step": "approve",
    "label": "Approve as Priya (one tap)",
-   "at": "2026-10-23T19:00:26Z",
+   "at": "2026-10-24T03:09:38Z",
    "mode": "judge",
+   "paypal": null,
+   "ai": null,
    "summary": "Priya approved (one tap)",
    "result": {
     "ok": true,
-    "set_id": "rs_b8332087",
+    "set_id": "rs_15fec9df",
     "status": "approved",
     "votes": {
      "yes": 4,
@@ -846,7 +862,7 @@
     "approval": {
      "by": "priya",
      "status": "approved",
-     "at": "2026-10-23T19:00:26Z"
+     "at": "2026-10-24T03:09:38Z"
     },
     "ready": true,
     "blockers": []
@@ -858,41 +874,43 @@
      "step": "approve",
      "index": 7,
      "label": "Approve as Priya (one tap)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:25Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "success",
      "text": "Priya approved the remedy (one tap)",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     }
    ]
   },
   {
    "step": "execute",
    "label": "Execute remedies",
-   "at": "2026-10-23T19:00:26Z",
-   "mode": "rules",
-   "summary": "Executed: buffer_advance, turn_swap, repay_by_invoice",
+   "at": "2026-10-24T03:09:38Z",
+   "mode": "simulated",
+   "paypal": "simulated",
+   "ai": null,
+   "summary": "Executed: buffer advance, turn swap, repay by PayPal invoice",
    "result": {
     "ok": true,
-    "set_id": "rs_b8332087",
+    "set_id": "rs_15fec9df",
     "status": "executed",
     "results": [
      {
-      "remedy_id": "rm_71ccf88e",
+      "remedy_id": "rm_30f0d77e",
       "ok": true,
       "type": "buffer_advance",
       "amount": "192.53",
       "member": "ravi"
      },
      {
-      "remedy_id": "rm_8525391d",
+      "remedy_id": "rm_c6a77e1c",
       "ok": true,
       "type": "turn_swap",
       "rotation": [
@@ -907,10 +925,10 @@
       "swap_with": "tomas"
      },
      {
-      "remedy_id": "rm_8752610a",
+      "remedy_id": "rm_425c5b5b",
       "ok": true,
       "type": "repay_by_invoice",
-      "invoice_id": "SIM-INV-nveuwxne-3-ravi",
+      "invoice_id": "SIM-INV-6ckek5po-3-ravi",
       "status": "SENT",
       "qr": false,
       "simulated": true,
@@ -927,8 +945,8 @@
      "step": "execute",
      "index": 8,
      "label": "Execute remedies",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:26Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -941,13 +959,13 @@
      "decline_code": "INSTRUMENT_DECLINED",
      "webhook_verified": false,
      "predicted": true,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "success",
-     "text": "Buffer covered ravi's round 3 share (192.53)",
-     "ts": "2026-10-23T19:00:26Z"
+     "text": "Buffer covered Ravi Sharma's round 3 share ($192.53)",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "schedule_changed",
@@ -959,49 +977,51 @@
       "tomas",
       "ravi"
      ],
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "success",
-     "text": "Rotation updated: ravi -> round 6, tomas -> round 5",
-     "ts": "2026-10-23T19:00:26Z"
+     "text": "Rotation updated: Ravi Sharma -> round 6, Tomas Alvarez -> round 5",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "trace",
      "kind": "system",
      "text": "No PayPal sandbox credentials: invoice simulated (labelled), no PayPal call made",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "success",
-     "text": "PayPal invoice sent to ravi: 200.00 USD, due Fri (simulated)",
-     "ts": "2026-10-23T19:00:26Z"
+     "text": "PayPal invoice sent to Ravi Sharma: $200.00 USD, due Fri (simulated)",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "trace",
      "kind": "system",
-     "text": "Remedy set rs_b8332087 executed: buffer_advance=ok, turn_swap=ok, repay_by_invoice=ok",
+     "text": "Remedy set rs_15fec9df executed: buffer_advance=ok, turn_swap=ok, repay_by_invoice=ok",
      "source": "recovery",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     }
    ]
   },
   {
    "step": "payout",
    "label": "Pay Round 3",
-   "at": "2026-10-23T19:00:26Z",
+   "at": "2026-10-24T03:09:38Z",
    "mode": "simulated",
+   "paypal": "simulated",
+   "ai": null,
    "summary": "Payout skipped: the round's charges were simulated",
    "result": {
     "ok": true,
@@ -1014,24 +1034,26 @@
      "step": "payout",
      "index": 9,
      "label": "Pay Round 3",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:26Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "trace",
      "kind": "system",
      "source": "payout",
      "text": "Payout skipped: the round's charges were simulated (no PayPal call)",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     }
    ]
   },
   {
    "step": "clean_round4",
    "label": "Clean Round 4 (no clicks)",
-   "at": "2026-10-23T19:00:26Z",
+   "at": "2026-10-24T03:09:38Z",
    "mode": "simulated",
-   "summary": "Round 4: 6/6 captured; COLLECTED (simulated, payout skipped)",
+   "paypal": "simulated",
+   "ai": null,
+   "summary": "Round 4: 6 of 6 paid; round collected (simulated, payout skipped)",
    "result": {
     "ok": true,
     "round_n": 4,
@@ -1053,8 +1075,8 @@
      "step": "clean_round4",
      "index": 10,
      "label": "Clean Round 4 (no clicks)",
-     "circle_id": "di1l0t",
-     "ts": "2026-10-23T19:00:26Z"
+     "circle_id": "859okx",
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1067,7 +1089,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1080,7 +1102,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1093,7 +1115,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1106,7 +1128,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1119,7 +1141,7 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "chip",
@@ -1132,24 +1154,24 @@
      "decline_code": null,
      "webhook_verified": false,
      "predicted": false,
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "trace",
      "kind": "system",
      "text": "Judge: round 4 simulated without PayPal (6 captures labelled REPLAY-). Payout skipped: simulated charges never move real sandbox money.",
      "source": "payout",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "toast",
      "level": "info",
      "text": "Round 4 simulated: all contributions settled (no sandbox call)",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     },
     {
      "type": "board",
-     "ts": "2026-10-23T19:00:26Z"
+     "ts": "2026-10-24T03:09:38Z"
     }
    ]
   }

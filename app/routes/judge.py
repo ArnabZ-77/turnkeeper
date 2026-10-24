@@ -75,6 +75,10 @@ async def judge_action(
         return {"ok": True, "action": action, "session": session_shape(new)}
 
     sessions.owns_circle(sess, body.circle_id)
+    # Advanced controls change the circle's state mid-story: that run is then never the public canonical replay.
+    from app.engine import story
+
+    story.taint(body.circle_id, action)
 
     if action == "advance_clock":
         days = body.days if body.days is not None else 1.0

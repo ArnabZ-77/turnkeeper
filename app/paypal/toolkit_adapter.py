@@ -111,6 +111,24 @@ class CachedTokenClient(ToolkitClient):
             headers["PayPal-Request-Id"] = request_id
         return headers
 
+    def post(self, uri: str, payload: Any) -> Any:
+        """Like the stock post, but a non-JSON answer comes back as its text instead of `{}`.
+
+        PayPal's generate-qr-code replies `multipart/form-data` (the PNG as base64 in the `image` part); the stock
+        client calls `response.json()` on it, logs a warning and returns `{}`, so no QR ever reached the app
+        (live run 2026-10-25, F2). Headers are never logged here (they carry the bearer token)."""
+        response = requests.post(f"{self.base_url}{uri}", headers=self.build_headers(), json=payload)
+        response.raise_for_status()
+        if response.status_code == 204:
+            return {}
+        ctype = (response.headers.get("content-type") or "").lower()
+        if "json" in ctype or not ctype:
+            try:
+                return response.json()
+            except ValueError:
+                pass
+        return response.text or {}
+
 
 class ToolkitAdapter:
     """Runs PayPal Agent Toolkit tools through our token cache, idempotency keys and gateway."""

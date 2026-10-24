@@ -209,6 +209,23 @@ export interface RecoveryButtons {
 }
 
 /**
+ * What Priya's approval still waits for (the server refuses it until quorum and every affected
+ * member's consent are in), as the button's own label: "Waiting for quorum (1/4)".
+ */
+export function approveWait(
+  status: string,
+  bar: VoteBar | null,
+  consents: { state: ConsentState }[],
+): string | null {
+  if (status === "approved") return null;
+  if (status === "proposed") return "Waiting for the vote to open";
+  if (bar && !bar.passed) return `Waiting for quorum (${bar.yes}/${bar.needed})`;
+  const pending = consents.filter((c) => c.state !== "given");
+  if (pending.length) return `Waiting for consent (${consents.length - pending.length}/${consents.length})`;
+  return null;
+}
+
+/**
  * Why each recovery judge button is disabled (null = enabled). The server re-checks everything;
  * this only keeps the demo from offering a step that would certainly answer 409.
  */
@@ -250,7 +267,7 @@ export function recoveryButtons(board: BoardModel | null, rec: RecoveryInfo | nu
         ? "Already executed"
         : !open
           ? `Remedy set is ${status}`
-          : null,
+          : approveWait(status, bar, consents),
     markPaid: !invoice
       ? "No invoice yet (Priya's approval sends it)"
       : invoice.status === "PAID"
@@ -299,7 +316,29 @@ export function subtitleFor(msg: Pick<InboxMessage, "id" | "lang" | "text">, kno
     const m = t.re.exec(text);
     if (m) return t.en(m);
   }
-  return "Hindi (no English translation on file)";
+  return HINDI_FALLBACK;
+}
+
+/** Subtitle for a Hindi line with no translation: says what it is, claims nothing about files. */
+export const HINDI_FALLBACK = "Hindi message";
+
+/**
+ * English for the T-3 nudges: the forecast already carries `nudge_en` for the exact text it sent, so
+ * the phone shows it under the matching inbox message (same member, same text).
+ */
+export function forecastTranslations(
+  board: Pick<BoardModel, "forecasts"> | null,
+  messages: Pick<InboxMessage, "id" | "member" | "text">[] | null | undefined,
+): Record<number, string> {
+  const out: Record<number, string> = {};
+  const rows = (board?.forecasts ?? []).filter((f) => f.nudge && f.nudge_en && f.nudge_en !== f.nudge);
+  if (!rows.length) return out;
+  for (const m of messages ?? []) {
+    const text = (m.text ?? "").trim();
+    const hit = rows.find((f) => f.member === m.member && (f.nudge ?? "").trim() === text);
+    if (hit?.nudge_en) out[m.id] = hit.nudge_en;
+  }
+  return out;
 }
 
 /** Messages oldest first; ids break timestamp ties. */

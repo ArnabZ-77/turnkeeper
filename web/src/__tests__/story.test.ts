@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { markStoryStart, storyButton, storyDots, storyModeLabel, storyProgress } from "../story";
+import {
+  failureText,
+  lastStoryAi,
+  markStoryStart,
+  parseStepFailureToast,
+  storyButton,
+  storyDots,
+  storyFailure,
+  storyHow,
+  storyHowLabel,
+  storyModeLabel,
+  storyProgress,
+} from "../story";
 import { initialState, reducer } from "../state";
 import type { StoryView } from "../types";
 
@@ -64,7 +76,8 @@ describe("storyDots / progress / mode", () => {
   });
 
   it("labels modes honestly and passes unknown ones through", () => {
-    expect(storyModeLabel("live")).toBe("live sandbox");
+    // A bare "live" is ambiguous (AI or PayPal): never rendered as a PayPal claim.
+    expect(storyModeLabel("live")).toBe("live");
     expect(storyModeLabel("rules")).toBe("rules mode");
     expect(storyModeLabel(null)).toBeNull();
     expect(storyModeLabel("weird")).toBe("weird");
@@ -80,5 +93,78 @@ describe("story in the reducer", () => {
     const same = reducer(s, { type: "event", event: { type: "story", ts: "t", phase: "start", step: "nope" } });
     expect(same.story).toBe(s.story);
     expect(markStoryStart(view(2), "reset")!.steps[0].status).toBe("done");
+  });
+});
+
+describe("storyHow: PayPal and AI are separate facts", () => {
+  const step = (name: string, mode: string | null, extra: object = {}) => ({
+    step: name,
+    label: name,
+    status: "done",
+    at: null,
+    mode,
+    summary: null,
+    ...extra,
+  });
+
+  it("never shows an AI 'live' forecast as a live PayPal call", () => {
+    const how = storyHow(step("advance_to_t3", "live"), { paypal: "live" });
+    expect(how).toEqual({ paypal: null, ai: "live", judge: false });
+    expect(storyHowLabel(step("advance_to_t3", "live"), { paypal: "live" })).toBe("AI: live");
+  });
+
+  it("a live-sandbox round run by the agent in rules mode says both", () => {
+    expect(storyHowLabel(step("run_round3", "rules"), { paypal: "live" })).toBe("PayPal sandbox live · rules mode");
+    expect(storyHowLabel(step("run_round3", "simulated"), { paypal: "simulated" })).toBe("simulated, no PayPal call");
+  });
+
+  it("execute follows the invoice, and newer servers' explicit fields win", () => {
+    expect(storyHowLabel(step("execute", "rules"), null, { invoiceSimulated: true })).toBe("simulated, no PayPal call · rules mode");
+    expect(storyHowLabel(step("execute", "rules"), null, { invoiceSimulated: false })).toBe("PayPal sandbox live · rules mode");
+    expect(storyHowLabel(step("payout", "x", { paypal: "live", ai: "replay" }), null)).toBe("PayPal sandbox live · AI: replay");
+    expect(storyHowLabel(step("reset", "judge"), null)).toBe("judge action");
+  });
+
+  it("lastStoryAi reads the latest finished step that used the AI", () => {
+    const v = view(3);
+    expect(lastStoryAi(v)).toBeNull(); // judge + simulated steps only
+    v.steps[1] = { ...v.steps[1], mode: "rules" };
+    expect(lastStoryAi(v)).toBe("rules");
+    expect(lastStoryAi(null)).toBeNull();
+  });
+});
+
+describe("story failures", () => {
+  it("keeps a failed step visible, offers a retry and marks the dot", () => {
+    const v = view(2);
+    const failure = { step: "run_round3", text: "PayPal 422 INSUFFICIENT_FUNDS" };
+    const b = storyButton(v, false, failure);
+    expect(b.retry).toBe(true);
+    expect(b.label).toBe("Retry: Label run_round3");
+    expect(storyDots(v, failure)[2].state).toBe("failed");
+    expect(failureText(v, failure)).toBe(
+      "Label run_round3 failed: PayPal sandbox balance too low (INSUFFICIENT_FUNDS). Nothing was paid.",
+    );
+  });
+
+  it("drops the failure once the step runs or moves on, and prefers the server's error", () => {
+    const failure = { step: "run_round3", text: "boom" };
+    expect(storyFailure(view(2), failure)).toEqual(failure);
+    expect(storyFailure(view(2, { running: { step: "run_round3", task_id: "t" } }), failure)).toBeNull();
+    expect(storyFailure(view(3), failure)).toBeNull();
+    const v = view(2);
+    v.steps[2] = { ...v.steps[2], error: "server says no" };
+    expect(storyFailure(v, null)).toEqual({ step: "run_round3", text: "server says no" });
+  });
+
+  it("parses the background-step failure toast and keeps it in the reducer until a reset", () => {
+    expect(parseStepFailureToast("Story step 'payout' did not finish: 409 x")).toEqual({ step: "payout", text: "409 x" });
+    expect(parseStepFailureToast("hello")).toBeNull();
+    let s = reducer(initialState, { type: "story", story: view(2) });
+    s = reducer(s, { type: "storyError", step: "run_round3", text: "x" });
+    s = reducer(s, { type: "story", story: view(2) });
+    expect(s.storyFailure).toEqual({ step: "run_round3", text: "x" });
+    s = reducer(s, { type: "story", story: view(3) });
+    expect(s.storyFailure).toBeNull();
   });
 });

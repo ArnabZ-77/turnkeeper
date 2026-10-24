@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.charter import Charter, RemedyType, charter_sha256, collateral_violation, rounds_total, to_utc
 from app.domain.fees import Money, PositiveMoney, estimate_fee, money, net_of
+from app.domain.labels import display_name, fmt_money, names_of
 from app.domain.policy import MAX_RETRIES, NEVER_RETRY_CODES, RETRY_SPACING, CircleState
 
 RemedySource = Literal["agent", "rules"]
@@ -344,6 +345,8 @@ def propose_default_remedies(
         pay_date = next_weekday(today)
     menu = set(charter.remedy_menu)
     remedies: list[Remedy] = []
+    names = names_of(charter.members)
+    who = display_name(member, names)
 
     advance = money(min(one_net_contribution(charter), state.buffer_balance))
     can_advance = "buffer_advance" in menu and advance > 0 and not state.open_advances.get(member)
@@ -355,7 +358,8 @@ def propose_default_remedies(
                 round_n=round_n,
                 params=RemedyParams(amount=advance),
                 reason=(
-                    f"The buffer covers {member}'s net share ({advance}) now, so round {round_n} pays on time."
+                    f"The buffer covers {who}'s net share ({fmt_money(advance)}) now, so round {round_n} pays on"
+                    " time."
                 ),
                 charter_sha256=h,
             )
@@ -369,7 +373,7 @@ def propose_default_remedies(
                     round_n=round_n,
                     params=RemedyParams(amount=invoice_amount, due_date=pay_date),
                     reason=(
-                        f"{member} repays {invoice_amount} by PayPal invoice due {pay_date.isoformat()}"
+                        f"{who} repays {fmt_money(invoice_amount)} by PayPal invoice due {pay_date.isoformat()}"
                         f" ({pay_date.strftime('%A')}), the payday they named; the buffer is refilled when it is paid."
                     ),
                     charter_sha256=h,
@@ -383,7 +387,7 @@ def propose_default_remedies(
                 member=member,
                 round_n=round_n,
                 params=RemedyParams(due_date=pay_date if pay_date > today else today + timedelta(days=1)),
-                reason=f"The buffer cannot cover {member}; retry the charge on {pay_date.isoformat()}.",
+                reason=f"The buffer cannot cover {who}; retry the charge on {pay_date.isoformat()}.",
                 charter_sha256=h,
             )
         )
@@ -399,8 +403,9 @@ def propose_default_remedies(
                 round_n=round_n,
                 params=RemedyParams(swap_with=partner),
                 reason=(
-                    f"{member}'s payout turn moves later (round {i + 1} -> {j + 1}) and {partner} takes round"
-                    f" {i + 1}, so {member}'s unreceived pot keeps protecting the circle until the invoice is paid."
+                    f"{who}'s payout turn moves later (round {i + 1} -> {j + 1}) and"
+                    f" {display_name(partner, names)} takes round {i + 1}, so {who}'s unreceived pot keeps"
+                    " protecting the circle until the invoice is paid."
                 ),
                 charter_sha256=h,
             )

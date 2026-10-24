@@ -63,7 +63,7 @@ def _model_answer(**over) -> str:
             {"name": "Cy Diaz", "track_record_rounds": 0},
         ],
         "rotation": ["Bo", "Ana", "Cy"],
-        "fee_policy": "organizer_absorbs",
+        "fee_policy": "net_pot",
         "buffer_seed": "100.00",
         "grace_days": 2,
         "quorum": "2/3",
@@ -178,7 +178,7 @@ async def test_model_draft_live_then_replayed(cache_auto):
     assert r.ok and r.mode == "live" and r.source == "model" and r.mode_label == "live AI (Gemini)"
     c = r.charter_model()
     assert c.name == "Block Party Fund" and str(c.amount) == "50.00" and c.cadence == "weekly"
-    assert c.rotation == ["bo", "ana", "cy"] and c.fee_policy == "organizer_absorbs"
+    assert c.rotation == ["bo", "ana", "cy"] and c.fee_policy == "net_pot"
     assert c.members[0].lang == "es" and c.languages == ["en", "es"]
     assert r.explanations["amount"] == "Line 2 says $50 a week." and "bogus_field" not in r.explanations
     assert r.problems == []
@@ -191,6 +191,26 @@ async def test_model_draft_live_then_replayed(cache_auto):
     r2 = await cc.compile_charter("anything the organizer pasted", provider=replay)
     assert r2.mode == "replay" and r2.mode_label == "AI replay (Gemini, recorded)"
     assert r2.charter_sha256 == r.charter_sha256 and replay.calls == []
+
+
+@pytest.mark.parametrize("policy", ["gross_up", "organizer_absorbs"])
+async def test_unimplemented_fee_policy_from_the_model_becomes_net_pot_with_a_problem(cache_auto, policy):
+    r = await cc.compile_charter("anything", provider=FakeProvider([_model_answer(fee_policy=policy)]))
+    assert r.ok and r.source == "model" and r.charter_model().fee_policy == "net_pot"
+    assert any(p.startswith("fee_policy:") and policy in p and "not supported" in p for p in r.problems)
+    assert "only net_pot is implemented" in r.explanations["fee_policy"]
+
+
+async def test_fees_on_top_in_the_rules_text_is_not_promised_to_members():
+    from app.engine.join import fees_summary
+
+    text = "Members: Ana, Bo, Cy\nWe each pay $50 every week.\nPayPal fees are paid on top by members."
+    r = await cc.compile_charter(text, today=date(2026, 10, 23))
+    c = r.charter_model()
+    assert c.fee_policy == "net_pot"
+    assert any("gross_up is not supported" in p for p in r.problems)
+    line = fees_summary(c)["line"]
+    assert "net of fees" in line and "grossed up" not in line and "full $" not in line
 
 
 async def test_replay_only_provider_without_recording_uses_the_parser(cache_auto):

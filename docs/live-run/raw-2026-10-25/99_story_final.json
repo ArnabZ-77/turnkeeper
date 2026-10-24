@@ -1,0 +1,109 @@
+{
+  "status": 200,
+  "body": {
+    "ok": true,
+    "circle_id": "5wsg4b",
+    "run_id": "oqmxwklk",
+    "steps": [
+      {
+        "step": "reset",
+        "label": "Reset demo (new circle, new run id)",
+        "status": "done",
+        "at": "2026-10-23T20:08:37Z",
+        "mode": "judge",
+        "summary": "New circle 5wsg4b, run oqmxwklk"
+      },
+      {
+        "step": "advance_to_t3",
+        "label": "Advance to T-3 (forecast)",
+        "status": "done",
+        "at": "2026-10-23T20:08:37Z",
+        "mode": "rules",
+        "summary": "T-3 for round 3 (+0 d); flagged: ravi (rules)"
+      },
+      {
+        "step": "run_round3",
+        "label": "Run Round 3 (Ravi declines)",
+        "status": "done",
+        "at": "2026-10-23T20:09:04Z",
+        "mode": "rules",
+        "summary": "Round 3: 5/5 captured, ravi DECLINED"
+      },
+      {
+        "step": "reply_as_ravi",
+        "label": "Reply as Ravi (Hindi)",
+        "status": "done",
+        "at": "2026-10-23T20:09:04Z",
+        "mode": "judge",
+        "summary": "Ravi replied; payday 2027-01-01"
+      },
+      {
+        "step": "start_recovery",
+        "label": "Start recovery",
+        "status": "done",
+        "at": "2026-10-23T20:09:06Z",
+        "mode": "rules",
+        "summary": "Remedy proposal voting (rules)"
+      },
+      {
+        "step": "consents",
+        "label": "Consent as the affected members",
+        "status": "done",
+        "at": "2026-10-23T20:09:06Z",
+        "mode": "judge",
+        "summary": "Consents: ravi, tomas"
+      },
+      {
+        "step": "votes",
+        "label": "Vote as members (quorum)",
+        "status": "done",
+        "at": "2026-10-23T20:09:06Z",
+        "mode": "judge",
+        "summary": "Votes 4/4 yes"
+      },
+      {
+        "step": "approve",
+        "label": "Approve as Priya (one tap)",
+        "status": "done",
+        "at": "2026-10-23T20:09:06Z",
+        "mode": "judge",
+        "summary": "Priya approved (one tap)"
+      },
+      {
+        "step": "execute",
+        "label": "Execute remedies",
+        "status": "done",
+        "at": "2026-10-23T20:09:12Z",
+        "mode": "rules",
+        "summary": "Executed: buffer_advance, turn_swap, repay_by_invoice"
+      },
+      {
+        "step": "payout",
+        "label": "Pay Round 3",
+        "status": "next",
+        "at": null,
+        "mode": null,
+        "summary": null
+      },
+      {
+        "step": "clean_round4",
+        "label": "Clean Round 4 (no clicks)",
+        "status": "todo",
+        "at": null,
+        "mode": null,
+        "summary": null
+      }
+    ],
+    "current": "execute",
+    "next": {
+      "step": "payout",
+      "label": "Pay Round 3",
+      "action_label": "Next: Pay Round 3",
+      "index": 9
+    },
+    "running": null,
+    "complete": false,
+    "paypal": "live",
+    "replay_url": "/api/replay"
+  }
+}

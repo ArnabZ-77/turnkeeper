@@ -204,3 +204,58 @@ def test_parse_toolkit_result():
     assert parse_toolkit_result("[1]") == {"result": [1]}
     assert parse_toolkit_result("not json") == {"result": "not json"}
     assert parse_toolkit_result(b'{"b": 2}') == {"b": 2}
+
+
+# --- live run 2026-10-25 F2: generate-qr-code answers multipart/form-data -----------------------------------
+
+_PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+QR_MULTIPART = (
+    "--286d91e0-80f6-4be8-9a1a-b73b672748ea\r\n"
+    'Content-Disposition: form-data; name="image"\r\n'
+    "Content-Type: text/plain\r\n"
+    "\r\n"
+    f"{_PNG_B64}\r\n"
+    "--286d91e0-80f6-4be8-9a1a-b73b672748ea--\r\n"
+)
+
+
+class MultipartResponse(FakeResponse):
+    def __init__(self, text: str):
+        super().__init__(200, {}, {})
+        self.headers = {"content-type": "multipart/form-data; boundary=286d91e0-80f6-4be8-9a1a-b73b672748ea"}
+        self.text = text
+
+    def json(self) -> dict:
+        raise ValueError("not JSON")
+
+
+async def test_qr_code_multipart_answer_reaches_the_app(client, gateway, paypal_mock, monkeypatch):
+    from app.engine.recovery import _qr_data_url
+
+    posts: list[dict] = []
+
+    def fake_post(url, headers=None, json=None, **kw):
+        posts.append({"url": url, "headers": dict(headers or {}), "json": json})
+        return MultipartResponse(QR_MULTIPART)
+
+    monkeypatch.setattr("paypal_agent_toolkit.shared.paypal_client.requests.post", fake_post)
+    adapter = ToolkitAdapter(gateway, client)
+    result = await adapter.run(
+        "generate_invoice_qr_code",
+        {"invoice_id": "INV2-53GG-K4RR-F3D9-HRMQ", "width": 300, "height": 300},
+        request_id="tk:r:c:3:ravi:invqr",
+    )
+    assert posts[0]["url"].endswith("/v2/invoicing/invoices/INV2-53GG-K4RR-F3D9-HRMQ/generate-qr-code")
+    assert posts[0]["headers"]["PayPal-Request-Id"] == "tk:r:c:3:ravi:invqr"
+    assert 'name="image"' in result["result"]  # the raw multipart body, not the stock client's {}
+    assert _qr_data_url(result) == "data:image/png;base64," + _PNG_B64
+
+
+def test_qr_parser_formats():
+    from app.engine.recovery import _qr_data_url
+
+    assert _qr_data_url({"result": QR_MULTIPART}) == "data:image/png;base64," + _PNG_B64
+    assert _qr_data_url(QR_MULTIPART.replace("\r\n", "\n")) == "data:image/png;base64," + _PNG_B64
+    assert _qr_data_url({"result": _PNG_B64}) == "data:image/png;base64," + _PNG_B64
+    assert _qr_data_url({"qr_code": "data:image/png;base64,AAAA"}) == "data:image/png;base64,AAAA"
+    assert _qr_data_url({}) is None and _qr_data_url({"result": "not base64 !!"}) is None

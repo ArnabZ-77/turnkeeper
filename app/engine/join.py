@@ -28,7 +28,14 @@ from sqlmodel import select
 from app.config import get_settings
 from app.db import session_scope
 from app.domain.billing_plan import billing_plan_from_charter
-from app.domain.charter import Charter, canonical_json, charter_sha256, due_date, rounds_total
+from app.domain.charter import (
+    ALL_REMEDIES,
+    Charter,
+    canonical_json,
+    charter_sha256,
+    due_date,
+    rounds_total,
+)
 from app.domain.fees import estimate_fee, money, net_of, wire_amount
 from app.engine.common import iso, utcnow
 from app.models import CharterApprovalRow, Circle, Contribution, LedgerRow, MemberRow, Round
@@ -78,7 +85,7 @@ class JudgeCircleSettings:
 
 
 class InviteError(Exception):
-    """kind: "invalid" (bad format or signature) | "expired"."""
+    """kind: "invalid" (bad format or signature) | "expired" | "unavailable" (the check could not run)."""
 
     def __init__(self, kind: str, message: str) -> None:
         super().__init__(message)
@@ -113,15 +120,13 @@ def _sig(circle_id: str, handle: str, exp: str, nonce: str | None = None) -> str
 
 
 def _invite_nonce(circle_id: str, handle: str) -> str | None:
-    try:
-        with session_scope() as db:
-            row = db.exec(
-                select(MemberRow).where(MemberRow.circle_id == circle_id, MemberRow.handle == handle)
-            ).first()
-            return row.invite_nonce if row is not None else None
-    except Exception as e:  # noqa: BLE001 - a malformed lookup signs without a nonce (still HMAC-bound)
-        log.info("invite nonce lookup failed: %s", type(e).__name__)
-        return None
+    """The member's current invite nonce; None when no row exists or none was issued. A failed lookup (for
+    example "database is locked") raises: treating it as "no nonce" would re-accept links revoked on vault."""
+    with session_scope() as db:
+        row = db.exec(
+            select(MemberRow).where(MemberRow.circle_id == circle_id, MemberRow.handle == handle)
+        ).first()
+        return row.invite_nonce if row is not None else None
 
 
 def rotate_invite_nonce(circle_id: str, handle: str) -> str:
@@ -147,7 +152,14 @@ def parse_invite(token: str, *, now: datetime | None = None, allow_expired: bool
     if not m:
         raise InviteError("invalid", "This invite link is not valid. Ask the organizer for a new one.")
     cid, handle, exp, sig = m.groups()
-    if not hmac.compare_digest(sig, _sig(cid, handle, exp, _invite_nonce(cid, handle))):
+    try:
+        nonce = _invite_nonce(cid, handle)
+    except Exception as e:  # noqa: BLE001 - fail closed: never fall back to a nonce-less signature check
+        log.warning("invite nonce lookup failed: %s", type(e).__name__)
+        raise InviteError(
+            "unavailable", "This invite link could not be checked right now. Please try again in a minute."
+        ) from None
+    if not hmac.compare_digest(sig, _sig(cid, handle, exp, nonce)):
         raise InviteError("invalid", "This invite link is not valid. Ask the organizer for a new one.")
     expires_at = datetime.fromtimestamp(int(exp, 36), tz=UTC)
     if not allow_expired and (now or utcnow()) >= expires_at:
@@ -184,25 +196,14 @@ def fees_summary(charter: Charter) -> dict[str, Any]:
     fee = estimate_fee(amount)
     net = net_of(amount, fee)
     gross_pot = money(amount * n)
-    if charter.fee_policy == "net_pot":
-        pot = money(net * n - PAYOUT_FEE_RESERVE)
-        line = (
-            f"PayPal's fee (3.49% + $0.49, about ${wire_amount(fee)} on each ${wire_amount(amount)}) comes out of "
-            f"each contribution. The pot is paid net of fees: about ${wire_amount(pot)} per round after the "
-            f"${wire_amount(PAYOUT_FEE_RESERVE)} payout fee."
-        )
-    elif charter.fee_policy == "gross_up":
-        pot = gross_pot
-        line = (
-            f"Contributions are grossed up to cover PayPal's fee (about ${wire_amount(fee)} each), so the "
-            f"recipient gets the full ${wire_amount(pot)}."
-        )
-    else:
-        pot = gross_pot
-        line = (
-            f"The organizer pays PayPal's fees (about ${wire_amount(fee)} per contribution); the recipient "
-            f"gets the full ${wire_amount(pot)}."
-        )
+    # Only net_pot is implemented (the compiler maps any other policy to net_pot with a problem), so this is
+    # the only fee story a member is ever told.
+    pot = money(net * n - PAYOUT_FEE_RESERVE)
+    line = (
+        f"PayPal's fee (3.49% + $0.49, about ${wire_amount(fee)} on each ${wire_amount(amount)}) comes out of "
+        f"each contribution. The pot is paid net of fees: about ${wire_amount(pot)} per round after the "
+        f"${wire_amount(PAYOUT_FEE_RESERVE)} payout fee."
+    )
     return {
         "fee_policy": charter.fee_policy,
         "fee_estimate": wire_amount(fee),
@@ -497,6 +498,8 @@ def judge_mini_charter(today: date | None = None) -> Charter:
             "rotation": [JUDGE_PAYEE, JUDGE_MEMBER],
             "fee_policy": "net_pot",
             "buffer": {"seed": "0.00"},
+            # No buffer, so no buffer advance: "If short" must not promise that the organizer's buffer covers you.
+            "remedy_menu": [r for r in ALL_REMEDIES if r != "buffer_advance"],
             "grace_days": 3,
             "quorum": "2/2",
             "languages": ["en"],

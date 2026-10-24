@@ -38,6 +38,28 @@
 .tk-scheduler .b-sch-event-wrap.tk-contrib .b-sch-event {
   font-weight: 600;
   letter-spacing: 0.01em;
+  min-width: 96px;
+}
+/*
+ * Solid fills in both themes: the Stockholm dark theme tints "filled" events lighter, which put white
+ * labels on light grey. Every status fill below passes AA with its text colour.
+ */
+.tk-scheduler .b-sch-event-wrap.tk-contrib .b-sch-event {
+  background-color: var(--b-primary) !important;
+  color: #fff;
+  --b-sch-event-color: #fff;
+}
+.tk-scheduler .b-sch-event-wrap.tk-st-covered .b-sch-event {
+  color: #0b0b0b;
+  --b-sch-event-color: #0b0b0b;
+}
+/* Seeded fixture rounds (REPLAY- ids): hatched, so they never read as live sandbox captures. */
+.tk-scheduler .b-sch-event-wrap.tk-replay .b-sch-event {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.16) 0 6px,
+    transparent 6px 12px
+  ) !important;
 }
 .tk-scheduler .b-sch-event-wrap.tk-predicted .b-sch-event {
   outline: 2px dashed var(--tk-warn);
@@ -66,11 +88,22 @@
 .tk-scheduler .b-sch-event-wrap.tk-pot .b-sch-event {
   font-weight: 700;
 }
+/* The pot label sits outside the diamond, on the row background: ink text, not white. */
+.tk-scheduler .b-sch-event-wrap.tk-pot,
+.tk-scheduler .b-sch-event-wrap.tk-pot label,
+.tk-scheduler .b-sch-event-wrap.tk-pot .b-sch-event-content {
+  color: var(--tk-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
 
 /* Round bands (TimeRanges feature): a label per round in the header, a faint wash in the body. */
 .tk-scheduler .b-time-ranges-header-canvas .b-sch-time-range.tk-round {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--tk-ink-2);
   background: color-mix(in srgb, var(--tk-ink) 6%, transparent);
   justify-content: center;

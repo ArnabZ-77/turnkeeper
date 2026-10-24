@@ -9,7 +9,7 @@ import type { ConnectionState } from "./events";
 import { movedHandles, normalizeMode } from "./recovery";
 import { applyForecastEvent } from "./forecast";
 import { applyRerouteToRound } from "./payouts";
-import { markStoryStart } from "./story";
+import { markStoryStart, parseStepFailureToast, type StoryFailure } from "./story";
 import type {
   BoardModel,
   ContributionInfo,
@@ -70,6 +70,8 @@ export interface UiState {
   story: StoryView | null;
   /** Replay link offered by the waitlist 429 (builder E). */
   replayUrl: string | null;
+  /** Last failed attempt at a story step; stays visible until a retry, a pass or a reset. */
+  storyFailure: StoryFailure | null;
 }
 
 export type UiAction =
@@ -91,10 +93,12 @@ export type UiAction =
   | { type: "translation"; id: number; text: string }
   | { type: "clearMoved" }
   | { type: "story"; story: StoryView | null }
-  | { type: "replayUrl"; url: string | null };
+  | { type: "replayUrl"; url: string | null }
+  | { type: "storyError"; step: string; text: string }
+  | { type: "clearStoryError" };
 
 export const TRACE_LIMIT = 500;
-export const TOAST_LIMIT = 6;
+export const TOAST_LIMIT = 2;
 
 export const initialState: UiState = {
   session: null,
@@ -115,6 +119,7 @@ export const initialState: UiState = {
   moved: null,
   story: null,
   replayUrl: null,
+  storyFailure: null,
 };
 
 let seq = 0;
@@ -216,8 +221,12 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
       const board = state.board ? { ...state.board, ticker } : state.board;
       return { ...state, ticker, board };
     }
-    case "toast":
-      return pushToast(state, ev.level ?? "info", String(ev.text ?? ""), ev.ts);
+    case "toast": {
+      const text = String(ev.text ?? "");
+      const failed = parseStepFailureToast(text);
+      const next = failed ? { ...state, storyFailure: failed } : state;
+      return pushToast(next, ev.level ?? "info", text, ev.ts);
+    }
     case "queue":
       return { ...state, queuePosition: Math.max(0, Number(ev.position) || 0) };
     case "board":
@@ -278,8 +287,15 @@ export function reducer(state: UiState, action: UiAction): UiState {
       return { ...state, translations: { ...state.translations, [action.id]: action.text } };
     case "clearMoved":
       return state.moved ? { ...state, moved: null } : state;
-    case "story":
-      return { ...state, story: action.story };
+    case "story": {
+      // A failure stays only while its step is still the next one.
+      const keep = state.storyFailure && action.story?.next?.step === state.storyFailure.step;
+      return { ...state, story: action.story, storyFailure: keep ? state.storyFailure : null };
+    }
+    case "storyError":
+      return { ...state, storyFailure: { step: action.step, text: action.text } };
+    case "clearStoryError":
+      return state.storyFailure ? { ...state, storyFailure: null } : state;
     case "replayUrl":
       return { ...state, replayUrl: action.url };
     case "event":
@@ -303,6 +319,7 @@ export function reducer(state: UiState, action: UiAction): UiState {
         lastMode: null,
         translations: {},
         moved: null,
+        storyFailure: null,
       };
     case "connection":
       return { ...state, connection: action.state };

@@ -220,6 +220,10 @@ async def run_live(
         paypal_balance_stale=ctx.get("stale"),
         denied=paid.get("denied"),
         error=paid.get("error"),
+        code=paid.get("code"),
+        label=paid.get("label"),
+        debug_id=paid.get("debug_id"),
+        circle_available=paid.get("circle_available"),
     )
     if not paid.get("ok"):
         raise Failure(f"payout refused: {paid.get('denied') or paid.get('label') or paid.get('error')}")

@@ -56,6 +56,11 @@ export function receiptFrom(payout: PayoutEvent | null, rounds: RoundInfo[]): Re
   };
 }
 
+/** Fixture history (rounds 1-2 replayed with REPLAY- ids): never presented as a live Payouts result. */
+export function isSeededReceipt(view: Pick<ReceiptView, "itemId" | "batchId"> | null): boolean {
+  return Boolean(view && (view.itemId?.startsWith("REPLAY-") || view.batchId?.startsWith("REPLAY-")));
+}
+
 export function statusTone(status: string): "good" | "warn" | "critical" | "pending" {
   const s = status.toUpperCase();
   if (s === "SUCCESS" || s === "PAID") return "good";
@@ -66,9 +71,10 @@ export function statusTone(status: string): "good" | "warn" | "critical" | "pend
   return "pending";
 }
 
-function CopyId({ value }: { value: string | null }) {
+function CopyId({ value, plain = false }: { value: string | null; plain?: boolean }) {
   const [copied, setCopied] = useState(false);
   if (!value) return <span className="tk-muted">—</span>;
+  if (plain) return <code className="tk-muted">{value}</code>;
   const onCopy = async () => {
     if (await copyText(value)) {
       setCopied(true);
@@ -113,10 +119,19 @@ export function PayoutReceipt({ payout, rounds, members, currency = "USD", onRer
   const Icon = tone === "good" ? IconCheck : tone === "critical" ? IconX : tone === "warn" ? IconClock : IconCoins;
   const round = rounds.find((r) => r.n === view.roundN);
   const un = unclaimedView(round, currency);
+  const seeded = isSeededReceipt(view);
   return (
     <section className="tk-card" aria-label="Payout receipt">
       <h2 className="tk-card-title">
-        <span>Payout receipt · round {view.roundN}</span>
+        <span>
+          Payout receipt · round {view.roundN}
+          {seeded ? " (seeded)" : ""}
+        </span>
+        {seeded && (
+          <span className="tk-chip tk-chip-muted" title="Rounds 1-2 are replayed from the fixture: these ids were never returned by PayPal Payouts.">
+            no PayPal call
+          </span>
+        )}
       </h2>
       <div className={`tk-receipt-status tk-chip tk-chip-${tone}`}>
         <Icon />
@@ -130,11 +145,11 @@ export function PayoutReceipt({ payout, rounds, members, currency = "USD", onRer
         </dd>
         <dt>Payout item</dt>
         <dd>
-          <CopyId value={view.itemId} />
+          <CopyId value={view.itemId} plain={seeded} />
         </dd>
         <dt>Batch</dt>
         <dd>
-          <CopyId value={view.batchId} />
+          <CopyId value={view.batchId} plain={seeded} />
         </dd>
         <dt>Paid at</dt>
         <dd>{view.paidAt ? fmtDateTime(view.paidAt) : <span className="tk-muted">pending</span>}</dd>

@@ -39,7 +39,7 @@ export function CharterCard({ circle, members, rounds }: CharterCardProps) {
   };
 
   return (
-    <section className="tk-card" aria-label="Charter">
+    <section className="tk-card tk-charter" aria-label="Charter">
       <h2 className="tk-card-title">
         <span>Charter · {circle.name}</span>
         <span className={`tk-chip ${circle.mandate_present ? "tk-chip-good" : "tk-chip-pending"}`}>

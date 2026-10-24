@@ -23,7 +23,7 @@ function ToastItem({ toast, onDismiss, ttlMs }: { toast: Toast; onDismiss: (id: 
   );
 }
 
-export function Toasts({ toasts, onDismiss, ttlMs = 6000 }: ToastsProps) {
+export function Toasts({ toasts, onDismiss, ttlMs = 4000 }: ToastsProps) {
   if (!toasts.length) return null;
   return (
     <div className="tk-toasts" aria-live="polite">

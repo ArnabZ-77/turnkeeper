@@ -60,7 +60,23 @@ def _invite(token: str, *, allow_expired: bool = False) -> jn.Invite:
     try:
         return jn.parse_invite(token, allow_expired=allow_expired)
     except jn.InviteError as e:
-        raise HTTPException(status_code=410 if e.kind == "expired" else 404, detail=e.message) from None
+        code = {"expired": 410, "unavailable": 503}.get(e.kind, 404)
+        raise HTTPException(status_code=code, detail=e.message) from None
+
+
+def _invite_redirect(token: str, *, allow_expired: bool = True) -> jn.Invite | RedirectResponse:
+    """For the browser routes PayPal redirects to: a link that no longer verifies (revoked when the member
+    vaulted, or tampered) lands on the SPA's join page with a status, never on a raw JSON 404."""
+    try:
+        return jn.parse_invite(token, allow_expired=allow_expired)
+    except jn.InviteError as e:
+        return _back(
+            token if _SAFE_TOKEN_RX.match(token or "") else "invalid", _INVITE_STATUS.get(e.kind, "invalid")
+        )
+
+
+_SAFE_TOKEN_RX = re.compile(r"^[a-z0-9._]{1,80}$")
+_INVITE_STATUS = {"expired": "expired", "unavailable": "error"}
 
 
 def parse_invite(token: str) -> tuple[str, str]:
@@ -89,7 +105,7 @@ def _circle_and_charter(circle_id: str) -> tuple[Any, Any]:
     return circle, state.charter_of(circle)
 
 
-def _charter_card(circle_id: str) -> dict[str, Any]:
+def _charter_card(circle_id: str, viewer: str | None = None) -> dict[str, Any]:
     circle, charter = _circle_and_charter(circle_id)
     fees = jn.fees_summary(charter)
     return {
@@ -108,7 +124,8 @@ def _charter_card(circle_id: str) -> dict[str, Any]:
         "quorum": charter.quorum,
         "grace_days": charter.grace_days,
         "remedy_menu": list(charter.remedy_menu),
-        "members": [{"handle": m.handle, "name": m.name.split()[0]} for m in charter.members],
+        # Full names ("Judge Payee, Judge Member" rather than "Judge, Judge"); `you` marks the invite's member.
+        "members": [{"handle": m.handle, "name": m.name, "you": m.handle == viewer} for m in charter.members],
         "billing_plan": jn.billing_plan_from_charter(charter),
         "kind": circle.kind or "fixture",
         "status": circle.status,
@@ -175,8 +192,8 @@ async def judge_circle(sess: CurrentSession) -> dict[str, Any]:
         "paypal_ready": get_settings().paypal_configured,
         "payee_configured": bool(members.get(jn.JUDGE_PAYEE) and members[jn.JUDGE_PAYEE].payout_receiver),
         "notes": [
-            "Open the invite on a phone or a private window and log in on PayPal's page with the published "
-            "judge.member sandbox account (README). Sandbox only: no real money moves.",
+            "Open the invite on a phone or a private window and log in on PayPal's page with any US sandbox "
+            "personal account (developer.paypal.com > Sandbox accounts). Sandbox only: no real money moves.",
             "judge_payee receives round 1's pot; judge_member's turn is round 2.",
         ],
     }
@@ -188,7 +205,7 @@ async def judge_circle(sess: CurrentSession) -> dict[str, Any]:
 @router.get("/api/join/{token}")
 async def join_info(token: str) -> dict[str, Any]:
     inv = _invite(token)
-    card = _charter_card(inv.circle_id)
+    card = _charter_card(inv.circle_id, viewer=inv.handle)
     m = _member(inv.circle_id, inv.handle)
     circle, charter = _circle_and_charter(inv.circle_id)
     member = jn.member_card(circle, charter, m)
@@ -284,10 +301,9 @@ async def join_setup(token: str, request: Request) -> dict[str, Any]:
 
 @router.get("/join/{token}/return")
 async def join_return(token: str, approval_token_id: str | None = None) -> RedirectResponse:
-    try:
-        inv = jn.parse_invite(token, allow_expired=True)  # approval began while the invite was valid
-    except jn.InviteError:
-        raise HTTPException(status_code=404, detail="This invite link is not valid.") from None
+    inv = _invite_redirect(token)  # expired is fine: the approval began while the invite was valid
+    if isinstance(inv, RedirectResponse):
+        return inv  # e.g. Back / reload on the old return URL after vaulting (that link was revoked)
     circle, _charter = _circle_and_charter(inv.circle_id)
     row = _member(inv.circle_id, inv.handle)
     cid, handle = inv.circle_id, inv.handle
@@ -297,13 +313,15 @@ async def join_return(token: str, approval_token_id: str | None = None) -> Redir
         return _back(token, status)
 
     if row.setup_token_id is None and _vaulted(row):
-        return _back(token, jn.VAULTED)  # reload / back button after success
+        # A vaulted member on a link that still verifies: never overwrite the vaulted status with an error.
+        return _back(token, jn.VAULTED)
     setup_id = row.setup_token_id
     if not setup_id:
         return fail(
             jn.ERROR, "No PayPal approval is in progress for this invite. Tap Continue to PayPal to start."
         )
-    if approval_token_id and approval_token_id != setup_id:
+    if approval_token_id != setup_id:
+        # PayPal's Vault return always appends approval_token_id: a missing or foreign one is not its redirect.
         return fail(jn.ERROR, "This PayPal approval does not belong to this invite. Nothing was saved.")
     vault, gw, keys = _paypal_modules()
 
@@ -364,10 +382,9 @@ async def join_return(token: str, approval_token_id: str | None = None) -> Redir
 
 @router.get("/join/{token}/cancel")
 async def join_cancel(token: str) -> RedirectResponse:
-    try:
-        inv = jn.parse_invite(token, allow_expired=True)
-    except jn.InviteError:
-        raise HTTPException(status_code=404, detail="This invite link is not valid.") from None
+    inv = _invite_redirect(token)
+    if isinstance(inv, RedirectResponse):
+        return inv
     row = jn.get_member(inv.circle_id, inv.handle)
     if row is not None and not _vaulted(row):
         jn.update_member(

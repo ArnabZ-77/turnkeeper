@@ -80,7 +80,7 @@ async def test_rules_forecast_flags_ravi_only(cid):
     assert [v["member"] for v in flagged] == ["ravi"]
     ravi = flagged[0]
     assert ravi["score"] == pytest.approx(0.85) and ravi["mode"] == "rules" and ravi["lang"] == "hi"
-    assert ravi["reason"].startswith("ravi at risk (0.85)") and "नमस्ते Ravi" in ravi["nudge"]
+    assert ravi["reason"].startswith("Ravi at risk (score 0.85)") and "नमस्ते Ravi" in ravi["nudge"]
     assert ravi["nudge_en"].startswith("Hi Ravi")
     assert all(v["nudge"] is None for v in views if not v["flagged"])
 

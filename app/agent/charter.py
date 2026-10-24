@@ -45,6 +45,8 @@ DEMO_RULES = {"en": FIXTURES / "demo_rules_en.txt", "hi": FIXTURES / "demo_rules
 
 MAX_TEXT_LEN = 4000
 MAX_MEMBERS = 20
+# Only net_pot is implemented end to end (charges, billing plan, pot); see assemble().
+IMPLEMENTED_FEE_POLICIES: tuple[FeePolicy, ...] = ("net_pot",)
 CHARTER_FIELDS = (
     "name",
     "amount",
@@ -667,6 +669,16 @@ def assemble(
     fee_policy = draft.fee_policy or default(
         "fee_policy", "net_pot", "defaulted to net_pot (PayPal fees come out of the pot)"
     )
+    if fee_policy not in IMPLEMENTED_FEE_POLICIES:
+        # gross_up / organizer_absorbs are in the charter vocabulary but no charge is grossed up and no
+        # buffer funds the fees yet, so the honest charter is net_pot (README: only net_pot is implemented).
+        problems.append(
+            f"fee_policy: {fee_policy} is not supported in this build; using net_pot (fees come out of the pot)"
+        )
+        ex["fee_policy"] = (
+            ex.get("fee_policy", "") + f" Asked for {fee_policy}; only net_pot is implemented."
+        ).strip()
+        fee_policy = "net_pot"
     buffer_seed = draft.buffer_seed or default("buffer", "0.00", "no organizer buffer stated (0.00)")
     grace = (
         draft.grace_days if draft.grace_days is not None else default("grace_days", 3, "defaulted to 3 days")

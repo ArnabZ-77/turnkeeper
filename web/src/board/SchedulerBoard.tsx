@@ -17,6 +17,8 @@ import "../theme/bryntum.css";
 export interface SchedulerBoardProps {
   mapping: BoardMapping;
   onSelect: (meta: EventMeta | null) => void;
+  /** Member to keep in view (the declined or moved one), when the board is too short for every row. */
+  focus?: string | null;
 }
 
 function metaOf(record: Model | EventModel | undefined | null): EventMeta | null {
@@ -39,16 +41,15 @@ function eventRenderer({ eventRecord, renderData }: RendererContext): string {
   if (meta) {
     renderData.wrapperCls = addCls(renderData.wrapperCls, meta.kind === "pot" ? potCls(meta) : contributionCls(meta));
   }
-  const text = StringHelper.encodeHtml(String(eventRecord.name ?? ""));
-  // T-3 forecast flag: a small fixed-width badge (static markup, no member text).
-  return meta?.kind === "contribution" && meta.predicted ? `${text}<span class="tk-predicted-badge">predicted</span>` : text;
+  // The T-3 flag is the chip's own text ("At risk") plus a dashed outline; no extra badge to truncate.
+  return StringHelper.encodeHtml(String(eventRecord.name ?? ""));
 }
 
 const COLUMNS = [
   {
     text: "Member",
     field: "name",
-    width: 190,
+    width: 170,
     htmlEncode: false,
     renderer: ({ record }: { record: Model }): DomConfig => {
       const name = String(record.get("name") ?? "");
@@ -91,14 +92,24 @@ const EVENT_TOOLTIP_FEATURE = {
   },
 };
 
-/** Read-only board: no editing, dragging, resizing, creating or context menus. */
+/**
+ * Read-only board: no editing, dragging, resizing, creating or context menus.
+ *
+ * One lane per member (eventLayout "none"): the pot milestone sits on the recipient's own chip lane,
+ * after the chips end, with its label outside. 46 px rows fit all six members at 1080p even with the
+ * recovery panel open.
+ */
 const STATIC_PROPS = {
   cls: "tk-scheduler",
   readOnly: true,
-  rowHeight: 64,
-  barMargin: 6,
+  rowHeight: 46,
+  barMargin: 5,
+  // The board is exactly as tall as its rows: no empty canvas (where the trial watermark would show).
+  autoHeight: true,
+  eventLayout: "none" as const,
   eventStyle: "filled" as const,
-  milestoneLayoutMode: "estimate" as const,
+  milestoneLayoutMode: "default" as const,
+  milestoneTextPosition: "always-outside" as const,
   zoomOnMouseWheel: false,
   zoomOnTimeAxisDoubleClick: false,
   createEventOnDblClick: false,
@@ -130,7 +141,7 @@ const STATIC_PROPS = {
   eventRenderer,
 };
 
-export default function SchedulerBoard({ mapping, onSelect }: SchedulerBoardProps) {
+export default function SchedulerBoard({ mapping, onSelect, focus = null }: SchedulerBoardProps) {
   const ref = useRef<BryntumScheduler>(null);
 
   const onEventClick = useCallback(
@@ -150,6 +161,19 @@ export default function SchedulerBoard({ mapping, onSelect }: SchedulerBoardProp
       /* the time axis may not be laid out yet; harmless */
     }
   }, [mapping.startDate, mapping.events]);
+
+  // Keep the member the story is about on screen (Ravi declined, Ravi and Tomas swapped).
+  useEffect(() => {
+    const instance = ref.current?.instance;
+    if (!instance || !focus) return;
+    const record = instance.resourceStore.getById(focus);
+    if (!record) return;
+    try {
+      void instance.scrollResourceIntoView(record as never, { block: "center", animate: 300 });
+    } catch {
+      /* rows not rendered yet; the next data change retries */
+    }
+  }, [focus, mapping.resources]);
 
   return (
     <BryntumScheduler

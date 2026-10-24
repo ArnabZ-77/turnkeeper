@@ -97,6 +97,8 @@ export function JoinPage({ invite, status }: JoinPageProps) {
   };
 
   const step = view.status === "vaulted" ? (walletDone ? 4 : 3) : view.status === "pending_approval" ? 2 : 1;
+  // A dead invite has no steps left to take: no stepper, and a way back to the demo.
+  const dead = view.status === "invalid" || view.status === "expired";
 
   return (
     <div className="tk-join">
@@ -110,6 +112,7 @@ export function JoinPage({ invite, status }: JoinPageProps) {
         <ThemeToggle />
       </header>
 
+      {!dead && (
       <ol className="tk-join-steps" aria-label="Join steps">
         {["Review", "Approve on PayPal", "Payout wallet"].map((label, i) => (
           <li key={label} className={i + 1 < step ? "tk-done" : i + 1 === step ? "tk-current" : ""}>
@@ -118,10 +121,16 @@ export function JoinPage({ invite, status }: JoinPageProps) {
           </li>
         ))}
       </ol>
+      )}
 
       <div className={`tk-join-status tk-tone-${view.tone}`} role="status">
         <strong>{view.title}</strong>
         <span>{view.body}</span>
+        {dead && (
+          <a className="tk-btn tk-join-back" href="/">
+            Open the demo board
+          </a>
+        )}
       </div>
 
       {error && (
@@ -135,7 +144,7 @@ export function JoinPage({ invite, status }: JoinPageProps) {
       {card && c && (
         <section className="tk-card tk-join-card" aria-label="Circle charter">
           <p className="tk-muted tk-small">
-            {card.member.name.split(/\s+/)[0]}, you're invited to
+            {card.member.name.split(/\s+/)[0]}, {view.status === "vaulted" ? "you're a member of" : "you're invited to"}
           </p>
           <h1 className="tk-join-title">{c.name}</h1>
           <p className="tk-join-amount">

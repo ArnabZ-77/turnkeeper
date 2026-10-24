@@ -223,7 +223,9 @@ async def run_forecast(
                         member=m.handle,
                         score=f"{res.score:.2f}",
                         flagged=res.flagged,
-                        reason=ex.reason if ex else fc.rules_reason(res),
+                        reason=ex.reason
+                        if ex
+                        else fc.rules_reason(res, name=(m.name or m.handle).split()[0]),
                         nudge=ex.nudge if ex else None,
                         nudge_en=ex.nudge_en if ex else None,
                         lang=sig.lang,

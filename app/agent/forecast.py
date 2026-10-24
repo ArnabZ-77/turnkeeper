@@ -22,6 +22,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.domain.labels import display_name
+
 log = logging.getLogger("turnkeeper.agent.forecast")
 
 THRESHOLD = 0.5
@@ -212,10 +214,13 @@ def _payday_factor(signals: MemberSignals) -> Factor | None:
     if spec is None:
         return Factor(factor="payday", weight=W_PAYDAY_UNKNOWN, detail="no payday rule on file")
     if spec.kind == "uncertain":
+        # Built from the parsed spec, never the rule text: payday_rule is member-written (pasted rules or model
+        # output) and factor details go into the explain prompt, which carries no member text (CONTRACTS).
+        on = f" on {calendar.day_name[spec.weekday]}s" if spec.weekday is not None else ""
         return Factor(
             factor="payday",
             weight=W_PAYDAY_UNCERTAIN,
-            detail=f"payday '{signals.payday_rule}' is biweekly with no anchor date",
+            detail=f"payday is biweekly{on} with no anchor date",
         )
     before = paydays_between(spec, due - timedelta(days=31), due)
     after = paydays_between(spec, due + timedelta(days=1), due + timedelta(days=45))
@@ -310,13 +315,13 @@ _NUDGE_TEMPLATES = {
 }
 
 
-def rules_reason(result: RiskResult) -> str:
-    """One line in English from the factors that carry weight (the base rate is left out)."""
+def rules_reason(result: RiskResult, *, name: str | None = None) -> str:
+    """One line in English from the factors that carry weight (the base rate is left out). ``name`` is the
+    member's display name ("Ravi"); without it the handle is title-cased, never shown raw."""
     parts = [f.detail for f in sorted(result.factors, key=lambda f: -f.weight) if f.factor != "base"]
+    who = name or display_name(result.member)
     head = (
-        f"{result.member} at risk ({result.score:.2f})"
-        if result.flagged
-        else f"{result.member} ({result.score:.2f})"
+        f"{who} at risk (score {result.score:.2f})" if result.flagged else f"{who} (score {result.score:.2f})"
     )
     return (head + (": " + "; ".join(parts[:3]) if parts else ": no risk factors")).strip()[:REASON_MAX_CHARS]
 
@@ -332,7 +337,7 @@ def rules_explanation(signals: MemberSignals, result: RiskResult, *, name: str, 
     nudge, en = rules_nudge(
         signals.lang, name=name, amount=amount, round_n=signals.round_n, due=signals.due_date
     )
-    return Explanation(reason=rules_reason(result), nudge=nudge, nudge_en=en, mode="rules")
+    return Explanation(reason=rules_reason(result, name=name), nudge=nudge, nudge_en=en, mode="rules")
 
 
 SYSTEM_PROMPT = (

@@ -24,10 +24,27 @@ export function parseDateTime(value: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function fmtMoney(amount: string | number | null | undefined, currency = "USD"): string {
+export interface MoneyOptions {
+  /** false: whole units ("$1,155"), for chips where space is tight; the exact cents go in the tooltip. */
+  cents?: boolean;
+}
+
+/** "$1,154.93" (thousands separators, two decimals). Non-numeric input is shown as given. */
+export function fmtMoney(amount: string | number | null | undefined, currency = "USD", opts: MoneyOptions = {}): string {
   if (amount === null || amount === undefined || amount === "") return "—";
-  const s = typeof amount === "number" ? amount.toFixed(2) : String(amount);
-  return currency === "USD" ? `$${s}` : `${s} ${currency}`;
+  const n = typeof amount === "number" ? amount : Number(String(amount).trim());
+  const cents = opts.cents !== false;
+  let s: string;
+  if (Number.isFinite(n)) {
+    s = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: cents ? 2 : 0,
+      maximumFractionDigits: cents ? 2 : 0,
+    }).format(cents ? n : Math.round(n));
+  } else {
+    s = String(amount);
+  }
+  if (currency !== "USD") return `${s} ${currency}`;
+  return s.startsWith("-") ? `-$${s.slice(1)}` : `$${s}`;
 }
 
 export function fmtDate(value: string | null | undefined): string {
@@ -43,9 +60,8 @@ export function fmtDateTime(value: string | null | undefined): string {
     month: "short",
     day: "numeric",
     year: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    second: "2-digit",
   });
 }
 
