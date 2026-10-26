@@ -13,17 +13,13 @@ services:
   - type: web
     name: turnkeeper
     runtime: docker
-    plan: starter
+    plan: free
     branch: demo-stable
     autoDeploy: false
     healthCheckPath: /healthz
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: TK_DB_PATH
-        value: /var/data/turnkeeper.db
+        value: /tmp/turnkeeper.db
       - key: PAYPAL_ENV
         value: sandbox
       - key: PAYPAL_CLIENT_ID

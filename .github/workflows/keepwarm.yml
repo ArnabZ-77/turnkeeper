@@ -1,0 +1,11 @@
+name: keep-warm
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the hosted demo so the free instance does not sleep
+        run: curl -fsS --max-time 60 "${{ vars.DEMO_URL }}/healthz" || echo "demo not reachable"
