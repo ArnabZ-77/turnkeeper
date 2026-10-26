@@ -347,6 +347,7 @@ def board_model(circle_id: str) -> dict[str, Any]:
             ).all()
         )
     circle_available, buffer_balance = ledger_totals(circle_id)
+    payout_fees = _payout_fees(circle_id)
     rotation = [r.recipient_handle for r in rounds] or list(charter.rotation)
     attempts_by_round: dict[int, list[Any]] = {}
     for a in payout_attempts(circle_id):
@@ -398,6 +399,8 @@ def board_model(circle_id: str) -> dict[str, Any]:
                         "item_id": r.payout_item_id,
                         "status": r.payout_status,
                         "amount": r.payout_amount,
+                        # the fee the ledger booked for this item (PayPal's, or the 0.25 reserve until known)
+                        "fee": payout_fees.get((r.n, r.payout_item_id or r.payout_batch_id or "")),
                     }
                     if r.payout_batch_id or r.payout_item_id
                     else None
@@ -434,6 +437,16 @@ def board_model(circle_id: str) -> dict[str, Any]:
         "recovery": recovery_block,
         "forecasts": _forecast_extras(circle_id),
     }
+
+
+def _payout_fees(circle_id: str) -> dict[tuple[int, str], str]:
+    """{(round_n, item or batch id): booked payout fee} from the ledger's `payout_fee` rows."""
+    out: dict[tuple[int, str], Decimal] = {}
+    for row in ledger_rows(circle_id):
+        if row.kind == "payout_fee" and row.round_n is not None and row.ref:
+            key = (row.round_n, row.ref)
+            out[key] = out.get(key, Decimal("0.00")) + money(row.amount)
+    return {k: money_str(v) for k, v in out.items()}
 
 
 def _forecast_extras(circle_id: str) -> list[dict[str, Any]]:
@@ -505,6 +518,7 @@ def _attempt_view(a: Any) -> dict[str, Any]:
         "item_id": a.item_id,
         "status": a.status,
         "amount": a.amount,
+        "fee": a.fee,
         "wallet": a.wallet,
         "receiver_kind": a.receiver_kind,
         "funding": a.funding,

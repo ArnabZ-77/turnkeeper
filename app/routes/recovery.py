@@ -176,7 +176,8 @@ async def reply_as_ravi(body: RecoveryJudgeBody, sess: CurrentSession) -> dict[s
     circle = state.load_circle(body.circle_id)
     from app.engine.clock import VirtualClock
 
-    payday = inbox.parse_payday(text, today=VirtualClock(circle).today())
+    rule = next((m.payday_rule for m in state.members_of(body.circle_id) if m.handle == DEMO_MEMBER), None)
+    payday = inbox.parse_payday(text, today=VirtualClock(circle).today(), payday_rule=rule)
     publish = _publisher(sess)
     await publish({"type": "toast", "level": "info", "text": f"Ravi replied ({lang})"})
     await publish({"type": "board"})

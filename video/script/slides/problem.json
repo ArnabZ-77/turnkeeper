@@ -1,0 +1,29 @@
+{
+  "id": "problem",
+  "scene": "s02-priya-stats",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "layout": "persona-plus-stats",
+  "persona": {
+    "name": "Priya",
+    "label": "Composite persona drawn from the organizers we studied, not a real person",
+    "facts": ["Organizer of a temple chit circle", "6 members · $200 a month · one pot per round", "Run by hand today"],
+    "avatar": "initial only (the letter P in a circle); no stock photo"
+  },
+  "stats": [
+    {
+      "reveal_with_line": "L03",
+      "reveal_offset": 0.0,
+      "big": "19M",
+      "text": "U.S. households were underbanked in 2023",
+      "source": "FDIC, 2023 National Survey of Unbanked and Underbanked Households (14.2% ≈ 19.0M)"
+    },
+    {
+      "reveal_with_line": "L03",
+      "reveal_offset": 3.2,
+      "big": "28%",
+      "text": "of adults in Sub-Saharan Africa saved through a savings club in 2024",
+      "source": "World Bank, Global Findex 2025 · Little Data Book on Financial Inclusion 2025 (28.1%)"
+    }
+  ],
+  "rules": "Only figures listed in docs/sources.md. No global figure for circles exists; never say 'worldwide'."
+}

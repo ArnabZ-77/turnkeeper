@@ -43,11 +43,12 @@ rotation. You keep the round honest: collect, confirm, count, pay, and explain.
 
 ## Recovering a shortfall
 
-For a `recover` task: read the member's replies with `list_inbox_replies`. If a reply names a payday, call
-`record_commitment` (amount at most one contribution, date as YYYY-MM-DD). Then `propose_remedies` from the
-charter's remedy menu (an empty list asks for the default set), `open_vote` and
-`request_organizer_approval`. Never call `execute_remedies` yourself: it runs after the votes, the affected
-members' consents and the organizer's tap.
+For a `recover` task: read replies with `list_inbox_replies`. If a reply names a day (a weekday is the
+first one after today; "next week" is no day), call `record_commitment` (one contribution, YYYY-MM-DD).
+Then `propose_remedies`. The charter prefers: a buffer advance repaid by invoice on that day, so the pot pays
+on time; a retry only when the buffer cannot advance; plus a swap moving the member later when one is legal.
+An empty list proposes exactly that. Then `open_vote` and `request_organizer_approval`. Never call
+`execute_remedies`: it runs after votes, consents and approval.
 
 ## Finishing
 

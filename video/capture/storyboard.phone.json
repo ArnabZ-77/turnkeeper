@@ -1,0 +1,177 @@
+{
+  "baseUrl": "http://localhost:8030",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "deviceScaleFactor": 2,
+  "isMobile": true,
+  "hasTouch": false,
+  "fps": 30,
+  "typeDelay": 40,
+  "hoverMs": 450,
+  "actionTitles": false,
+  "scenes": [
+    {
+      "id": "cap-05-join",
+      "tailMs": 600,
+      "steps": [
+        {
+          "goto": "/compile"
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Compile charter"
+          },
+          "label": "compile"
+        },
+        {
+          "waitForText": "same as the demo circle",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Freeze charter"
+          },
+          "label": "freeze"
+        },
+        {
+          "waitForText": "Approve as Priya (organizer)",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Approve as Priya (organizer)"
+          },
+          "label": "approve-charter"
+        },
+        {
+          "waitForText": "Member invites (signed, expiring)",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "selector": ".tk-invites li:has(strong:text-is('Ravi Sharma')) a"
+          },
+          "label": "open-invite"
+        },
+        {
+          "waitForText": "Temple Circle A",
+          "timeout": 20000
+        },
+        {
+          "pause": 1500
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-kv",
+            "as": "join-fees"
+          }
+        },
+        {
+          "scroll": 380
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-plan",
+            "as": "paypal-plan"
+          }
+        },
+        {
+          "pause": 1500
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-status",
+            "as": "join-status"
+          }
+        },
+        {
+          "pause": 800
+        },
+        {
+          "snapshot": {
+            "selector": "body",
+            "as": "join-page"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cap-05b-join-paypal",
+      "tailMs": 800,
+      "setup": [
+        {
+          "goto": "/"
+        },
+        {
+          "apiPost": "/api/join/judge-circle",
+          "as": "judge-circle",
+          "gotoField": "invite.path"
+        }
+      ],
+      "steps": [
+        {
+          "waitForText": "Continue to PayPal",
+          "timeout": 20000
+        },
+        {
+          "pause": 1500
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-kv",
+            "as": "join-fees"
+          }
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-status",
+            "as": "join-status"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "body",
+            "as": "join-page"
+          }
+        },
+        {
+          "scroll": 380
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "zoomTarget": {
+            "selector": ".tk-join-plan",
+            "as": "paypal-plan"
+          }
+        },
+        {
+          "pause": 1500
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Continue to PayPal"
+          },
+          "label": "continue-to-paypal"
+        },
+        {
+          "waitForUrl": "paypal\\.com",
+          "timeout": 45000
+        },
+        {
+          "pause": 5000
+        }
+      ]
+    }
+  ]
+}

@@ -36,13 +36,13 @@ story walks it in 11 steps; each step must run in order, and every simulated ste
 | 1 | Reset demo | A fresh circle with a new run id |
 | 2 | Advance to T-3 (forecast) | Ravi is flagged (risk score 0.85: late in rounds 1 and 2, last payday three weeks before the due date) and nudged in Hindi |
 | 3 | Run Round 3 (Ravi declines) | Five charges complete and are confirmed by the toolkit; Ravi's is declined: **"API decline: sandbox-injected"** (PayPal's mock-response header) |
-| 4 | Reply as Ravi (Hindi) | "Salary comes on Friday" is parsed into a commitment |
+| 4 | Reply as Ravi (Hindi) | "Salary comes on Friday" is parsed into a commitment for his next payday Friday under his payday rule ("every 2nd Friday"), the same date the T-3 forecast named |
 | 5 | Start recovery | A charter-checked proposal: buffer advance + repay by invoice + swap turns with Tomas |
 | 6 | Consent as the affected members | Ravi and Tomas consent to the swap |
 | 7 | Vote as members (quorum) | 4 of 6 |
 | 8 | Approve as Priya (one tap) | The organizer approves |
 | 9 | Execute remedies | Buffer covers Ravi's share; a PayPal invoice and QR code are issued; the board redraws the swap |
-| 10 | Pay Round 3 | Ledger, mandate and balance checks, then a Payouts batch and an in-app receipt |
+| 10 | Pay Round 3 | Ledger, mandate and balance checks, then a Payouts batch and an in-app receipt showing the pot and the PayPal fee as the ledger booked them; a PENDING item is re-read every 5 s (up to 2 min) until PayPal reports SUCCESS |
 | 11 | Clean Round 4 (no clicks) | Collection and payout with no organizer input |
 
 The web Judge bar drives these steps. They are also an API (the cookie comes from `GET /api/session`):
@@ -71,7 +71,7 @@ not do yet).
 
 | Criterion | Evidence | Where |
 |---|---|---|
-| Technological implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway with token bucket, cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a read-only public MCP | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md) |
+| Technological implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway (calls start in order inside a 40/min budget, up to 6 in flight, so a round's charges and toolkit confirmations overlap) with cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a read-only public MCP | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md) |
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
 | Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
 | Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
@@ -85,7 +85,7 @@ Full table with D1 sandbox results: [docs/api-table.md](docs/api-table.md).
 |---|---|---|
 | Vault v3 | setup token (`RECURRING_PREPAID` + billing plan) → approval → payment token | [`app/paypal/vault.py`](app/paypal/vault.py), [`app/routes/join.py`](app/routes/join.py) |
 | Orders v2 | merchant-initiated `CAPTURE` on `vault_id`; mock `INSTRUMENT_DECLINED` for the injected decline | [`app/paypal/orders.py`](app/paypal/orders.py), [`app/engine/rounds.py`](app/engine/rounds.py) |
-| Payouts v1 | batch create, batch and item status, item cancel; re-route as batch `r{rev+1}` | [`app/paypal/payouts.py`](app/paypal/payouts.py), [`app/engine/rounds.py`](app/engine/rounds.py) |
+| Payouts v1 | batch create, batch and item status (polled every 5 s for up to 2 min after a payout), item cancel; re-route as batch `r{rev+1}` | [`app/paypal/payouts.py`](app/paypal/payouts.py), [`app/engine/rounds.py`](app/engine/rounds.py) |
 | Reporting | `GET /v1/reporting/balances` with freshness | [`app/paypal/balances.py`](app/paypal/balances.py) |
 | Webhooks | signature verification, event dedupe, reconciliation; registration script | [`app/paypal/webhooks.py`](app/paypal/webhooks.py), [`app/engine/webhooks.py`](app/engine/webhooks.py) |
 | Agent Toolkit | `get_order_details`, `create_invoice`, `send_invoice`, `generate_invoice_qr_code` | [`app/paypal/toolkit_adapter.py`](app/paypal/toolkit_adapter.py), [`app/engine/recovery.py`](app/engine/recovery.py) |
@@ -240,7 +240,7 @@ Tests: `python -m pytest -q` and `ruff check app tests scripts`; web: `cd web &&
 
 **Live sandbox mode** needs your own US sandbox Business app and six US personal accounts: our vault tokens are
 bound to our app. Webhooks need a public https URL (`scripts/register_webhook.py`); without one, payout status is
-polled. `scripts/live_round3.py` runs the whole Round 3 story against the real sandbox and prints one JSON line
+polled (every 5 s for up to 2 min after each payout, then whenever the payout status is read). `scripts/live_round3.py` runs the whole Round 3 story against the real sandbox and prints one JSON line
 per step.
 
 ### Seeding the demo members (`TK_SEED_VAULT_IDS`)

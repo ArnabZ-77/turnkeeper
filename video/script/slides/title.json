@@ -1,0 +1,24 @@
+{
+  "id": "title",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "builds": {
+    "hook": {
+      "scene": "s01-hook",
+      "layout": "statement",
+      "lines": [
+        {"text": "In a savings circle, someone has to be", "weight": 600},
+        {"text": "the bank.", "weight": 800, "reveal_at_word": "bank"},
+        {"text": "the debt collector.", "weight": 800, "reveal_at_word": "collector"},
+        {"text": "the insurer.", "weight": 800, "reveal_at_word": "insurer"}
+      ]
+    },
+    "title": {
+      "scene": "s03-title",
+      "layout": "title",
+      "title": "Turnkeeper",
+      "subtitle": "An AI treasurer for rotating savings circles, on PayPal sandbox rails",
+      "steps": ["consent once", "predict", "recover", "pay out"],
+      "badge": "PayPal sandbox · no real money moves"
+    }
+  }
+}

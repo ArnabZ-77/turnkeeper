@@ -1,0 +1,11 @@
+{
+  "id": "outro",
+  "scene": "s19-outro",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "title": "Turnkeeper",
+  "tagline": "Your circle, kept.",
+  "cta": "Try Judge Mode: 11 steps, one button",
+  "url": "{{DEMO_URL}}",
+  "url_note": "Fill in the hosted URL only once it answers /healthz (PLAN.md lists https://turnkeeper.onrender.com as the planned host). Leave the line out rather than show a dead link.",
+  "small": "PayPal AI Hackathon 2026 · PayPal sandbox · MIT license"
+}

@@ -57,11 +57,13 @@ async def test_find_shortfall_and_rules_proposal(declined, collector, toolkit):
     inbox.add_message(cid, "ravi", inbox.DEFAULT_RAVI_REPLY, lang="hi", direction="in", source="judge")
     out = await recovery.run_rules_recovery(cid, publish=collector)
     assert out["ok"] is True
-    assert out["commitment"]["date"] == "2027-01-01" and out["commitment"]["amount"] == "200.00"
+    # R5: "salary comes on Friday" + ravi's rule "every 2nd Friday" -> the next payday Friday, the date the T-3
+    # forecast names ("next 2027-01-08"), not simply the next Friday (2027-01-01)
+    assert out["commitment"]["date"] == "2027-01-08" and out["commitment"]["amount"] == "200.00"
     proposal = out["proposal"]
     assert [r["type"] for r in proposal["remedies"]] == ["buffer_advance", "repay_by_invoice", "turn_swap"]
     assert proposal["remedies"][2]["params"]["swap_with"] == "tomas"
-    assert proposal["remedies"][1]["params"]["due_date"] == "2027-01-01"
+    assert proposal["remedies"][1]["params"]["due_date"] == "2027-01-08"
     vote = out["vote"]
     assert (
         vote["status"] == "voting"
@@ -142,7 +144,7 @@ async def test_full_recovery_flow(declined, collector, toolkit, paypal, monkeypa
     assert toolkit.calls[1][1] == {
         "invoice_id": FAKE_INVOICE_ID,
         "send_to_recipient": True,
-        "note": "Invoice due Fri 2027-01-01",
+        "note": "Invoice due Fri 2027-01-08",
     }
     inv = board["recovery"]["invoice"]
     assert inv["id"] == FAKE_INVOICE_ID and inv["status"] == "SENT" and inv["qr"].endswith("/recovery/qr")
@@ -178,7 +180,7 @@ async def test_full_recovery_flow(declined, collector, toolkit, paypal, monkeypa
     assert dup["duplicate"] is True and len(_ledger(cid, "advance_repaid")) == 1
 
     history = state.member_history(cid, "ravi")
-    assert history["commitments"][0]["date"] == "2027-01-01"
+    assert history["commitments"][0]["date"] == "2027-01-08"
     assert any(inbox.DEFAULT_RAVI_REPLY in r["text"] for r in history["replies"])
 
 
@@ -259,6 +261,35 @@ def test_parse_payday():
     assert inbox.parse_payday("pay $5000 on 2027-01-05 please", today=today) == date(2027, 1, 5)
     assert inbox.parse_payday("tomorrow", today=today) == date(2026, 12, 30)
     assert inbox.parse_payday("sorry", today=today) is None
+
+
+def test_parse_payday_follows_the_payday_rule():
+    """R5 (live run 2026-10-25): the commitment and the T-3 forecast read the payday rule the same way."""
+    from datetime import date, timedelta
+
+    from app.agent import forecast as fc
+
+    today = date(2026, 12, 29)
+    rule = "every 2nd Friday"  # ravi's rule in the demo fixture
+    when = inbox.parse_payday(inbox.DEFAULT_RAVI_REPLY, today=today, payday_rule=rule)
+    assert when == date(2027, 1, 8)
+    # the forecaster's "next payday" for the round 3 due date (2027-01-01) is the same day
+    due = date(2027, 1, 1)
+    spec = fc.parse_payday_rule(rule)
+    assert fc.paydays_between(spec, due + timedelta(days=1), due + timedelta(days=45))[0] == when
+    # a weekday the rule never falls on keeps the plain reading; so does a rule-less member
+    assert inbox.parse_payday("Monday", today=today, payday_rule=rule) == date(2027, 1, 4)
+    assert inbox.parse_payday(inbox.DEFAULT_RAVI_REPLY, today=today, payday_rule=None) == date(2027, 1, 1)
+    # a weekly Friday payday is just the next Friday
+    assert inbox.parse_payday("Friday", today=today, payday_rule="every Friday") == date(2027, 1, 1)
+    # "when my salary comes" with no day named -> the next payday under the rule
+    assert inbox.parse_payday("will pay when salary comes", today=today, payday_rule="15th and 30th") == date(
+        2026, 12, 30
+    )
+    assert inbox.parse_payday("सैलरी आने पर भर दूंगा", today=today, payday_rule=rule) == date(2027, 1, 8)
+    assert inbox.parse_payday("will pay when salary comes", today=today) is None
+    # an explicit ISO date always wins
+    assert inbox.parse_payday("2027-01-05 Friday", today=today, payday_rule=rule) == date(2027, 1, 5)
 
 
 async def test_simulated_invoice_paid_without_an_invoice_is_refused(vaulted_circle, collector):

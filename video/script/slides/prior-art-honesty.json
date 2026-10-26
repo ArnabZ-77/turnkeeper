@@ -1,0 +1,29 @@
+{
+  "id": "prior-art-honesty",
+  "scene": "s18-prior-art-honesty",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "builds": {
+    "prior-art": {
+      "reveal_with_line": "L21",
+      "title": "Prior art",
+      "rows": [
+        {"name": "PayPal money pooling", "what": "collects for one group purchase", "source": "PayPal newsroom, 14 Nov 2024"},
+        {"name": "Lending-circle nonprofits (MAF)", "what": "formal circles, run by a nonprofit", "source": "missionassetfund.org"},
+        {"name": "ROSCA apps (MoneyFellows)", "what": "the circle as an app, on its own rails", "source": "TechCrunch, 2025"}
+      ],
+      "punchline": "Turnkeeper is the pool that rotates: consent once, collect every round, recover shortfalls, pay a different member each time.",
+      "logo_rule": "Names as text only; no third-party logos or screenshots."
+    },
+    "honesty": {
+      "reveal_with_line": "L22",
+      "title": "What we do not claim",
+      "items": [
+        {"text": "Sandbox only: the app refuses any PAYPAL_ENV other than sandbox", "reveal_at_word": "sandbox"},
+        {"text": "Fees shown before consent: 3.49% + $0.49 per charge (≈ $7.47 per $200), $0.25 per payout", "reveal_at_word": "Fees"},
+        {"text": "Buffer optional: organizer-funded, disclosed, used only through a voted remedy", "reveal_at_word": "buffer"},
+        {"text": "No credit claims: nothing is reported to credit bureaus", "reveal_at_word": "credit"}
+      ],
+      "footnote": "Production would need PayPal's Payouts approval. PayPal wallet only; Venmo cut."
+    }
+  }
+}

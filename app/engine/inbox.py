@@ -56,8 +56,32 @@ def _tokens(text: str) -> list[str]:
     return [t for t in re.split(r"[\s,.;:!?।()\"']+", text.lower()) if t]
 
 
-def parse_payday(text: str, *, today: date) -> date | None:
-    """The date a reply names: an ISO date, "tomorrow", or the next weekday it mentions (after ``today``)."""
+_SALARY_WORDS = (
+    "salary", "payday", "paycheck", "paycheque", "pay day", "wages",
+    "सैलरी", "तनख्वाह", "तनख़्वाह", "वेतन", "tankhwah", "tankhwa",
+)  # fmt: skip
+PAYDAY_LOOKAHEAD_DAYS = 45  # same window as the forecaster's "next payday" (app/agent/forecast.py)
+
+
+def rule_paydays(payday_rule: str | None, start: date, end: date) -> list[date]:
+    """Paydays in [start, end] under a member's payday rule, read by the forecaster's own parser, so a commitment
+    and the T-3 forecast ("next 2027-01-08") always name the same day. Empty for no rule or an unreadable or
+    unanchored one ("every other Friday")."""
+    if not payday_rule:
+        return []
+    from app.agent import forecast as fc  # lazy: the agent package imports the engine
+
+    spec = fc.parse_payday_rule(payday_rule)
+    return fc.paydays_between(spec, start, end) if spec is not None else []
+
+
+def parse_payday(text: str, *, today: date, payday_rule: str | None = None) -> date | None:
+    """The date a reply names: an ISO date, "tomorrow", or the next weekday it mentions (after ``today``).
+
+    With the member's ``payday_rule`` (live run 2026-10-25, R5): "salary comes on Friday" from a member paid
+    "every 2nd Friday" means the next Friday that IS a payday under the rule (the date the forecast showed), not
+    simply the next Friday; and a reply that only says "when my salary comes" means the next payday. A weekday
+    the rule never falls on keeps the plain next-weekday reading. Without a rule the reading is unchanged."""
     if not text:
         return None
     m = _ISO_DATE.search(text)
@@ -69,12 +93,21 @@ def parse_payday(text: str, *, today: date) -> date | None:
         if when is not None and when >= today:
             return when
     tokens = _tokens(text)
+    window = (today + timedelta(days=1), today + timedelta(days=PAYDAY_LOOKAHEAD_DAYS))
     for weekday, words in _WEEKDAYS.items():
         if any(w in tokens for w in words) or any(w in text for w in words if not w.isascii()):
+            on_rule = [d for d in rule_paydays(payday_rule, *window) if d.weekday() == weekday]
+            if on_rule:
+                return on_rule[0]
             days = (weekday - today.weekday()) % 7 or 7
             return today + timedelta(days=days)
     if any(w in tokens for w in _TOMORROW):
         return today + timedelta(days=1)
+    low = text.lower()
+    if payday_rule and any(w in low for w in _SALARY_WORDS):
+        upcoming = rule_paydays(payday_rule, *window)
+        if upcoming:
+            return upcoming[0]
     return None
 
 

@@ -1,0 +1,27 @@
+# Fixed split for prompt work on the live-model eval (2026-10-26).
+# Tune the remedy prompt on `tuning` only; score `heldout` once, at the end, before vs after.
+# Each half covers the same situations: a full default set (swap + advance + invoice), a refused or impossible
+# swap, an empty or blocked buffer (retry), an injection, Hindi / romanized / mixed-script paydays, a reply with
+# no usable day.
+tuning:
+  - s01-payday-friday-hi
+  - s03-no-reply
+  - s04-angry-reply
+  - s05-injection-advance
+  - s07-empty-buffer
+  - s09-swap-target-refuses
+  - s10-romanized-hindi
+  - s12-pay-tomorrow
+  - s14-small-buffer
+  - s15-short-member-last
+  - s17-payer-action-empty-buffer
+  - s18-recipient-is-short
+heldout:
+  - s02-payday-friday-en
+  - s06-injection-amount-hi
+  - s08-second-advance
+  - s11-mixed-script
+  - s13-iso-date
+  - s16-menu-without-swap
+  - s19-next-week-vague
+  - s20-swap-breaks-collateral

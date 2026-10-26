@@ -243,3 +243,112 @@ async def test_unparseable_replay_is_labelled_replay(scenarios):
     sc = scenarios[0]
     charter = ev.build_charter(sc)
     assert ev.parse_live("no json", sc, charter, mode="replay").mode == "replay"
+
+
+# --- v2 prompt: the guide + computed facts (offline, fake model only) ----------------------------------------
+
+
+def _facts_of(prompt):
+    start = prompt.index("{")
+    end = prompt.index("\nLatest reply:")
+    return json.loads(prompt[start:end])
+
+
+def _follow_guide(facts, commitment_date):
+    """A literal reading of app/agent/prompts/remedies.md applied to the facts the prompt carries."""
+    menu = facts["remedy_menu"]
+    due = commitment_date or facts["default_due_date"]
+    remedies = []
+    if facts["buffer_advance"]["allowed"]:
+        remedies.append({"type": "buffer_advance", "amount": facts["buffer_advance"]["max_amount"]})
+        if "repay_by_invoice" in menu:
+            remedies.append({"type": "repay_by_invoice", "amount": facts["contribution"], "due_date": due})
+    elif facts["retry_on_date"]["allowed"]:
+        remedies.append(
+            {"type": "retry_on_date", "due_date": max(due, facts["retry_on_date"]["earliest_date"])}
+        )
+    if remedies and facts["turn_swap"]["legal_partners"]:
+        remedies.append({"type": "turn_swap", "swap_with": facts["turn_swap"]["legal_partners"][0]})
+    for r in remedies:
+        r["reason"] = "guide"
+    commitment = {"amount": facts["contribution"], "date": commitment_date} if commitment_date else None
+    return json.dumps({"commitment": commitment, "remedies": remedies})
+
+
+async def test_following_the_guide_matches_every_label(scenarios):
+    """The guide plus the computed facts are enough to reach every preferred_top label (incl. s17 = none):
+    the labels and the stated preference order agree, and nothing a literal reader proposes is illegal."""
+    by_prompt = {}
+    for sc in scenarios:
+        charter = ev.build_charter(sc)
+        exp = ev.expected_commitment(sc, charter)
+        prompt = ev.live_prompt(sc, charter, ev.build_state(sc, charter), 1)
+        by_prompt[prompt] = exp[1].isoformat() if exp else None
+    assert len(by_prompt) == len(scenarios)  # every scenario's prompt is distinct
+
+    async def call(system, prompt, live_allowed=True):
+        assert system == ev.live_system("v2")
+        return _follow_guide(_facts_of(prompt), by_prompt[prompt]), "live"
+
+    res = await ev.run_eval(provider="live", runs=1, max_calls=40, scenarios=scenarios, live_call=call)
+    assert res["preferred_top_agreement"] == 1.0, [
+        (s["id"], s["modal_top"], s["preferred_top"])
+        for s in res["scenario_results"]
+        if s["agreement"] != 1.0
+    ]
+    assert res["charter_legal_before_policy_rate"] == 1.0 and res["executed_illegal"] == 0
+    assert res["commitment_exact_match"] == 1.0 and res["must_not_proposed"] == 0
+    assert res["prompt_version"] == "v2"
+
+
+def test_v1_prompt_is_frozen_for_replay():
+    """The 2026-10-24 recordings replay only while the v1 system prompt stays byte-identical."""
+    import hashlib
+
+    digest = hashlib.sha256(ev.LIVE_SYSTEM_V1.encode()).hexdigest()
+    assert digest == "ce72cfaa1d93c070a3210bf86f679da2d50e6742feeb84fa5e36d2ba3f38d802"
+    assert ev.live_system("v1") == ev.LIVE_SYSTEM_V1 and ev.LIVE_SYSTEM == ev.live_system("v2")
+
+
+def test_v2_prompt_carries_the_computed_facts(scenarios):
+    sc = by_id(scenarios, "s20-swap-breaks-collateral")
+    charter = ev.build_charter(sc)
+    prompt = ev.live_prompt(sc, charter, ev.build_state(sc, charter), 1)
+    facts = _facts_of(prompt)
+    assert facts["turn_swap"]["legal_partners"] == [] and "collateral" in facts["turn_swap"]["why_none"]
+    assert facts["buffer_advance"]["max_amount"] == "192.53" and facts["run"] == 1
+    assert "<member_reply" in prompt and "shukravar" in prompt
+
+
+def test_splits_are_disjoint_and_cover_every_scenario(scenarios):
+    tuning = ev.select_split(scenarios, "tuning")
+    heldout = ev.select_split(scenarios, "heldout")
+    assert len(tuning) == 12 and len(heldout) == 8
+    ids_t, ids_h = {s["id"] for s in tuning}, {s["id"] for s in heldout}
+    assert not ids_t & ids_h and ids_t | ids_h == {s["id"] for s in scenarios}
+    assert ev.select_split(scenarios, "all") == scenarios
+    with pytest.raises(ValueError):
+        ev.select_split(scenarios, "nope")
+
+
+async def test_rules_fallback_rows_are_not_scored_as_the_model(scenarios):
+    """A run with no model answer is labelled rules, shown, and left out of the live metrics."""
+    answers = [(None, "rules"), (GOOD, "live")]
+
+    async def call(system, prompt, live_allowed=True):
+        return answers.pop(0) if answers else (GOOD, "live")
+
+    res = await ev.run_eval(
+        provider="live", runs=2, max_calls=5, scenarios=[by_id(scenarios, "s09-swap-target-refuses")],
+        live_call=call,
+    )  # fmt: skip
+    assert res["runs_completed"] == 2 and res["runs_scored"] == 1 and res["rules_fallback_runs"] == 1
+    # the rules fallback would agree with the label here; the model's GOOD (with a refused swap) does not
+    assert res["preferred_top_agreement"] == 0.0 and res["modes"] == {"rules": 1, "live": 1}
+
+
+def test_null_commitment_date_has_its_own_reason(scenarios):
+    sc = by_id(scenarios, "s01-payday-friday-hi")
+    text = json.dumps({"commitment": {"amount": "200.00", "date": None}, "remedies": []})
+    proposal = ev.parse_live(text, sc, ev.build_charter(sc))
+    assert proposal.commitment is None and "no date" in proposal.commitment_rejected

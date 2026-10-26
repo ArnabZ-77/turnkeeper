@@ -57,7 +57,17 @@ async def test_collect_round_with_mocked_ravi_decline(vaulted_circle, paypal, co
     assert row["ravi"]["label"] == MOCK_DECLINE_LABEL and row["ravi"]["decline_code"] == "INSTRUMENT_DECLINED"
     assert row["asha"]["status"] == "COMPLETED" and row["asha"]["webhook_verified"] is False
     chips = collector.chips()
-    assert [c["member"] for c in chips] == MEMBERS
+    # charges start in charter order; each captured member then gets its toolkit confirmation chip
+    first_seen = list(dict.fromkeys(c["member"] for c in chips))
+    assert first_seen == MEMBERS
+    for h in MEMBERS:
+        labels = [c["label"] for c in collector.chips(h)]
+        if h == "ravi":
+            assert labels == [MOCK_DECLINE_LABEL]
+        else:
+            assert labels == ["Captured", "Confirmed via toolkit"], (h, labels)
+            assert by[h]["confirmed"] is True and by[h]["label"] == "Confirmed via toolkit"
+    assert "confirmed" not in by["ravi"]
     ravi_chip = collector.chips("ravi")[0]
     assert ravi_chip["status"] == "DECLINED" and ravi_chip["label"] == MOCK_DECLINE_LABEL
     assert {"round_n", "member", "status", "order_id", "capture_id", "label", "decline_code"} <= set(
@@ -169,15 +179,25 @@ async def test_non_decline_paypal_error_keeps_pending(vaulted_circle, paypal_fac
 async def test_confirm_capture_via_toolkit(vaulted_circle, paypal, collector):
     state.set_flag(vaulted_circle, "ravi_declines", False)
     await rounds.collect_round(vaulted_circle, 3, publish=collector)
+    # collect_round confirmed every capture once through the toolkit (R4: charge -> confirm per member)
+    assert [m for m, _ in paypal.toolkit.calls] == ["get_order_details"] * 6
+    asha_order = rounds._load_contribution(vaulted_circle, 3, "asha").order_id
+    assert {"order_id": asha_order} in [p for _, p in paypal.toolkit.calls]
+    # the treasurer's own get_order_details step answers from that confirmation: no second PayPal call
     res = await rounds.confirm_capture(vaulted_circle, 3, "asha", publish=collector)
     assert res["ok"] is True and res["confirmed"] is True and res["capture_status"] == "COMPLETED"
-    assert paypal.toolkit.prepared == 1
-    assert paypal.toolkit.calls[-1][0] == "get_order_details"
-    assert paypal.toolkit.calls[-1][1]["order_id"] == res["order_id"]
+    assert res["cached"] is True and res["order_id"] == asha_order
+    assert len(paypal.toolkit.calls) == 6
     assert collector.chips("asha")[-1]["label"] == "Confirmed via toolkit"
+    # without that confirmation (e.g. after a restart) the toolkit is asked again
+    rounds._CONFIRMED.clear()
+    fresh = await rounds.confirm_capture(vaulted_circle, 3, "asha", publish=collector)
+    assert fresh["confirmed"] is True and "cached" not in fresh
+    assert paypal.toolkit.calls[-1] == ("get_order_details", {"order_id": asha_order})
+    assert paypal.toolkit.prepared == 7
     # replayed rounds never hit PayPal
     replay = await rounds.confirm_capture(vaulted_circle, 1, "asha", publish=collector)
-    assert replay["ok"] and replay["replay"] is True and len(paypal.toolkit.calls) == 1
+    assert replay["ok"] and replay["replay"] is True and len(paypal.toolkit.calls) == 7
     # nothing to confirm for a pending member
     none = await rounds.confirm_capture(vaulted_circle, 4, "asha", publish=collector)
     assert none["ok"] is False and none["error"] == "NO_ORDER"
@@ -201,6 +221,7 @@ async def test_available_balance_sources(vaulted_circle, paypal_factory):
             "stale": None,
             "age_s": None,
         },
+        "paypal_balance_label": "123.45 USD (refresh time unknown)",
     }
     paypal_factory(balances_error=True)
     res = await rounds.available_balance(vaulted_circle)
@@ -241,6 +262,7 @@ async def test_pay_round_success(vaulted_circle, paypal, collector):
         "item_id": "FAKEITEM001",
         "status": "SUCCESS",
         "amount": str(pot),
+        "fee": "0.25",  # the fee the ledger booked for this item
     }
     assert Decimal(board["circle"]["circle_available"]) == NET * 6 - pot - Decimal("0.25")
     assert board["counters"]["rounds_paid_on_time"] == 3

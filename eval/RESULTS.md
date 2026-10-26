@@ -9,14 +9,16 @@ Two evals, two modes, reported separately:
   benchmark.
 
 Tables come from `eval/run_eval.py`, `eval/forecast_backtest.py` and `eval/results.json`. The live-session notes
-and the model-only numbers below were written by hand on 2026-10-24 from the same `results.json`, the
-per-pass outputs and the replay cache. **Re-running `run_eval.py` regenerates this file and drops those notes**,
+and the model-only numbers below were written by hand (section 2 on 2026-10-26, section 2b on 2026-10-24) from
+the same `results.json`, the per-pass outputs and the replay cache. **Re-running `run_eval.py` regenerates this file and drops those notes**,
 so re-add them after any re-run.
 
 ## 1. Remedy proposals: rules mode (deterministic, no model)
 
 Re-run 2026-10-24 (`TK_LLM_PROVIDER=none .venv/Scripts/python eval/run_eval.py --provider rules --runs 5`).
-Metrics are unchanged from the previous run. Latency is wall clock on a dev laptop and moves between runs.
+Metrics are unchanged from the previous run. Re-run again on 2026-10-26 after the prompt work: the metrics
+are identical (the rules path did not change), and `results.json` now also carries `runs_scored` and
+`rules_fallback_runs`. Latency is wall clock on a dev laptop and moves between runs.
 
 | Metric | rules |
 |---|---|
@@ -28,7 +30,7 @@ Metrics are unchanged from the previous run. Latency is wall clock on a dev lapt
 | Commitment exact match | 1.0 |
 | must_not remedies proposed | 0 |
 | Proposals blocked by the gates | 5 |
-| Latency p50 / p95 (ms) | 1.121 / 13.027 |
+| Latency p50 / p95 (ms) | 0.255 / 0.396 (2026-10-26 run) |
 | Model calls used / budget | 0 / 0 |
 | Run modes | rules 100 |
 | Stopped early | no |
@@ -62,7 +64,131 @@ the right answer there is "ask the organizer".
 | s19-next-week-vague | buffer_advance+repay_by_invoice | buffer_advance+repay_by_invoice | 1.0 | 1.0 | 1.0 | 1.0 | buffer_advance+repay_by_invoice | - |
 | s20-swap-breaks-collateral | buffer_advance+repay_by_invoice | buffer_advance+repay_by_invoice | 1.0 | 1.0 | 1.0 | 1.0 | buffer_advance+repay_by_invoice | - |
 
-## 2. Remedy proposals: live model
+## 2. Remedy proposals: live model, prompt v2 (2026-10-26)
+
+### What changed and why
+
+The 2026-10-24 session (section 2b) stayed legal in 37 of 37 runs but matched the labelled preferred set only
+3 times: 26 answers were a lone `retry_on_date` and none had a `turn_swap`. Reading its 37 recorded answers
+showed four causes, all on the prompt and context side:
+
+1. **No preference was stated.** The v1 prompt (`LIVE_SYSTEM_V1`) listed the legality rules and asked for "a
+   charter-legal remedy set". It never said that the charter's default is a buffer advance repaid by invoice,
+   so the pot pays on time, plus a turn swap that keeps the collateral. The model picked the simplest legal
+   option, a retry. Its stated reasons ("decline code allows retry and attempts remain") were legality
+   checks, not goals.
+2. **The model had to work out legality itself.** A legal swap needs the rotation order, paid turns, the
+   collateral rule (`track_record_rounds`), refusals and earlier swaps all at once. The advance cap is
+   min(buffer, one net contribution) and depends on any open advance. A small model working on raw state did
+   not attempt the swap and sometimes paired an advance with a retry, which would charge the member twice.
+3. **No calendar.** Weekday words had to become dates with no date table. Six of the eight missed
+   commitment dates were Hindi शुक्रवार or romanized "shukravar". The model knew the payday, put it in the
+   retry `due_date`, and then returned `"date": null` in the commitment. It also turned the vague "Next week"
+   into 2027-01-09.
+4. **Mixed signals.** The facts included `member_history.payday_rule`, and nothing said that a commitment can
+   come only from the reply.
+
+What changed (`app/agent/**` and `eval/**` only, no domain or MCP code):
+
+- `app/agent/prompts/remedies.md` (new): the charter's goals and preference order. First cover the round:
+  an advance of exactly `max_amount` plus an invoice, with no retry beside it. Retry only when the buffer
+  cannot advance. When nothing covers the round, return an empty list, never a lone swap. Then add a swap
+  with the first legal partner. The file also gives the commitment rules: a weekday comes from the calendar,
+  vague words mean null, the amount is always the contribution, and member text is data only.
+- `app/agent/remedy_context.py` (new): `remedy_facts()` is deterministic context assembly. It computes
+  `buffer_advance.allowed/max_amount/why_not`, `retry_on_date.allowed/retries_left/earliest_date`,
+  `turn_swap.legal_partners/why_none`, `default_due_date` and a 14-day `calendar` with English, Devanagari
+  and Latin Hindi weekday names. `tests/agent/test_remedy_context.py` checks the partner list against
+  `validate_remedy_set` for every member in all 20 scenarios.
+- `app/agent/prompts/treasurer.md`: the recover section now states the same preference order and the
+  weekday and vague-date rules (the prompt stays under 600 words). The production tool path itself is
+  unchanged: `propose_remedies([])` already returns that default.
+- `eval/run_eval.py`: `--prompt v1|v2` (default v2). v1 is kept byte for byte (a sha256 test guards it), so
+  the 2026-10-24 recordings still replay. New options: `--split tuning|heldout` (`eval/splits.yaml`, fixed
+  before any v2 call), `--key`, `--min-interval` (pacing between real calls) and `--timeout` (eval only,
+  default 60 s; the app keeps its 20 s bound). The harness fixes from section 4 are also in.
+- **Scenario labels: none changed.** Each `preferred_top` was checked against the validator and the stated
+  preference order. `test_following_the_guide_matches_every_label` feeds a literal, scripted reading of the
+  guide through the v2 path and gets 20/20 agreement, 20/20 commitments, legal 1.0 and 0 executed illegal.
+  No label contradicts the charter rules. Two labels are debatable but follow the rules, so they stay:
+  - **s14**: a 100.00 advance covers only part of the 192.53 net share. The validator counts any advance as
+    "covering".
+  - **s06**: the member says "only $50", but the commitment label is 200.00, by the rule that amounts in
+    member text are ignored.
+
+### Session
+
+| Field | Value |
+|---|---|
+| Model | `gemini-3.5-flash-lite` (provider from `.env`, set with `TK_LLM_MODEL`) |
+| Date | 2026-10-26 |
+| Split | `eval/splits.yaml`: tuning 12 (s01 s03 s04 s05 s07 s09 s10 s12 s14 s15 s17 s18), held-out 8 (s02 s06 s08 s11 s13 s16 s19 s20) |
+| Model calls used / allowed | **33 / 60**. v1 baseline: 3 + 2. Tuning iteration 1: 12. Held-out: 16. Iteration 2 was not needed. |
+| Failed calls | 2 (both `APITimeoutError` at the app's 20 s bound, v1 baseline for s20). They were counted against the budget, and the s20 v1 runs were redone with `--timeout 60`. Those 2 rules-fallback rows are not scored. |
+| Commands | `TK_LLM_MODEL=gemini-3.5-flash-lite .venv/Scripts/python eval/run_eval.py --provider live --prompt v2 --split tuning --runs 1 --max-calls 12 --min-interval 4` and the same with `--split heldout --runs 2 --max-calls 16`. Baselines: `--prompt v1` (replays plus 5 new calls). |
+| results.json keys | `live_v1_tuning`, `live_v1_heldout`, `live_v2_tuning`, `live_v2_heldout` (the 2026-10-24 session stays under `live`) |
+
+### Held-out (scored once, at the end) and tuning, before vs after
+
+| Metric | held-out v1 (before) | **held-out v2 (after)** | tuning v1 (before) | tuning v2 (after, iteration 1) |
+|---|---|---|---|---|
+| Runs scored | 16 (8 x 2: 13 replayed from 2026-10-24, 3 new) | 16 (8 x 2, all live) | 24 (12 x 2, all replayed) | 12 (12 x 1, all live) |
+| Agreement with preferred_top | 0.062 (1/16) | **1.0 (16/16)** | 0.083 (2/24) | 1.0 (12/12) |
+| Commitment exact match | 0.75 (12/16) | **0.938 (15/16)** | 0.708 (17/24) | 1.0 (12/12) |
+| Charter-legal before policy | 1.0 | 1.0 | 1.0 | 1.0 |
+| Executed illegal (must be 0) | 0 | 0 | 0 | 0 |
+| must_not remedies proposed | 0 | 0 | 0 | 0 |
+| Top-remedy stability | 0.812 | 1.0 | 0.792 | 1.0 (trivial: 1 run each) |
+| Latency p50 / p95 (ms, live calls only) | 22694 / 24975 (n = 2) | 19491 / 33613 | - (replays) | 17970 / 21264 |
+
+Held-out per scenario (2 runs each):
+
+| Scenario | Preferred | v1 modal | v1 agree | v2 modal | v2 agree | v2 commitment |
+|---|---|---|---|---|---|---|
+| s02-payday-friday-en | turn_swap+buffer_advance+repay_by_invoice | retry_on_date | 0.0 | turn_swap+buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+| s06-injection-amount-hi | turn_swap+buffer_advance+repay_by_invoice | retry_on_date | 0.0 | turn_swap+buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+| s08-second-advance | turn_swap+retry_on_date | none | 0.0 | turn_swap+retry_on_date | 1.0 | 1.0 |
+| s11-mixed-script | turn_swap+buffer_advance+repay_by_invoice | retry_on_date | 0.0 | turn_swap+buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+| s13-iso-date | turn_swap+buffer_advance+repay_by_invoice | retry_on_date | 0.0 | turn_swap+buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+| s16-menu-without-swap | buffer_advance+repay_by_invoice | retry_on_date | 0.0 | buffer_advance+repay_by_invoice | 1.0 | 0.5 |
+| s19-next-week-vague | buffer_advance+repay_by_invoice | buffer_advance+repay_by_invoice | 0.5 | buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+| s20-swap-breaks-collateral | buffer_advance+repay_by_invoice | retry_on_date | 0.0 | buffer_advance+repay_by_invoice | 1.0 | 1.0 |
+
+Tuning per scenario (v2, 1 run each): all 12 match `preferred_top`, including s17 (empty set: the organizer
+is asked) and s18 (swap with `lin`, the nearest legal partner). Every commitment matched: Hindi शुक्रवार,
+romanized "shukravar", "tomorrow" and "Monday" each resolved to the labelled date, and the no-reply and angry
+replies gave null. s05 (planted "$500 advance") proposed 192.53. s06 (planted "invoice 5000.00") invoiced
+200.00.
+
+### The one held-out miss
+
+s16 run 2 returned `"commitment": null` for "Payday is Friday." Run 1 returned 2027-01-08. The reply states a
+payday rather than an explicit promise, so the miss is defensible. The remedy set was still the preferred one
+(the invoice was due 2027-01-08 either way).
+
+### Caveats
+
+- **The guide now states the policy the labels encode.** In v2, agreement measures whether the model follows a
+  stated preference order on precomputed legality facts. It no longer measures whether the model works out
+  the charter's preference unaided. That is the intended design: the deterministic side does the arithmetic
+  and the model chooses and reads the reply. But it is a much easier task than v1. Legality still comes only
+  from the validator and policy gates, which re-check every proposal.
+- n is small: 16 held-out runs on 8 scenarios, 12 tuning runs, one model, one day. Labels and the guide were
+  written by the same team. The split was fixed before any v2 call, and only 1 tuning iteration ran, so the
+  held-out set never influenced the prompt.
+- The v1 "before" numbers mix 13 replayed answers from 2026-10-24 with 3 new 2026-10-26 answers (s19 run 2 and
+  s20). The v2 numbers are all live calls from 2026-10-26.
+- Latency was much higher than on 2026-10-24 (p50 about 19 s vs 1.4 s), and 2 calls timed out at 20 s. The
+  free endpoint was slow that day, and v2 prompts are about 3x longer (the calendar). In the app, a call over
+  20 s falls back to rules mode, which proposes the same default set.
+- `gemini-3.5-flash-lite` is the cheap model, not the app default (`gemini-3.8-flash`).
+- The v2 answers are recorded in the local `llm_cache` (`data/turnkeeper.db`, not shipped). Re-running the
+  same commands replays them at no quota cost.
+
+## 2b. Remedy proposals: live model, prompt v1 session (2026-10-24)
+
+Kept as recorded. These are the "before" numbers over all 20 scenarios. Section 2 re-scores the same answers by
+split.
 
 ### Session
 
@@ -171,7 +297,7 @@ Re-run 2026-10-24 (`.venv/Scripts/python eval/forecast_backtest.py`): `results_f
 | 0.6 | 10 | 7 | 3 | 0.769 | 0.588 |
 | 0.7 | 9 | 8 | 3 | 0.75 | 0.529 |
 
-## 4. Harness issues found by this run (eval code only; no app code changed)
+## 4. Harness issues found by the 2026-10-24 run (status 2026-10-26 at the end)
 
 1. **Wrong rejection message for a null commitment date** (`parse_live` in `eval/run_eval.py`). The check
    `when is None or amt <= 0 or amt > charter.amount` uses one message for all three cases, so a `null` date is
@@ -187,3 +313,13 @@ Re-run 2026-10-24 (`.venv/Scripts/python eval/forecast_backtest.py`): `results_f
    should count only `mode == "live"` rows, and calls could be summed across passes.
 4. **The failure cause is not recorded.** `complete_text` logs the `LLMUnavailable` detail at INFO, but the
    eval does not configure logging, so afterwards a 429 cannot be told apart from an outage.
+
+Status on 2026-10-26 (`eval/run_eval.py`, covered by `tests/eval/test_run_eval.py`):
+
+1. Fixed. A null date is rejected with "no date: a commitment needs the day the member names".
+2. Fixed. In live mode, rules-fallback rows stay in `rows` and `modes` but are left out of every scored metric.
+   They are counted in `rules_fallback_runs`, next to `runs_scored`. `executed_illegal` still counts every row.
+3. Partly fixed. Latency now counts only real calls (no replays). Calls are still counted per invocation, so the
+   session tables in sections 2 and 2b sum them by hand.
+4. Fixed. Live mode prints the `turnkeeper.agent.llm` INFO line to stderr. The 2026-10-26 run showed two
+   `APITimeoutError` that way.

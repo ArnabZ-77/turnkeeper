@@ -92,6 +92,24 @@ def _name(circle_id: str, handle: str) -> str:
 _STATUS_WORDS = {"DECLINED": "declined", "COMPLETED": "paid", "PENDING": "not charged yet"}
 
 
+def _balance_note(circle_id: str) -> str:
+    """ "; PayPal balance 7885.93 USD (stale: last refreshed ...)" from the last Balances reading, or "" (R3)."""
+    try:
+        currency = state.load_charter(circle_id).currency
+        view = state.paypal_balance_view(currency)
+        label = rounds.balance_label(
+            {
+                "available": view.get("value"),
+                "last_refresh_time": view.get("last_refreshed"),
+                "stale": view.get("stale"),
+            },
+            currency,
+        )
+    except Exception:  # noqa: BLE001 - wording only
+        return ""
+    return f"; PayPal balance {label}, context only (the circle ledger is the payout gate)" if label else ""
+
+
 def _check(step: str, circle_id: str) -> tuple[bool, str]:
     if step == "run_round3":
         st = _round_statuses(circle_id, DEMO_ROUND)
@@ -100,7 +118,8 @@ def _check(step: str, circle_id: str) -> tuple[bool, str]:
         done = sum(1 for s in st.values() if s == "COMPLETED")
         ravi = st.get(DEMO_MEMBER)
         how = _STATUS_WORDS.get(str(ravi), str(ravi).lower() if ravi else "not charged")
-        return ok, f"Round {DEMO_ROUND}: {done} of {len(st)} paid, {_name(circle_id, DEMO_MEMBER)} {how}"
+        summary = f"Round {DEMO_ROUND}: {done} of {len(st)} paid, {_name(circle_id, DEMO_MEMBER)} {how}"
+        return ok, summary + _balance_note(circle_id)
     if step == "start_recovery":
         row = recovery.latest_set(circle_id)
         ok = row is not None and row.status in ("voting", "approved")
@@ -115,7 +134,15 @@ def _check(step: str, circle_id: str) -> tuple[bool, str]:
         paid = rnd.status if rnd else "?"
         paid_n = sum(1 for s in st.values() if s == "COMPLETED")
         pot = paid.lower() if paid != "?" else "unknown"
-        return ok, f"Round {CLEAN_ROUND}: {paid_n} of {len(st)} paid; round {pot}"
+        summary = f"Round {CLEAN_ROUND}: {paid_n} of {len(st)} paid; round {pot}"
+        if rnd is not None and rnd.payout_amount and rnd.payout_status:
+            fee = rounds.booked_payout_fee(circle_id, CLEAN_ROUND, rnd.payout_item_id)
+            fee_text = f" (PayPal fee {lb.fmt_money(fee)})" if fee else ""
+            summary += (
+                f"; pot {lb.fmt_money(rnd.payout_amount)} to {_name(circle_id, rnd.recipient_handle)}"
+                f"{fee_text}: {rnd.payout_status.lower()}"
+            )
+        return ok, summary
     return True, step
 
 
@@ -350,10 +377,20 @@ async def _step_payout(sess: Session, request: Request) -> StepOut:
         code = res.get("code") or ("DENIED" if res.get("denied") else res.get("error")) or "PAYOUT_FAILED"
         label = str(res.get("denied") or res.get("label") or res.get("error") or "payout failed")
         raise StepFailed(label, code=str(code), debug_id=res.get("debug_id"))
-    who = _name(cid, str(res.get("recipient") or ""))
-    status = str(res.get("status") or "").lower()
-    summary = f"Pot {lb.fmt_money(res.get('amount'))} paid out to {who}: {status}"
-    return res, None, "live", summary, {"paypal": "live", "ai": None}
+    return res, None, "live", payout_summary(cid, res), {"paypal": "live", "ai": None}
+
+
+def payout_summary(circle_id: str, res: dict[str, Any]) -> str:
+    """ "Pot $1,154.93 sent to Dev Mehta (PayPal fee $0.25): pending; status checked every 5 s" with the amount
+    and fee the ledger booked (R2: a PENDING item is not "paid out" yet)."""
+    who = _name(circle_id, str(res.get("recipient") or ""))
+    status = str(res.get("status") or "").upper()
+    verb = "paid out to" if status == "SUCCESS" else "sent to"
+    fee = f" (PayPal fee {lb.fmt_money(res['fee'])})" if res.get("fee") else ""
+    summary = f"Pot {lb.fmt_money(res.get('amount'))} {verb} {who}{fee}: {status.lower()}"
+    if res.get("watching"):
+        summary += f"; status checked every {rounds.PAYOUT_POLL_INTERVAL_S:g} s"
+    return summary
 
 
 async def _step_clean_round4(sess: Session, request: Request) -> StepOut:

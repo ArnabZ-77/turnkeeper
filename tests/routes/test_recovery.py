@@ -66,7 +66,7 @@ def test_full_recovery_flow_through_routes(client, declined, toolkit, paypal):
     cid, sid = declined["circle_id"], declined["sid"]
 
     r = _judge(client, "reply_as_ravi", cid)
-    assert r.status_code == 200 and r.json()["payday"] == "2027-01-01" and r.json()["message"]["lang"] == "hi"
+    assert r.status_code == 200 and r.json()["payday"] == "2027-01-08" and r.json()["message"]["lang"] == "hi"
 
     r = client.post(f"/api/circles/{cid}/recovery/start", json={})
     assert r.status_code == 202, r.text
@@ -76,7 +76,7 @@ def test_full_recovery_flow_through_routes(client, declined, toolkit, paypal):
     assert done["ok"] is True and done["mode"] == "rules"
 
     view = client.get(f"/api/circles/{cid}/recovery").json()
-    assert view["status"] == "voting" and view["commitment"]["date"] == "2027-01-01"
+    assert view["status"] == "voting" and view["commitment"]["date"] == "2027-01-08"
     assert [r["type"] for r in view["remedies"]] == ["buffer_advance", "repay_by_invoice", "turn_swap"]
     assert view["votes"]["needed"] == 4 and view["consents"]["needed"] == ["ravi", "tomas"]
     assert any(m["direction"] == "in" for m in view["inbox"]) and any(

@@ -46,6 +46,10 @@ class SandboxMock:
         self.order_posts: list[httpx.Request] = []
         self.payouts: list[dict] = []
         self.payout_posts: list[httpx.Request] = []
+        # R2: the next N payout reads (batch or item) answer PENDING with no fee, as the real sandbox does for
+        # ~18 s after a batch is created; then SUCCESS with the 0.25 fee
+        self.pending_item_reads = 0
+        self.item_reads = 0
         self.token_route = router.post("/v1/oauth2/token").mock(
             return_value=httpx.Response(
                 200, json={"access_token": "test-access-token", "token_type": "Bearer", "expires_in": 32400}
@@ -162,6 +166,15 @@ class SandboxMock:
         )
 
     def _item_json(self, rec: dict) -> dict:
+        self.item_reads += 1
+        if self.pending_item_reads > 0:
+            self.pending_item_reads -= 1
+            return {
+                "payout_item_id": rec["item_id"],
+                "transaction_status": "PENDING",
+                "payout_batch_id": rec["batch_id"],
+                "payout_item": rec["item"],
+            }
         return {
             "payout_item_id": rec["item_id"],
             "transaction_id": f"TXN-{rec['item_id']}",

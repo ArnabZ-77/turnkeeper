@@ -369,7 +369,11 @@ def test_live_story_labels_paypal_and_ai_separately(client, session, toolkit, mo
         _next(client, step)
     steps = _steps(_story(client))
     assert steps["run_round3"]["paypal"] == "live" and steps["run_round3"]["mode"] == "live"
-    assert steps["run_round3"]["summary"] == "Round 3: 5 of 6 paid, Ravi Sharma declined"
+    assert steps["run_round3"]["summary"].startswith("Round 3: 5 of 6 paid, Ravi Sharma declined")
+    # R3: the Balances reading is shown with its refresh state instead of "n/a"
+    assert (
+        "; PayPal balance 5000.00 USD (refresh time unknown), context only" in steps["run_round3"]["summary"]
+    )
     assert steps["execute"]["paypal"] == "live" and steps["execute"]["ai"] is None
     assert steps["execute"]["mode"] != "rules" and "buffer advance" in steps["execute"]["summary"]
     assert "_" not in steps["execute"]["summary"].split("(")[0]

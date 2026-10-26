@@ -1,0 +1,17 @@
+{
+  "id": "apis",
+  "scene": "s15-apis",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "title": "PayPal on the money path",
+  "layout": "table",
+  "columns": ["Product", "What Turnkeeper does with it"],
+  "rows": [
+    {"product": "Vault v3", "use": "Setup token with RECURRING_PREPAID + billing plan: each member approves once", "reveal_at_word": "Vault"},
+    {"product": "Orders v2", "use": "Merchant-initiated capture on the vaulted account, every round", "reveal_at_word": "Orders"},
+    {"product": "Payouts", "use": "The pot to the round's recipient, under the organizer's mandate", "reveal_at_word": "Payouts"},
+    {"product": "Invoicing via Agent Toolkit", "use": "create_invoice → send_invoice → generate_invoice_qr_code; get_order_details confirms each capture", "reveal_at_word": "Invoicing"},
+    {"product": "Webhooks", "use": "Signature verification, event dedupe, reconciliation", "reveal_at_word": "Webhooks"},
+    {"product": "Balances (Reporting)", "use": "Shown as context with its refresh time; the circle's ledger is the payout gate", "reveal_at_word": "Balances"}
+  ],
+  "footnote": "4 Agent Toolkit tools on the demo path. Vault, Orders create, Payouts, Balances and Webhooks are direct REST. Real webhook delivery not yet tested (unit-tested with mocks)."
+}

@@ -1601,7 +1601,9 @@ async def run_rules_recovery(
     reply = inbox.latest_reply(circle_id, member)
     commitment = None
     if reply:
-        payday = inbox.parse_payday(reply.get("text") or "", today=_today(circle))
+        payday = inbox.parse_payday(
+            reply.get("text") or "", today=_today(circle), payday_rule=mrow.payday_rule if mrow else None
+        )
         if payday is not None:
             rec = record_commitment(
                 circle_id,

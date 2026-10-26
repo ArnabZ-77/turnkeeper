@@ -10,8 +10,10 @@ Result dicts always start with "ok". A policy denial is returned as {"ok": False
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
+import time
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any
@@ -257,8 +259,43 @@ def _save(obj: Any) -> None:
 # --- collect ------------------------------------------------------------------------------------
 
 
+async def _charge_and_confirm(circle_id: str, round_n: int, member: str, *, publish: Publish) -> dict:
+    """One member's pipeline: the charge, then (when it captured) the toolkit confirmation of that order.
+
+    The confirmation is cached (see confirm_capture), so the treasurer's own get_order_details step that follows
+    collect_round answers from it instead of calling PayPal a second time."""
+    try:
+        res = await charge_member(circle_id, round_n, member, publish=publish)
+    except Exception as e:  # noqa: BLE001 - one member's failure must not abort the sweep
+        log.exception("charge_member failed for %s round %s", member, round_n)
+        return {
+            "ok": False,
+            "member": member,
+            "round_n": round_n,
+            "status": "PENDING",
+            "error": type(e).__name__,
+        }
+    if res.get("ok") and res.get("status") == "COMPLETED" and res.get("order_id"):
+        try:
+            conf = await confirm_capture(circle_id, round_n, member, publish=publish)
+        except Exception as e:  # noqa: BLE001 - a read-only check never undoes a capture
+            log.warning("confirm_capture failed for %s round %s: %s", member, round_n, type(e).__name__)
+            conf = {"confirmed": False, "error": type(e).__name__}
+        res = {**res, "confirmed": bool(conf.get("confirmed"))}
+        if conf.get("label"):
+            res["label"] = conf["label"]
+        if not conf.get("confirmed") and conf.get("error"):
+            res["confirm_error"] = conf["error"]
+    return res
+
+
 async def collect_round(circle_id: str, round_n: int, *, publish: Publish) -> list[dict]:
-    """Charge every member of the round in charter order (one FIFO gateway job each)."""
+    """Charge every member of the round and confirm each capture with the toolkit, members concurrently.
+
+    Each member runs charge -> confirm in order; members overlap (R4, live run 2026-10-25: one after another took
+    56-62 s). Every PayPal call still goes through the one FIFO gateway, so calls START in charter order, spaced
+    and inside the per-minute budget; the gateway's in-flight cap bounds the overlap. Request ids are per member
+    and attempt, so idempotency is unchanged. Results come back in charter order."""
     try:
         charter = state.load_charter(circle_id)
     except LookupError as e:
@@ -271,26 +308,18 @@ async def collect_round(circle_id: str, round_n: int, *, publish: Publish) -> li
         _save(rnd)
         await publish({"type": "board"})
 
-    results: list[dict] = []
-    for m in charter.members:
-        try:
-            gw = _gateway()
-            await publish({"type": "queue", "position": int(gw.position())})
-        except Exception:  # noqa: BLE001 - the badge is cosmetic
-            pass
-        try:
-            results.append(await charge_member(circle_id, round_n, m.handle, publish=publish))
-        except Exception as e:  # noqa: BLE001 - one member's failure must not abort the sweep
-            log.exception("charge_member failed for %s round %s", m.handle, round_n)
-            results.append(
-                {
-                    "ok": False,
-                    "member": m.handle,
-                    "round_n": round_n,
-                    "status": "PENDING",
-                    "error": type(e).__name__,
-                }
-            )
+    try:
+        gw = _gateway()
+        await publish({"type": "queue", "position": int(gw.position())})
+    except Exception:  # noqa: BLE001 - the badge is cosmetic
+        pass
+    # gather starts the member pipelines in charter order; each one's first await is its charge's gateway job,
+    # so the charges are queued in charter order.
+    results: list[dict] = list(
+        await asyncio.gather(
+            *(_charge_and_confirm(circle_id, round_n, m.handle, publish=publish) for m in charter.members)
+        )
+    )
 
     settled = all(r.get("status") in state.SETTLED_CONTRIBUTION for r in results)
     rnd = state.get_round(circle_id, round_n)
@@ -459,8 +488,29 @@ async def charge_member(circle_id: str, round_n: int, member: str, *, publish: P
 # --- confirm (toolkit) --------------------------------------------------------------------------
 
 
+# Orders already confirmed by the toolkit in this process: (circle, round, member, order_id) ->
+# {capture_id, order_status, capture_status}.
+# collect_round confirms each capture as it lands; the treasurer's get_order_details step right after reads this
+# instead of making the same PayPal call again. Only a confirmed COMPLETED order is cached.
+_CONFIRMED: dict[tuple[str, int, str, str], dict[str, Any]] = {}
+_CONFIRMED_MAX = 4096
+
+
+def _confirmation_key(c: Contribution) -> tuple[str, int, str, str]:
+    return (c.circle_id, c.round_n, c.member_handle, c.order_id or "")
+
+
+def _remember_confirmation(c: Contribution, view: dict[str, Any]) -> None:
+    if len(_CONFIRMED) >= _CONFIRMED_MAX:
+        _CONFIRMED.clear()
+    _CONFIRMED[_confirmation_key(c)] = view
+
+
 async def confirm_capture(circle_id: str, round_n: int, member: str, *, publish: Publish) -> dict:
-    """Confirm a COMPLETED order with the PayPal Agent Toolkit's get_order_details."""
+    """Confirm a COMPLETED order with the PayPal Agent Toolkit's get_order_details.
+
+    An order the toolkit already confirmed in this process (collect_round confirms every capture) answers from
+    that confirmation with `cached: True` and no second PayPal call."""
     contrib = _load_contribution(circle_id, round_n, member)
     if contrib is None:
         return {"ok": False, "member": member, "round_n": round_n, "error": "unknown member or round"}
@@ -468,6 +518,20 @@ async def confirm_capture(circle_id: str, round_n: int, member: str, *, publish:
         return _result(contrib, False, error="NO_ORDER", confirmed=False)
     if contrib.order_id.startswith(REPLAY_PREFIX):
         return _result(contrib, True, confirmed=True, replay=True, capture_status="COMPLETED")
+    seen = _CONFIRMED.get(_confirmation_key(contrib))
+    if (
+        seen is not None
+        and contrib.status == "COMPLETED"
+        and seen.get("capture_id") in (None, contrib.capture_id)
+    ):
+        return _result(
+            contrib,
+            True,
+            confirmed=True,
+            cached=True,
+            order_status=seen.get("order_status"),
+            capture_status=seen.get("capture_status"),
+        )
     try:
         tk = _toolkit()
         await tk.prepare()
@@ -490,6 +554,10 @@ async def confirm_capture(circle_id: str, round_n: int, member: str, *, publish:
         contrib.label = "Confirmed via toolkit"
         contrib.updated_at = utcnow()
         _save(contrib)
+        _remember_confirmation(
+            contrib,
+            {"capture_id": contrib.capture_id, "order_status": status, "capture_status": capture_status},
+        )
         await publish(_chip(contrib))
     return _result(contrib, True, confirmed=confirmed, order_status=status, capture_status=capture_status)
 
@@ -506,6 +574,11 @@ def _balance_context(bal: Any, data: dict, currency: str) -> dict[str, Any]:
     if fn is None:
         fn = importlib.import_module("app.paypal.balances").balance_context
     return dict(fn(data, currency))
+
+
+def balance_label(context: dict[str, Any] | None, currency: str = "USD") -> str | None:
+    """The PayPal reading with its refresh time ("7885.93 USD (stale: last refreshed ...)"), None without one."""
+    return importlib.import_module("app.paypal.balances").balance_label(context, currency)
 
 
 async def available_balance(circle_id: str) -> dict:
@@ -536,6 +609,10 @@ async def available_balance(circle_id: str) -> dict:
     except Exception as e:  # noqa: BLE001 - the ledger is the binding check (PLAN §3 step 10)
         log.warning("balances unavailable (%s); using ledger", type(e).__name__)
         note = f"balances unavailable ({type(e).__name__}); ledger is binding"
+    label = balance_label(context, charter.currency)
+    if label and context and context.get("stale"):
+        # R3 (live run 2026-10-25): Balances answered, so say what it said and when, instead of "n/a"
+        note = f"PayPal balance {label}; context only, the ledger is binding"
     return {
         "ok": True,
         "paypal_available": str(paypal_available) if paypal_available is not None else None,
@@ -544,6 +621,7 @@ async def available_balance(circle_id: str) -> dict:
         "source": source,
         "note": note,
         "paypal_balance": context,
+        "paypal_balance_label": label,
     }
 
 
@@ -784,6 +862,9 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
             **payload,
         }
     batch_id, item_id, status, fee = sent["batch_id"], sent["item_id"], sent["status"], sent["fee"]
+    # The fee the ledger books: PayPal's when the item already shows it, else the reserve (replaced by the real
+    # fee when a status poll or webhook reports it). Everything shown for this payout uses this same figure.
+    booked_fee = fee if fee is not None else PAYOUT_FEE_RESERVE
 
     now = utcnow()
     paid = status == "SUCCESS"
@@ -816,7 +897,7 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
             LedgerRow(
                 circle_id=circle_id,
                 kind="payout_fee",
-                amount=str(fee if fee is not None else PAYOUT_FEE_RESERVE),
+                amount=str(booked_fee),
                 round_n=round_n,
                 member_handle=recipient,
                 ref=item_id or batch_id,
@@ -844,7 +925,7 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
                 receiver_kind="unclaimed_test" if unclaimed_test else "payout_receiver",
                 wallet=wallet,
                 amount=str(amount),
-                fee=str(fee) if fee is not None else None,
+                fee=str(booked_fee),
                 status=status,
                 funding="ledger",
                 created_at=now,
@@ -853,6 +934,7 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
         )
     if unclaimed_test:
         state.set_flag(circle_id, "next_payout_unclaimed", False)
+    watching = watch_payout(circle_id, round_n, item_id, status, publish=publish) is not None
     if (
         paid
         and rnd.due_at is not None
@@ -869,6 +951,7 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
             "batch_id": batch_id,
             "item_id": item_id,
             "amount": str(amount),
+            "fee": str(booked_fee),
             "recipient": recipient,
             "wallet": wallet,
         }
@@ -899,10 +982,263 @@ async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
         "recipient": recipient,
         "wallet": wallet,
         "source": source,
-        "fee": str(fee) if fee is not None else None,
+        # the fee the ledger booked (PayPal's figure, or the reserve until PayPal reports one)
+        "fee": str(booked_fee),
+        "fee_source": "paypal" if fee is not None else "reserve",
         "rev": rnd.rev,
         "paypal_balance": balances.get("paypal_balance"),
+        "paypal_balance_label": balances.get("paypal_balance_label"),
+        # R2: an in-flight item is re-read every PAYOUT_POLL_INTERVAL_S for PAYOUT_POLL_MAX_S, then webhooks
+        "watching": watching,
     }
+
+
+# --- payout status: one writer for polls, status reads and webhooks (R2, live run 2026-10-25) -------------
+#
+# The board used to keep a payout PENDING after the one item read right after the POST (PayPal reported SUCCESS
+# ~18 s later). Now an in-flight item is polled every PAYOUT_POLL_INTERVAL_S up to PAYOUT_POLL_MAX_S (bounded:
+# 24 reads at most, well inside the 40/min gateway budget, and the poll stops at the first final status); after
+# that, webhooks (or GET .../payout) carry the status. Every change goes through record_payout_status, which
+# also replaces the reserved fee with PayPal's real one in the ledger.
+
+PAYOUT_POLL_INTERVAL_S = 5.0
+PAYOUT_POLL_MAX_S = 120.0
+PAYOUT_WATCH_ENABLED = True  # tests switch it off unless they exercise the watcher
+IN_FLIGHT_PAYOUT_STATUSES = frozenset({"NEW", "PENDING", "PROCESSING", "ONHOLD"})
+_WATCHERS: dict[str, asyncio.Task[Any]] = {}
+
+
+def record_payout_status(
+    circle_id: str, round_n: int, item_id: str, status: str, fee: Decimal | None = None
+) -> dict[str, Any] | None:
+    """Store a status PayPal reported for the round's CURRENT payout item (poll, status read or webhook).
+
+    Updates the round (SUCCESS -> PAID with paid_at, counted on time when within the grace days), the item's
+    PayoutAttempt, and, when PayPal names the fee, the item's `payout_fee` ledger row and the attempt's fee.
+    Returns None when the item is not the round's current one (a superseded re-route item), else
+    {changed, status, previous, became_paid, fee, ...the round's payout fields}."""
+    status = str(status or "").upper()
+    now = utcnow()
+    with session_scope() as db:
+        row = db.exec(select(Round).where(Round.circle_id == circle_id, Round.n == round_n)).first()
+        if row is None or not item_id or row.payout_item_id != item_id:
+            return None
+        previous = row.payout_status
+        became_paid = status == "SUCCESS" and row.status != "PAID"
+        changed = previous != status
+        row.payout_status = status
+        if became_paid:
+            row.status = "PAID"
+            row.paid_at = now
+        db.add(row)
+        attempt = db.exec(
+            select(PayoutAttempt).where(
+                PayoutAttempt.circle_id == circle_id,
+                PayoutAttempt.round_n == round_n,
+                PayoutAttempt.item_id == item_id,
+            )
+        ).first()
+        fee_row = db.exec(
+            select(LedgerRow).where(
+                LedgerRow.circle_id == circle_id,
+                LedgerRow.kind == "payout_fee",
+                LedgerRow.round_n == round_n,
+                LedgerRow.ref == item_id,
+            )
+        ).first()
+        booked: Decimal | None = money(fee_row.amount) if fee_row is not None else None
+        if fee is not None:
+            fee = money(fee)
+            if fee_row is not None and booked != fee:
+                fee_row.amount = str(fee)
+                db.add(fee_row)
+                changed = True
+            booked = fee
+        if attempt is not None:
+            if attempt.status != status or (booked is not None and attempt.fee != str(booked)):
+                attempt.status = status
+                if booked is not None:
+                    attempt.fee = str(booked)
+                attempt.updated_at = now
+                db.add(attempt)
+        view = {
+            "changed": changed,
+            "status": status,
+            "previous": previous,
+            "became_paid": became_paid,
+            "fee": str(booked) if booked is not None else None,
+            "round_n": round_n,
+            "batch_id": row.payout_batch_id,
+            "item_id": item_id,
+            "amount": row.payout_amount,
+            "recipient": row.recipient_handle,
+            "last_capture_at": row.last_capture_at,
+            "paid_at": row.paid_at,
+            "due_at": row.due_at,
+        }
+    if became_paid and view["due_at"] is not None:
+        try:
+            circle = state.load_circle(circle_id)
+            grace = int(state.charter_of(circle).grace_days)
+            if VirtualClock(circle).today() <= as_utc(view["due_at"]).date() + timedelta(days=grace):
+                state.bump_counter(circle_id, "rounds_paid_on_time")
+        except Exception as e:  # noqa: BLE001 - the counter is cosmetic
+            log.warning("on-time counter for round %s failed: %s", round_n, type(e).__name__)
+    return view
+
+
+async def publish_payout_status(
+    publish: Publish, circle_id: str, view: dict[str, Any], *, source: str
+) -> None:
+    """Board events for a stored status change: payout (receipt), ticker when it just got paid, board, toast."""
+    wallet = "PAYPAL"
+    mrow = _member_row(circle_id, str(view.get("recipient") or ""))
+    if mrow is not None and mrow.payout_wallet:
+        wallet = mrow.payout_wallet
+    status = view["status"]
+    await publish(
+        {
+            "type": "payout",
+            "round_n": view["round_n"],
+            "status": status,
+            "batch_id": view.get("batch_id"),
+            "item_id": view.get("item_id"),
+            "amount": view.get("amount"),
+            "fee": view.get("fee"),
+            "recipient": view.get("recipient"),
+            "wallet": wallet,
+            "source": source,
+        }
+    )
+    if view.get("became_paid"):
+        last = view.get("last_capture_at")
+        paid_at = view.get("paid_at")
+        seconds = (
+            int((as_utc(paid_at) - as_utc(last)).total_seconds()) if (last is not None and paid_at) else None
+        )
+        await publish(
+            {"type": "ticker", "last_capture_at": iso(last), "paid_at": iso(paid_at), "seconds": seconds}
+        )
+    await publish({"type": "board"})
+    level = (
+        "success"
+        if status == "SUCCESS"
+        else ("warn" if status in ("UNCLAIMED", "FAILED", "RETURNED", "BLOCKED") else "info")
+    )
+    await _toast(publish, level, f"Round {view['round_n']} payout {status} ({source})")
+
+
+def watch_payout(
+    circle_id: str,
+    round_n: int,
+    item_id: str | None,
+    status: str | None,
+    *,
+    publish: Publish,
+    interval_s: float | None = None,
+    max_s: float | None = None,
+    sleep: Any = None,
+    clock: Any = None,
+) -> asyncio.Task[Any] | None:
+    """Start the bounded status poll for an in-flight payout item (one watcher per item). None when the item is
+    final already, unknown, a replay record, or watching is switched off."""
+    if (
+        not PAYOUT_WATCH_ENABLED
+        or not item_id
+        or item_id.startswith(REPLAY_PREFIX)
+        or str(status or "").upper() not in IN_FLIGHT_PAYOUT_STATUSES
+    ):
+        return None
+    existing = _WATCHERS.get(item_id)
+    if existing is not None and not existing.done():
+        return existing
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+    task = loop.create_task(
+        _watch_payout(
+            circle_id,
+            round_n,
+            item_id,
+            publish=publish,
+            interval_s=PAYOUT_POLL_INTERVAL_S if interval_s is None else float(interval_s),
+            max_s=PAYOUT_POLL_MAX_S if max_s is None else float(max_s),
+            sleep=sleep or asyncio.sleep,
+            clock=clock or time.monotonic,
+        ),
+        name=f"tk-payout-watch-{item_id}",
+    )
+    _WATCHERS[item_id] = task
+
+    def _done(t: asyncio.Task[Any]) -> None:
+        if _WATCHERS.get(item_id) is t:
+            _WATCHERS.pop(item_id, None)
+
+    task.add_done_callback(_done)
+    return task
+
+
+async def _watch_payout(
+    circle_id: str,
+    round_n: int,
+    item_id: str,
+    *,
+    publish: Publish,
+    interval_s: float,
+    max_s: float,
+    sleep: Any,
+    clock: Any,
+) -> str | None:
+    """Re-read the item until it is final or `max_s` passed; publish every change. Returns the last status."""
+    started = clock()
+    status: str | None = None
+    polls = 0
+    while True:
+        elapsed = clock() - started
+        if elapsed >= max_s or polls >= 1000:  # hard cap even if the clock misbehaves
+            break
+        await sleep(min(interval_s, max(0.0, max_s - elapsed)))
+        rnd = state.get_round(circle_id, round_n)
+        if rnd is None or rnd.payout_item_id != item_id:
+            return None  # re-routed or reset: this item is no longer the round's payout
+        status = str(rnd.payout_status or "").upper()
+        if status not in IN_FLIGHT_PAYOUT_STATUSES:
+            return status  # a webhook or a status read already moved it on
+        polls += 1
+        try:
+            payouts = _payouts()
+            polled = await payouts.get_payout_item(_gateway(), item_id=item_id)
+        except Exception as e:  # noqa: BLE001 - a failed read only means "not known yet"
+            log.info("payout status poll for %s failed: %s", item_id, type(e).__name__)
+            continue
+        fresh = str(payouts.item_status(polled) or "UNKNOWN").upper()
+        if fresh == "UNKNOWN":
+            continue
+        fee_value = ((polled or {}).get("payout_item_fee") or {}).get("value")
+        view = record_payout_status(
+            circle_id, round_n, item_id, fresh, money(fee_value) if fee_value is not None else None
+        )
+        if view is None:
+            return None
+        status = fresh
+        if view["changed"]:
+            log.info("payout r%s item %s -> %s (poll %d)", round_n, item_id, fresh, polls)
+            try:
+                await publish_payout_status(publish, circle_id, view, source="status poll")
+            except Exception as e:  # noqa: BLE001 - a dead stream must not stop the poll
+                log.info("payout status publish failed: %s", type(e).__name__)
+        if fresh not in IN_FLIGHT_PAYOUT_STATUSES:
+            return fresh
+    try:
+        await _system_trace(
+            publish,
+            f"Round {round_n} payout item {item_id} is still {status or 'in flight'} after {int(max_s)} s of "
+            "status polls; PayPal's webhook (or GET the payout status) reports the rest.",
+        )
+    except Exception:  # noqa: BLE001 - cosmetic
+        pass
+    return status
 
 
 async def payout_status(circle_id: str, round_n: int) -> dict:
@@ -918,20 +1254,15 @@ async def payout_status(circle_id: str, round_n: int) -> dict:
             payouts = _payouts()
             polled = await payouts.get_payout_item(_gateway(), item_id=item_id)
             fresh = str(payouts.item_status(polled) or status)
-            if fresh != status:
-                with session_scope() as db:
-                    row = db.exec(
-                        select(Round).where(Round.circle_id == circle_id, Round.n == round_n)
-                    ).first()
-                    if row is not None:
-                        row.payout_status = fresh
-                        if fresh == "SUCCESS":
-                            row.status = "PAID"
-                            row.paid_at = utcnow()
-                        db.add(row)
+            fee_value = ((polled or {}).get("payout_item_fee") or {}).get("value")
+            if fresh != "UNKNOWN":
+                record_payout_status(
+                    circle_id, round_n, item_id, fresh, money(fee_value) if fee_value is not None else None
+                )
                 status = fresh
         except Exception as e:  # noqa: BLE001 - stored status is the fallback
             log.warning("payout status refresh failed for %s: %s", item_id, type(e).__name__)
+        rnd = state.get_round(circle_id, round_n) or rnd
     return {
         "ok": True,
         "round_n": round_n,
@@ -939,10 +1270,22 @@ async def payout_status(circle_id: str, round_n: int) -> dict:
         "item_id": item_id,
         "batch_id": rnd.payout_batch_id,
         "amount": rnd.payout_amount,
+        "fee": booked_payout_fee(circle_id, round_n, item_id),
         "recipient": rnd.recipient_handle,
         "round_status": rnd.status,
         "paid_at": iso(rnd.paid_at),
     }
+
+
+def booked_payout_fee(circle_id: str, round_n: int, item_id: str | None) -> str | None:
+    if not item_id:
+        return None
+    rows = [
+        r
+        for r in state.ledger_rows(circle_id)
+        if r.kind == "payout_fee" and r.round_n == round_n and r.ref == item_id
+    ]
+    return str(money(sum((money(r.amount) for r in rows), Decimal("0.00")))) if rows else None
 
 
 # --- UNCLAIMED re-route (D1, 2026-10-23) ----------------------------------------------------------
@@ -1360,6 +1703,7 @@ async def reroute_unclaimed(
             )
         )
 
+    watching = watch_payout(circle_id, round_n, sent["item_id"], new_status, publish=publish) is not None
     pending = (
         None if cancel_ok else {"amount": str(amount), "item_id": item_id, "label": PENDING_RETURN_LABEL}
     )
@@ -1380,6 +1724,7 @@ async def reroute_unclaimed(
             "batch_id": sent["batch_id"],
             "item_id": sent["item_id"],
             "amount": str(amount),
+            "fee": str(fee),
             "recipient": recipient,
             "wallet": wallet,
             "rev": new_rev,
@@ -1412,6 +1757,7 @@ async def reroute_unclaimed(
         "cancel": cancel_view,
         "previous": {"rev": new_rev - 1, "batch_id": batch_id, "item_id": item_id},
         "pending_return": pending,
+        "watching": watching,
     }
 
 

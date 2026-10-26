@@ -97,3 +97,30 @@ def balance_context(
         "stale": stale,
         "age_s": age_s,
     }
+
+
+def _age_text(age_s: int) -> str:
+    if age_s < 120:
+        return f"{age_s} s"
+    if age_s < 2 * 3600:
+        return f"{age_s // 60} min"
+    return f"{age_s / 3600:.1f} h"
+
+
+def balance_label(context: dict | None, currency: str = "USD") -> str | None:
+    """One line for summaries: "7885.93 USD (stale: last refreshed 2026-10-24 02:29 UTC, 1.5 h old)".
+
+    Live run 2026-10-25 (R3): a stale reading used to read as "PayPal available n/a" although Balances answered.
+    The figure is always shown with its refresh time; None when Balances gave no figure at all."""
+    if not context or context.get("available") in (None, ""):
+        return None
+    refreshed = _parse_time(context.get("last_refresh_time"))
+    when = refreshed.strftime("%Y-%m-%d %H:%M UTC") if refreshed is not None else None
+    age_s = context.get("age_s")
+    age = f", {_age_text(int(age_s))} old" if isinstance(age_s, int | float) else ""
+    amount = f"{context['available']} {currency}"
+    if context.get("stale") is True:
+        return f"{amount} (stale: last refreshed {when}{age})" if when else f"{amount} (stale)"
+    if when:
+        return f"{amount} (last refreshed {when}{age})"
+    return f"{amount} (refresh time unknown)"

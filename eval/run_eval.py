@@ -89,6 +89,23 @@ def load_scenarios(directory: Path = SCENARIO_DIR, pattern: str = "*.yaml") -> l
     return out
 
 
+SPLITS = EVAL_DIR / "splits.yaml"
+
+
+def select_split(scenarios: list[dict[str, Any]], split: str, path: Path = SPLITS) -> list[dict[str, Any]]:
+    """``all``, or the scenarios named under ``split`` in eval/splits.yaml (tuning / heldout)."""
+    if split == "all":
+        return scenarios
+    ids = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get(split)
+    if not ids:
+        raise ValueError(f"split {split!r} not found in {path.name}")
+    by_id = {s["id"]: s for s in scenarios}
+    missing = [i for i in ids if i not in by_id]
+    if missing:
+        raise ValueError(f"split {split!r} names unknown scenarios: {', '.join(missing)}")
+    return [by_id[i] for i in ids]
+
+
 def build_charter(sc: dict[str, Any]) -> Charter:
     """The demo charter with the scenario's overrides (amount, menu, quorum, buffer, rotation)."""
     base = json.loads(FIXTURE.read_text(encoding="utf-8"))["charter"]
@@ -198,7 +215,10 @@ def propose_rules(sc: dict[str, Any], charter: Charter, state: CircleState) -> P
     return Proposal(propose_default_remedies(charter, planning, member, commitment), commitment, mode="rules")
 
 
-LIVE_SYSTEM = (
+# v1: the prompt of the 2026-10-24 live session, kept byte for byte so its recorded answers still replay and
+# the "before" numbers can be reproduced. It states the legality rules but no preference, hands the model raw
+# state (it must work out swap legality, the advance cap and weekday dates itself) and no calendar.
+LIVE_SYSTEM_V1 = (
     "You are the treasurer of a rotating savings circle. One member's contribution was declined. Propose a "
     "charter-legal remedy set and extract the member's payment commitment. Reply with ONE JSON object and "
     'nothing else: {"commitment": {"amount": "200.00", "date": "YYYY-MM-DD"} or null, "remedies": [{"type": '
@@ -216,7 +236,50 @@ LIVE_SYSTEM = (
 )
 
 
-def live_prompt(sc: dict[str, Any], charter: Charter, state: CircleState, run_index: int) -> str:
+def _reply_block(sc: dict[str, Any]) -> str | None:
+    reply = sc.get("reply")
+    if not (reply and reply.get("text")):
+        return None
+    text = str(reply["text"]).replace("<", "‹").replace(">", "›")
+    return f'<member_reply member="{reply.get("member")}" lang="{reply.get("lang")}">{text}</member_reply>'
+
+
+# v2: the shared remedy guide (app/agent/prompts/remedies.md: the charter's preference order, commitment rules)
+# plus the answer format; the facts come from app.agent.remedy_context with legality already worked out.
+LIVE_FORMAT = (
+    "Answer with ONE JSON object and nothing else (no prose, no code fences):\n"
+    '{"commitment": {"amount": "<contribution>", "date": "YYYY-MM-DD"} or null, '
+    '"remedies": [{"type": "buffer_advance" | "repay_by_invoice" | "retry_on_date" | "turn_swap", '
+    '"swap_with": "<handle>" or null, "amount": "0.00" or null, "due_date": "YYYY-MM-DD" or null, '
+    '"reason": "<one sentence the members will read>"}]}\n'
+    "Field use: buffer_advance -> amount; repay_by_invoice -> amount and due_date; retry_on_date -> due_date; "
+    "turn_swap -> swap_with. Set every other field to null."
+)
+
+
+def live_system_v2() -> str:
+    from app.agent.remedy_context import remedy_guide
+
+    return remedy_guide() + "\n\n" + LIVE_FORMAT
+
+
+def live_prompt_v2(sc: dict[str, Any], charter: Charter, state: CircleState, run_index: int) -> str:
+    from app.agent.remedy_context import remedy_facts
+
+    member = sc["decline"]["member"]
+    facts = remedy_facts(
+        charter, state, member, refused=refused_of(sc), member_history=sc.get("member_history") or {}
+    )
+    facts["run"] = run_index
+    return (
+        "Facts (JSON):\n"
+        + json.dumps(facts, ensure_ascii=False, sort_keys=True)
+        + "\nLatest reply:\n"
+        + (_reply_block(sc) or "(no reply)")
+    )
+
+
+def live_prompt_v1(sc: dict[str, Any], charter: Charter, state: CircleState, run_index: int) -> str:
     member = sc["decline"]["member"]
     rotation = effective_rotation(charter, state)
     tracks = {m.handle: m.track_record_rounds for m in charter.members}
@@ -258,6 +321,24 @@ def live_prompt(sc: dict[str, Any], charter: Charter, state: CircleState, run_in
         + "\nLatest reply:\n"
         + (reply_block or "(no reply)")
     )
+
+
+PROMPT_VERSIONS = ("v1", "v2")
+DEFAULT_PROMPT = "v2"
+
+
+def live_system(version: str = DEFAULT_PROMPT) -> str:
+    return LIVE_SYSTEM_V1 if version == "v1" else live_system_v2()
+
+
+def live_prompt(
+    sc: dict[str, Any], charter: Charter, state: CircleState, run_index: int, version: str = DEFAULT_PROMPT
+) -> str:
+    fn = live_prompt_v1 if version == "v1" else live_prompt_v2
+    return fn(sc, charter, state, run_index)
+
+
+LIVE_SYSTEM = live_system_v2()
 
 
 def _parse_date(value: Any) -> date | None:
@@ -302,7 +383,9 @@ def parse_live(text: str, sc: dict[str, Any], charter: Charter, *, mode: str = "
         try:
             amt, when = money(raw.get("amount")), _parse_date(raw.get("date"))
             today = scenario_today(sc)
-            if when is None or amt <= 0 or amt > money(charter.amount):
+            if when is None:
+                rejected = "no date: a commitment needs the day the member names"
+            elif amt <= 0 or amt > money(charter.amount):
                 rejected = f"amount {amt} must be positive and at most {charter.amount}"
             elif not today <= when <= today + timedelta(days=COMMITMENT_WINDOW_DAYS):
                 rejected = f"date {when} outside today..+{COMMITMENT_WINDOW_DAYS} days"
@@ -474,7 +557,13 @@ def evaluate_run(
 
 
 async def run_scenario(
-    sc: dict[str, Any], runs: int, *, provider: str, live_call: LiveCall | None, budget: Budget
+    sc: dict[str, Any],
+    runs: int,
+    *,
+    provider: str,
+    live_call: LiveCall | None,
+    budget: Budget,
+    prompt_version: str = DEFAULT_PROMPT,
 ) -> dict[str, Any]:
     charter = build_charter(sc)
     state = build_state(sc, charter)
@@ -485,11 +574,12 @@ async def run_scenario(
             proposal = propose_rules(sc, charter, state)
         else:
             assert live_call is not None
-            prompt = live_prompt(sc, charter, state, k)
+            system = live_system(prompt_version)
+            prompt = live_prompt(sc, charter, state, k, prompt_version)
             if budget.can_call():
-                text, mode = await live_call(LIVE_SYSTEM, prompt)
+                text, mode = await live_call(system, prompt)
             elif budget.replay_only:
-                text, mode = await live_call(LIVE_SYSTEM, prompt, live_allowed=False)
+                text, mode = await live_call(system, prompt, live_allowed=False)
                 if text is None or mode != "replay":
                     continue  # not recorded: skipped (reported in stopped_early), never a quota spend
             else:
@@ -507,6 +597,9 @@ async def run_scenario(
         rows.append(
             {"run": k, **evaluate_run(sc, charter, state, proposal, (time.perf_counter() - t0) * 1000)}
         )
+    all_rows = rows
+    if provider == "live":  # a rules fallback is not the model's answer: shown in rows, never scored
+        rows = [r for r in all_rows if r["mode"] != "rules"]
     sigs = Counter(r["signature"] for r in rows)
     modal, modal_n = sigs.most_common(1)[0] if rows else (None, 0)
     preferred = normalize_top((sc.get("labels") or {}).get("preferred_top"))
@@ -519,18 +612,28 @@ async def run_scenario(
         "stability": round(modal_n / len(rows), 3) if rows else None,
         "agreement": round(sum(r["signature"] == preferred for r in rows) / len(rows), 3) if rows else None,
         "legal_rate": round(sum(r["legal_before_policy"] for r in rows) / len(rows), 3) if rows else None,
-        "executed_illegal": sum(len(r["executed_violations"]) for r in rows),
+        "executed_illegal": sum(len(r["executed_violations"]) for r in all_rows),
         "commitment_match": round(sum(r["commitment_match"] for r in rows) / len(rows), 3) if rows else None,
-        "rows": rows,
+        "rows": all_rows,
     }
 
 
 def summarize(
     per: list[dict[str, Any]], *, provider: str, runs: int, budget: Budget, model: str | None
 ) -> dict[str, Any]:
-    rows = [r for s in per for r in s["rows"]]
-    lat = sorted(r["latency_ms"] for r in rows)
-    with_runs = [s for s in per if s["runs"]]
+    all_rows = [r for s in per for r in s["rows"]]
+    # A live run whose model gave no answer falls back to the rules path (mode "rules"): it is reported in
+    # `modes` and `rules_fallback_runs` but never scored as the model's answer.
+    scored = (lambda r: r["mode"] != "rules") if provider == "live" else (lambda r: True)
+    rows = [r for r in all_rows if scored(r)]
+    timed = [r for r in rows if r["mode"] != "replay"] if provider == "live" else rows
+    lat = sorted(r["latency_ms"] for r in timed)
+    with_runs = []
+    for s in per:
+        mine = [r for r in s["rows"] if scored(r)]
+        if mine:
+            sigs = Counter(r["signature"] for r in mine)
+            with_runs.append(sigs.most_common(1)[0][1] / len(mine))
     n = len(rows)
 
     def rate(key: str) -> float | None:
@@ -541,15 +644,15 @@ def summarize(
         "model": model,
         "scenarios": len(per),
         "runs_per_scenario": runs,
-        "runs_completed": n,
+        "runs_completed": len(all_rows),
+        "runs_scored": n,
+        "rules_fallback_runs": len(all_rows) - n,
         "runs_planned": len(per) * runs,
         "charter_legal_before_policy_rate": rate("legal_before_policy"),
-        "executed_illegal": sum(len(r["executed_violations"]) for r in rows),
-        "top_remedy_stability": round(statistics.mean(s["stability"] for s in with_runs), 3)
-        if with_runs
-        else None,
+        "executed_illegal": sum(len(r["executed_violations"]) for r in all_rows),  # fallbacks included
+        "top_remedy_stability": round(statistics.mean(with_runs), 3) if with_runs else None,
         "preferred_top_agreement": round(
-            sum(r["signature"] == s["preferred_top"] for s in per for r in s["rows"]) / n, 3
+            sum(r["signature"] == s["preferred_top"] for s in per for r in s["rows"] if scored(r)) / n, 3
         )
         if n
         else None,
@@ -561,7 +664,7 @@ def summarize(
         "llm_calls_used": budget.used,
         "max_calls": budget.max_calls if provider == "live" else 0,
         "stopped_early": budget.stopped,
-        "modes": dict(Counter(r["mode"] for r in rows)),
+        "modes": dict(Counter(r["mode"] for r in all_rows)),
         "scenario_results": per,
     }
 
@@ -574,13 +677,21 @@ async def run_eval(
     scenarios: list[dict[str, Any]] | None = None,
     live_call: LiveCall | None = None,
     model: str | None = None,
+    prompt_version: str = DEFAULT_PROMPT,
 ) -> dict[str, Any]:
     scenarios = scenarios if scenarios is not None else load_scenarios()
     budget = Budget(max_calls if provider == "live" else 0)
     per = []
     for sc in scenarios:
-        per.append(await run_scenario(sc, runs, provider=provider, live_call=live_call, budget=budget))
-    return summarize(per, provider=provider, runs=runs, budget=budget, model=model)
+        per.append(
+            await run_scenario(
+                sc, runs, provider=provider, live_call=live_call, budget=budget, prompt_version=prompt_version
+            )
+        )
+    out = summarize(per, provider=provider, runs=runs, budget=budget, model=model)
+    if provider == "live":
+        out["prompt_version"] = prompt_version
+    return out
 
 
 # --- output ------------------------------------------------------------------------------------------------
@@ -615,6 +726,7 @@ SUMMARY_ROWS = (
 
 def render_markdown(results: dict[str, Any], forecast: dict[str, Any] | None = None) -> str:
     providers = [p for p in ("rules", "live") if p in results]
+    providers += sorted(k for k in results if k not in providers and isinstance(results[k], dict))
     lines = [
         "# Eval results",
         "",
@@ -672,7 +784,10 @@ def render_markdown(results: dict[str, Any], forecast: dict[str, Any] | None = N
     return "\n".join(lines) + "\n"
 
 
-def write_outputs(result: dict[str, Any], out_dir: Path = EVAL_DIR) -> tuple[Path, Path]:
+def write_outputs(
+    result: dict[str, Any], out_dir: Path = EVAL_DIR, *, key: str | None = None
+) -> tuple[Path, Path]:
+    """Merge ``result`` into results.json under ``key`` (default: its provider) and re-render RESULTS.md."""
     results_path, md_path = out_dir / "results.json", out_dir / "RESULTS.md"
     merged: dict[str, Any] = {}
     if results_path.exists():
@@ -680,7 +795,7 @@ def write_outputs(result: dict[str, Any], out_dir: Path = EVAL_DIR) -> tuple[Pat
             merged = json.loads(results_path.read_text(encoding="utf-8"))
         except ValueError:
             merged = {}
-    merged[result["provider"]] = result
+    merged[key or result["provider"]] = result
     results_path.write_text(json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     forecast_path = out_dir / "results_forecast.json"
     forecast = json.loads(forecast_path.read_text(encoding="utf-8")) if forecast_path.exists() else None
@@ -688,36 +803,58 @@ def write_outputs(result: dict[str, Any], out_dir: Path = EVAL_DIR) -> tuple[Pat
     return results_path, md_path
 
 
-def _live_call_factory() -> tuple[LiveCall | None, str | None, Any]:
+def _live_call_factory(
+    min_interval_s: float = 0.0, timeout_s: float | None = None
+) -> tuple[LiveCall | None, str | None, Any]:
+    from app.agent import llm
     from app.agent.llm import TurnCache, cache_key, complete_text, get_llm_provider
     from app.config import get_settings
 
+    if timeout_s:  # eval only: a slow free-tier answer is still an answer (the app keeps its 20 s bound)
+        llm.OPENAI_TIMEOUT_S = timeout_s
     provider = get_llm_provider(get_settings(), live=True)
     if provider is None:
         return None, None, None
+    last_call: list[float] = []
+
+    def replayed(system: str, prompt: str) -> str | None:
+        key = cache_key(
+            provider=provider.name,
+            model=provider.model,
+            system=system,
+            tools=[],
+            history=[{"role": "user", "text": prompt}],
+        )
+        hit = TurnCache(get_settings().llm_cache).get(key)
+        return hit.text if hit is not None and hit.stop == "end" else None
 
     async def call(system: str, prompt: str, live_allowed: bool = True) -> tuple[str | None, str]:
+        hit = replayed(system, prompt)
+        if hit is not None:
+            return hit, "replay"
         if not live_allowed:  # budget spent: the replay cache only (complete_text would call a live provider)
-            settings = get_settings()
-            key = cache_key(
-                provider=provider.name,
-                model=provider.model,
-                system=system,
-                tools=[],
-                history=[{"role": "user", "text": prompt}],
-            )
-            hit = TurnCache(settings.llm_cache).get(key)
-            return (hit.text, "replay") if hit is not None and hit.stop == "end" else (None, "rules")
+            return None, "rules"
+        if min_interval_s > 0 and last_call:  # pace real calls only (free-tier per-minute caps)
+            wait = min_interval_s - (time.monotonic() - last_call[-1])
+            if wait > 0:
+                await asyncio.sleep(wait)
+        last_call.append(time.monotonic())
         return await complete_text(system, prompt, max_tokens=LIVE_MAX_TOKENS, provider=provider)
 
     return call, f"{provider.name}/{provider.model}{'' if provider.live else ' (replay only)'}", provider
 
 
 async def amain(args: argparse.Namespace) -> int:
-    scenarios = load_scenarios(Path(args.scenarios_dir), args.pattern)
+    scenarios = select_split(load_scenarios(Path(args.scenarios_dir), args.pattern), args.split)
     live_call, model, provider = (None, None, None)
     if args.provider == "live":
-        live_call, model, provider = _live_call_factory()
+        # complete_text logs why a call got no answer (429, outage) at INFO: keep it visible on stderr.
+        import logging
+
+        llm_log = logging.getLogger("turnkeeper.agent.llm")
+        llm_log.setLevel(logging.INFO)
+        llm_log.addHandler(logging.StreamHandler(sys.stderr))
+        live_call, model, provider = _live_call_factory(args.min_interval, args.timeout)
         if live_call is None:
             print(
                 "no LLM provider configured (set TK_LLM_PROVIDER / TK_LLM_API_KEY); nothing written",
@@ -727,12 +864,14 @@ async def amain(args: argparse.Namespace) -> int:
     try:
         result = await run_eval(
             provider=args.provider, runs=args.runs, max_calls=args.max_calls, scenarios=scenarios,
-            live_call=live_call, model=model,
+            live_call=live_call, model=model, prompt_version=args.prompt,
         )  # fmt: skip
     finally:
         if provider is not None:
             await provider.aclose()
-    paths = write_outputs(result, Path(args.out_dir))
+    if args.split != "all":
+        result["split"] = args.split
+    paths = write_outputs(result, Path(args.out_dir), key=args.key)
     print(
         f"{args.provider}: {result['runs_completed']}/{result['runs_planned']} runs, legal "
         f"{result['charter_legal_before_policy_rate']}, executed illegal {result['executed_illegal']}, agreement "
@@ -751,6 +890,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--scenarios-dir", default=str(SCENARIO_DIR))
     ap.add_argument("--pattern", default="*.yaml")
     ap.add_argument("--out-dir", default=str(EVAL_DIR))
+    ap.add_argument("--prompt", choices=PROMPT_VERSIONS, default=DEFAULT_PROMPT, help="live prompt version")
+    ap.add_argument("--split", choices=("all", "tuning", "heldout"), default="all", help="eval/splits.yaml")
+    ap.add_argument("--key", default=None, help="results.json key (default: the provider)")
+    ap.add_argument(
+        "--min-interval", type=float, default=0.0, help="seconds between real model calls (live mode)"
+    )
+    ap.add_argument("--timeout", type=float, default=60.0, help="seconds per model call (live mode)")
     args = ap.parse_args(argv)
     if args.runs < 1 or args.max_calls < 0:
         ap.error("--runs must be >= 1 and --max-calls >= 0")

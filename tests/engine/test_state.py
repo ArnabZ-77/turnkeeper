@@ -79,7 +79,7 @@ def test_board_model_shape(circle_id):
     assert [r["n"] for r in board["rounds"]] == [1, 2, 3, 4, 5, 6]
     assert all(set(r) == ROUND_KEYS for r in board["rounds"])
     r1 = board["rounds"][0]
-    assert r1["status"] == "PAID" and set(r1["payout"]) == {"batch_id", "item_id", "status", "amount"}
+    assert r1["status"] == "PAID" and set(r1["payout"]) == {"batch_id", "item_id", "status", "amount", "fee"}
     assert r1["payout"]["status"] == "SUCCESS" and r1["paid_at"].endswith("Z")
     assert board["rounds"][2]["payout"] is None and board["rounds"][2]["status"] == "PENDING"
 

@@ -240,12 +240,104 @@ async def test_cancelled_caller_does_not_break_the_worker(client, paypal_mock):
         await gw.stop()
 
 
+async def test_max_inflight_overlaps_calls_but_starts_them_in_fifo_order(client):
+    """R4: with max_inflight=3, three blocking toolkit-style jobs are in flight together (a 3-party barrier only
+    opens if they overlap) and still start in submission order."""
+    gw = Gateway(client, rate_per_min=600, min_gap_s=0.0, max_inflight=3)
+    barrier = threading.Barrier(3, timeout=5)
+    started: list[str] = []
+
+    def job(name: str):
+        def _run() -> str:
+            started.append(name)
+            barrier.wait()  # BrokenBarrierError after 5 s if the jobs ran one at a time
+            return name
+
+        _run.__name__ = name
+        return _run
+
+    try:
+        out = await asyncio.wait_for(
+            asyncio.gather(gw.run_sync(job("a")), gw.run_sync(job("b")), gw.run_sync(job("c"))), timeout=10
+        )
+    finally:
+        await gw.stop()
+    assert out == ["a", "b", "c"]
+    assert started == ["a", "b", "c"]
+
+
+async def test_max_inflight_caps_concurrency(client):
+    gw = Gateway(client, rate_per_min=600, min_gap_s=0.0, max_inflight=2)
+    lock = threading.Lock()
+    live = [0]
+    peak = [0]
+
+    def slow() -> None:
+        with lock:
+            live[0] += 1
+            peak[0] = max(peak[0], live[0])
+        time.sleep(0.15)
+        with lock:
+            live[0] -= 1
+
+    try:
+        await asyncio.wait_for(asyncio.gather(*(gw.run_sync(slow) for _ in range(5))), timeout=10)
+    finally:
+        await gw.stop()
+    assert peak[0] == 2
+    assert gw.stats["calls"] == 5
+
+
+async def test_max_inflight_keeps_spacing_and_the_rolling_window(client, paypal_mock):
+    """Concurrency never loosens the budget: starts stay min_gap apart and the 60 s window still blocks."""
+    gw = Gateway(client, rate_per_min=3, min_gap_s=0.2, max_inflight=4)
+    now = [1000.0]
+    sleeps: list[float] = []
+    gw._clock = lambda: now[0]
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    gw._sleep = fake_sleep
+    paypal_mock.get("/t/w").mock(return_value=httpx.Response(200, json={}))
+    try:
+        await asyncio.wait_for(asyncio.gather(*(gw.call("GET", "/t/w") for _ in range(4))), timeout=5)
+    finally:
+        await gw.stop()
+    # calls 2 and 3 wait the 200 ms gap; call 4 waits for the first start to leave the 60 s window
+    assert sleeps[:2] == [pytest.approx(0.2), pytest.approx(0.2)]
+    assert sum(sleeps) == pytest.approx(60.0)
+    assert gw.stats["calls"] == 4
+
+
+async def test_stop_fails_inflight_jobs(client):
+    gw = Gateway(client, rate_per_min=600, min_gap_s=0.0, max_inflight=2)
+    release = threading.Event()
+    job = asyncio.ensure_future(gw.run_sync(lambda: release.wait(5)))
+    await asyncio.sleep(0.05)
+    assert gw.position() == 1
+    await gw.stop()
+    release.set()
+    with pytest.raises(RuntimeError):
+        await job
+    assert gw.position() == 0
+
+
+async def test_max_inflight_must_be_positive(client):
+    with pytest.raises(ValueError):
+        Gateway(client, max_inflight=0)
+
+
 async def test_get_gateway_is_a_lazy_singleton(settings):
+    from app.paypal.gateway import LIVE_MAX_INFLIGHT
+
     set_gateway(None)
     try:
         g1 = get_gateway()
         g2 = get_gateway()
         assert g1 is g2
+        assert g1.max_inflight == LIVE_MAX_INFLIGHT > 1
         assert g1.rate_per_min == settings.paypal_rate_per_min
         assert g1.client.base_url == "https://api-m.sandbox.paypal.com"
         assert not g1.running  # nothing started until the first call

@@ -23,6 +23,15 @@ os.environ["TK_SEED_VAULT_IDS"] = ""
 os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:8000")
 
 
+@pytest.fixture(autouse=True)
+def _no_payout_watchers(monkeypatch):
+    """The bounded payout status poll (rounds.watch_payout) sleeps for real; tests that exercise it switch it on
+    with short intervals. Everywhere else a PENDING payout stays as the payout call left it."""
+    from app.engine import rounds
+
+    monkeypatch.setattr(rounds, "PAYOUT_WATCH_ENABLED", False)
+
+
 @pytest.fixture
 def settings():
     from app.config import get_settings

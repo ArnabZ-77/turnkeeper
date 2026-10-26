@@ -303,37 +303,18 @@ async def _on_payout_item(event_type: str, resource: dict, publish_for: Any) -> 
         or str(resource.get("transaction_status") or "").upper()
         or "PENDING"
     )
-    now = utcnow()
-    with session_scope() as db:
-        row = db.get(Round, rnd.id)
-        if row is None:
-            return {"handled": False}
-        row.payout_status = status
-        if status == "SUCCESS" and row.status != "PAID":
-            row.status = "PAID"
-            row.paid_at = now
-        db.add(row)
-        rnd = row
-    publish = publish_for(rnd.circle_id)
-    await publish(
-        {
-            "type": "payout",
-            "round_n": rnd.n,
-            "status": status,
-            "batch_id": rnd.payout_batch_id,
-            "item_id": item_id,
-            "amount": rnd.payout_amount,
-            "recipient": rnd.recipient_handle,
-            "wallet": _wallet_of(rnd.circle_id, rnd.recipient_handle),
-        }
-    )
-    await publish({"type": "board"})
-    level = (
-        "success"
-        if status == "SUCCESS"
-        else ("warn" if status in ("UNCLAIMED", "FAILED", "RETURNED", "BLOCKED") else "info")
-    )
-    await publish({"type": "toast", "level": level, "text": f"Round {rnd.n} payout {status} (webhook)"})
+    # One writer for webhooks, status polls and status reads: round, PayoutAttempt and the ledger's fee row.
+    from app.engine.rounds import publish_payout_status, record_payout_status
+
+    fee_value = (resource.get("payout_item_fee") or {}).get("value")
+    try:
+        fee = money(fee_value) if fee_value is not None else None
+    except ValueError:
+        fee = None
+    view = record_payout_status(rnd.circle_id, rnd.n, item_id, status, fee)
+    if view is None:
+        return {"handled": False, "reason": "payout item not current"}
+    await publish_payout_status(publish_for(rnd.circle_id), rnd.circle_id, view, source="webhook")
     return {"handled": True, "circle_id": rnd.circle_id, "round_n": rnd.n, "status": status}
 
 

@@ -1,0 +1,47 @@
+{
+  "id": "architecture",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "builds": {
+    "build-1": {
+      "scene": "s14-architecture",
+      "title": "The model proposes. Code decides. People approve.",
+      "diagram": {
+        "kind": "left-to-right flow",
+        "nodes": [
+          {"id": "model", "label": "Model", "sub": "proposes remedies, words nudges", "reveal_at_word": "proposes"},
+          {"id": "policy", "label": "Policy engine", "sub": "app/domain/policy.py · deterministic; every money action passes it", "reveal_at_word": "decides", "highlight": true},
+          {"id": "humans", "label": "Humans", "sub": "consent once · vote · organizer's one tap · payout mandate", "reveal_at_word": "approve"},
+          {"id": "paypal", "label": "PayPal sandbox", "sub": "one FIFO gateway · cached OAuth · PayPal-Request-Id per run"}
+        ],
+        "edges": [["model", "policy"], ["policy", "humans"], ["humans", "paypal"]]
+      },
+      "footnote": "One frozen charter (SHA-256) drives consent, remedies and the payout mandate."
+    },
+    "build-2": {
+      "scene": "s16-ai-layer",
+      "title": "Tools behind MCP. A model is optional.",
+      "columns": [
+        {
+          "heading": "MCP",
+          "reveal_at_word": "MCP",
+          "items": [
+            "Internal MCP server: 18 tools; money tools policy-gated",
+            "Treasurer agent: at most 25 tool calls per task, per-task allowlists",
+            "No agent task can execute remedies",
+            "Public read-only MCP: 4 tools, demo circles only, PII masked"
+          ]
+        },
+        {
+          "heading": "Three modes, always labelled",
+          "reveal_at_word": "free",
+          "items": [
+            "Free model by default (Gemini or Groq; Anthropic optional)",
+            "AI replay: recorded model turns replayed, no quota spent",
+            "Rules mode: deterministic fallback, same tools, no model"
+          ]
+        }
+      ],
+      "footnote": "The recorded live sandbox run used rules mode (no model call)."
+    }
+  }
+}

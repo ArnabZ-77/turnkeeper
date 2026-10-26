@@ -3,10 +3,14 @@
 Every PayPal call in the process (raw REST and Agent Toolkit tools alike) goes through one `Gateway`, so the
 sandbox limit (~50 req/min -> 5-minute IP block) is enforced globally:
 
-- jobs run strictly in submission order on a single asyncio worker (`call()` returns via a Future);
+- jobs START strictly in submission order from a single asyncio worker (`call()` returns via a Future);
+- at most `max_inflight` jobs are in flight at once (default 1: each job finishes before the next starts). The
+  process-wide gateway allows `LIVE_MAX_INFLIGHT` (6, one per member of the demo circle), so a round's charges
+  and toolkit confirmations overlap instead of queueing behind each other's network round trips (live run
+  2026-10-25, R4: Round 3 took 56-62 s one call at a time; ~13 s simulated with the measured latencies);
 - at most `rate_per_min` calls start in any rolling 60-second window, and consecutive calls are at least
   `min_gap_s` apart (default `min(0.3, 60 / rate_per_min)`), so a round of ~18 calls bursts at 300 ms
-  spacing while the per-minute budget still holds;
+  spacing while the per-minute budget still holds, however many calls are in flight;
 - `run_sync(fn)` runs a blocking function (the toolkit's `requests` calls) in a thread, through the same queue
   and budget;
 - every call is reported to the optional `record` callback as
@@ -36,6 +40,9 @@ T = TypeVar("T")
 WINDOW_S = 60.0
 DEFAULT_MIN_GAP_S = 0.3
 SYNC_METHOD = "TOOLKIT"
+# In-flight cap of the process-wide gateway. Starts stay FIFO, spaced and inside the per-minute budget; only the
+# waiting for PayPal's answers overlaps. Idempotency is per call (PayPal-Request-Id), so it is unaffected.
+LIVE_MAX_INFLIGHT = 6
 
 
 @dataclass
@@ -61,20 +68,26 @@ class Gateway:
         record: Callable[[dict], Any] | None = None,
         *,
         min_gap_s: float | None = None,
+        max_inflight: int = 1,
     ) -> None:
         if int(rate_per_min) < 1:
             raise ValueError("rate_per_min must be >= 1")
+        if int(max_inflight) < 1:
+            raise ValueError("max_inflight must be >= 1")
         self.client = client
         self.rate_per_min = int(rate_per_min)
         self.min_gap_s = (
             float(min_gap_s) if min_gap_s is not None else min(DEFAULT_MIN_GAP_S, WINDOW_S / rate_per_min)
         )
         self.record = record
+        self.max_inflight = int(max_inflight)
         self._queue: asyncio.Queue[_Job] | None = None
         self._worker: asyncio.Task[None] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._sent: deque[float] = deque()  # start times (monotonic) of calls inside the rolling window
-        self._inflight: _Job | None = None
+        self._slots: asyncio.Semaphore | None = None  # one permit per in-flight job
+        self._held = 0  # 1 while the worker holds a job it took off the queue but has not started yet
+        self._running: set[asyncio.Task[None]] = set()  # in-flight jobs
         self.stats: dict[str, float] = {"calls": 0, "errors": 0, "rate_limited": 0, "throttled_s": 0.0}
         # Injection points for tests (fake clock / no real sleeping).
         self._sleep = asyncio.sleep
@@ -90,8 +103,10 @@ class Gateway:
             log.debug("gateway worker belonged to another event loop; starting a new one")
         self._loop = loop
         self._queue = asyncio.Queue()
-        self._inflight = None
-        self._worker = loop.create_task(self._run(self._queue), name="paypal-gateway")
+        self._slots = asyncio.Semaphore(self.max_inflight)
+        self._held = 0
+        self._running = set()
+        self._worker = loop.create_task(self._run(self._queue, self._slots), name="paypal-gateway")
 
     async def start(self) -> None:
         self._ensure_started()
@@ -99,16 +114,22 @@ class Gateway:
     async def stop(self) -> None:
         worker, self._worker = self._worker, None
         queue, self._queue = self._queue, None
+        running, self._running = list(self._running), set()
         if worker is not None and not worker.done():
             worker.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await worker
+        for task in running:
+            task.cancel()
+        for task in running:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await task
         if queue is not None:
             while not queue.empty():
                 job = queue.get_nowait()
                 if not job.future.done():
                     job.future.set_exception(RuntimeError("PayPal gateway stopped"))
-        self._inflight = None
+        self._held = 0
         self._loop = None
 
     @property
@@ -120,7 +141,7 @@ class Gateway:
     def position(self) -> int:
         """Jobs ahead of a job enqueued right now (queued + in flight). Feeds the UI 'queued, position N' badge."""
         queued = self._queue.qsize() if self._queue is not None else 0
-        return queued + (1 if self._inflight is not None else 0)
+        return queued + self._held + len(self._running)
 
     async def call(
         self,
@@ -154,15 +175,25 @@ class Gateway:
 
     # ----------------------------------------------------------------------------- worker
 
-    async def _run(self, queue: asyncio.Queue[_Job]) -> None:
+    async def _run(self, queue: asyncio.Queue[_Job], slots: asyncio.Semaphore) -> None:
+        """Take jobs in FIFO order; start each one once an in-flight permit and a rate slot are free."""
+        loop = asyncio.get_running_loop()
         while True:
             job = await queue.get()
+            self._held = 1
+            acquired = False
             try:
                 if job.future.done():  # the caller gave up while queued
                     continue
+                await slots.acquire()
+                acquired = True
+                if job.future.done():  # the caller gave up while every permit was taken
+                    continue
                 await self._wait_for_slot()
-                self._inflight = job
-                await self._execute(job)
+                task = loop.create_task(self._execute_and_release(job, slots), name="paypal-call")
+                acquired = False  # the task releases the permit when the call ends
+                self._running.add(task)
+                task.add_done_callback(self._running.discard)
             except asyncio.CancelledError:
                 if not job.future.done():
                     job.future.set_exception(RuntimeError("PayPal gateway stopped"))
@@ -172,8 +203,24 @@ class Gateway:
                 if not job.future.done():
                     job.future.set_exception(e)
             finally:
-                self._inflight = None
+                if acquired:
+                    slots.release()
+                self._held = 0
                 queue.task_done()
+
+    async def _execute_and_release(self, job: _Job, slots: asyncio.Semaphore) -> None:
+        try:
+            await self._execute(job)
+        except asyncio.CancelledError:
+            if not job.future.done():
+                job.future.set_exception(RuntimeError("PayPal gateway stopped"))
+            raise
+        except Exception as e:  # _execute reports errors on the future; this is a last resort
+            log.exception("gateway call error on %s %s", job.method, job.path)
+            if not job.future.done():
+                job.future.set_exception(e)
+        finally:
+            slots.release()
 
     async def _wait_for_slot(self) -> None:
         while True:
@@ -268,7 +315,10 @@ def get_gateway() -> Gateway:
     if _gateway is None:
         settings = get_settings()
         _gateway = Gateway(
-            PayPalClient(settings), rate_per_min=settings.paypal_rate_per_min, record=_default_record()
+            PayPalClient(settings),
+            rate_per_min=settings.paypal_rate_per_min,
+            record=_default_record(),
+            max_inflight=LIVE_MAX_INFLIGHT,
         )
     return _gateway
 

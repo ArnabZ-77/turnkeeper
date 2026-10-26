@@ -1,0 +1,31 @@
+{
+  "id": "evidence",
+  "scene": "s17-evidence",
+  "theme": {"bg": "#0b1f3a", "fg": "#ffffff", "accent": "#f5a623", "blue": "#0070e0", "font": "Inter"},
+  "title": "Evidence",
+  "panels": [
+    {
+      "reveal_with_line": "L19",
+      "heading": "Remedy eval · rules mode · 20 scenarios × 5 runs",
+      "stats": [
+        {"big": "0.95", "text": "charter-legal before the policy check"},
+        {"big": "0", "text": "illegal actions executed", "highlight": true},
+        {"big": "1.0", "text": "commitment (date and amount) exact match"}
+      ],
+      "small": "The one miss (s17) is blocked by the gates and goes to the organizer. Live free model (gemini-3.5-flash-lite, n = 37): 37/37 legal, 0 illegal, but it matched the preferred remedy in only 3 of 37 runs.",
+      "source": "eval/RESULTS.md"
+    },
+    {
+      "reveal_with_line": "L20",
+      "heading": "Full Judge Mode story · real PayPal sandbox",
+      "stats": [
+        {"big": "11 / 11", "text": "story steps passed live (PayPal sandbox; AI in rules mode)"},
+        {"big": "5 + 1", "text": "round 3: five captures confirmed via toolkit, Ravi's decline sandbox-injected"},
+        {"big": "2", "text": "payouts: round 3 and clean round 4, $1,154.93 each"}
+      ],
+      "small": "Both payout items later read SUCCESS with a $0.25 fee. Forecaster backtest (synthetic, n = 60): precision 0.647, recall 0.647.",
+      "source": "docs/live-run/2026-10-25-rerun.md (run 1)"
+    }
+  ],
+  "footnote": "684 pytest + 90 vitest tests; PayPal and every model are mocked in tests."
+}

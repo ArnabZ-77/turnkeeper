@@ -26,6 +26,7 @@ from integration.conftest import (
     MEMBERS,
     MOCK_DECLINE_LABEL,
     NET,
+    PAYOUT_FEE,
     POT,
     SandboxMock,
     board_of,
@@ -96,6 +97,7 @@ def test_scenario_1_clean_round_collects_confirms_and_pays(client: TestClient, s
         "item_id": "ITEM-0001",
         "status": "SUCCESS",
         "amount": str(POT),
+        "fee": str(PAYOUT_FEE),  # the item's fee as the ledger booked it
     }
     assert r3["paid_at"] is not None
     assert len(sandbox.payouts) == 1
