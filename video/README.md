@@ -175,3 +175,32 @@ junctions pointing there (`npm run link`). Reference media in storyboards as `fo
 - `npm run render:test`: 6.0 s 1920x1080 h264 + aac in ~26 s warm (~60 s first run incl. bundling).
 - `npm run capture:test`: two scenes (11.4 s + 7.6 s VP9 webm) in ~19 s, headless.
 - `say.py` on 3 sample lines: see the RTF table above.
+
+## The demo film ("Turnkeeper" composition)
+
+`npm run render:film` writes `out/turnkeeper_v1.mp4` and `npm run master:film` loudnorms it to
+`out/turnkeeper_v1_master.mp4` (see "Render" below). The old `Main` composition is only the toolchain smoke test.
+
+- Timeline, voice-line times and scene types come from `script/storyboard.json` (rewritten by `script/retime.py`).
+- `script/captions.py` reads each narration WAV, finds the speech span and the internal pauses, snaps the
+  punctuation breaks of the line to those pauses and writes word times to `remotion/src/data/captions.json`.
+  Captions are burned in by `components/FilmCaptions.tsx` (max two lines, current word tinted).
+- `script/make_captured.py` copies the real ids and the page-text snapshots out of `public/footage/capture-log*.json` into
+  `remotion/src/data/captured.json`. No payout id, invoice id, amount or trace line is typed into a component.
+- `remotion/src/CaptureScenes.tsx` is the edit decision list for the 11 capture scenes: source segments with
+  speed (a "sped up N x" badge appears on its own for any segment above 1.2x), camera rectangles (smooth zoom and pan),
+  and annotations that box a real UI rectangle. Times in it are file times, found with frame differencing, not log times.
+- `components/Slides.tsx` holds the hook, title, problem, architecture, APIs, AI layer, evidence, prior-art/honesty and outro slides;
+  they reveal items on the spoken word (`wordAt()` in `film-data.ts`).
+- `components/Cards.tsx` rebuilds two panels that sat below the fold of the 1080p capture (the agent trace and the payout
+  receipt) from the captured page text and labels them as such.
+- Transitions are 12 (fade) or 13 (slide) frames and overlap the previous scene's silent tail, so the audio timeline is
+  exactly the storyboard's.
+
+Render (Git Bash, Windows on ARM). Port 3000 can be taken by another app, so pass `--port`:
+
+```bash
+source scripts/env-x64.sh
+npx remotion render remotion/src/index.ts Turnkeeper out/turnkeeper_v1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --port=3457 --concurrency=6
+node scripts/master.mjs out/turnkeeper_v1.mp4 out/turnkeeper_v1_master.mp4
+```

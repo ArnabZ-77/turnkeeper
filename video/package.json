@@ -9,6 +9,8 @@
     "studio": "remotion studio remotion/src/index.ts",
     "render": "remotion render remotion/src/index.ts Main out/main.mp4 --props=remotion/storyboard.json",
     "render:test": "remotion render remotion/src/index.ts Main out/test.mp4",
+    "render:film": "remotion render remotion/src/index.ts Turnkeeper out/turnkeeper_v1.mp4 --codec=h264 --crf=18 --pixel-format=yuv420p --port=3457 --concurrency=6",
+    "master:film": "node scripts/master.mjs out/turnkeeper_v1.mp4 out/turnkeeper_v1_master.mp4",
     "capture": "node capture/capture.ts --storyboard capture/storyboard.json",
     "capture:test": "node capture/capture.ts --storyboard capture/storyboard.test.json --out footage/_test",
     "master": "node scripts/master.mjs out/main.mp4 out/final.mp4",
@@ -16,6 +18,7 @@
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",
+    "@fontsource/noto-sans-devanagari": "5.3.0",
     "@remotion/captions": "4.0.538",
     "@remotion/cli": "4.0.538",
     "@remotion/fonts": "4.0.538",

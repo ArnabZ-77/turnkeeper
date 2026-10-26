@@ -62,3 +62,15 @@ export type Storyboard = {
 export type MainProps = Storyboard & {
   resolved?: {frames: number[]; voiceSec: Record<string, number>};
 };
+
+// ---- v1 film types (edit decision list) ----
+/** One stretch of source footage: [from,to] source seconds played at `rate` (1 = real time). */
+export type Seg = {src: string; from: number; to: number; rate?: number};
+/** Annotation that points at a real UI rectangle (source px). */
+export type Note = {
+  t: number;
+  dur: number;
+  rect: Rect;
+  label: string;
+  side?: 'left' | 'right' | 'top' | 'bottom';
+};

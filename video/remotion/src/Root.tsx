@@ -1,6 +1,7 @@
 import React from 'react';
 import {Composition, staticFile, type CalculateMetadataFunction} from 'remotion';
 import {FPS, HEIGHT, WIDTH} from './brand';
+import {Film, TOTAL_FRAMES} from './Film';
 import {Main, sceneStarts} from './Main';
 import type {MainProps} from './types';
 import defaultStoryboard from '../storyboard.test.json';
@@ -29,14 +30,19 @@ const calculateMetadata: CalculateMetadataFunction<MainProps> = async ({props}) 
 };
 
 export const RemotionRoot: React.FC = () => (
-  <Composition
-    id="Main"
-    component={Main}
-    width={WIDTH}
-    height={HEIGHT}
-    fps={FPS}
-    durationInFrames={FPS * 6}
-    defaultProps={defaultStoryboard as MainProps}
-    calculateMetadata={calculateMetadata}
-  />
+  <>
+    {/* The demo film: scenes, timings and narration come from script/storyboard.json (see edl in CaptureScenes.tsx). */}
+    <Composition id="Turnkeeper" component={Film} width={WIDTH} height={HEIGHT} fps={FPS} durationInFrames={TOTAL_FRAMES} />
+    {/* Toolchain smoke test (npm run render:test). */}
+    <Composition
+      id="Main"
+      component={Main}
+      width={WIDTH}
+      height={HEIGHT}
+      fps={FPS}
+      durationInFrames={FPS * 6}
+      defaultProps={defaultStoryboard as MainProps}
+      calculateMetadata={calculateMetadata}
+    />
+  </>
 );

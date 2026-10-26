@@ -233,7 +233,7 @@
         },
         {
           "click": {
-            "selector": "section[aria-label='Rotation board'] .b-sch-event:has-text('Declined')"
+            "selector": ".tk-scheduler .b-sch-event-wrap.tk-st-declined .b-sch-event"
           },
           "label": "ravi-declined"
         },
