@@ -445,3 +445,19 @@ class CharterApprovalRow(SQLModel, table=True):
     approved_by: str = "priya (organizer)"
     user_agent: str = ""
     approved_at: datetime = Field(default_factory=utcnow)
+
+
+# --- Member mandates (flag ``member_mandates``, default off), appended 2026-10-28: a NEW table only -----------
+
+
+class MemberMandateRow(SQLModel, table=True):
+    """One member's signed mandate (app.domain.member_mandate.MemberMandate as JSON). Rows exist only for
+    circles that turned the ``member_mandates`` flag on; with the flag off nothing reads or writes this table."""
+
+    __tablename__ = "member_mandates"
+
+    id: int | None = Field(default=None, primary_key=True)
+    circle_id: str = Field(index=True)
+    member: str = Field(index=True)
+    json: str  # signed MemberMandate as JSON (the newest row per member wins)
+    approved_at: datetime = Field(default_factory=utcnow)

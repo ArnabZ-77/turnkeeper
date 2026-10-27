@@ -32,7 +32,11 @@ ACTIONS = (
     "make_next_payout_unclaimed",
     "run_forecast",  # builder C (M3): force the T-3 forecast for {round_n} (default: the next open round)
     "reroute_unclaimed",  # builder E: UNCLAIMED pot -> wait, one cancel attempt, new batch r{rev+1} (background)
+    "toggle_member_mandates",  # member mandates (default off): switch the circle flag and seed default mandates
+    "try_overcharge",  # member mandates: policy.authorize a $230 charge; denied before PayPal is ever called
 )
+TRY_OVERCHARGE_AMOUNT = "230.00"
+TRY_OVERCHARGE_MEMBER = "ravi"
 
 
 async def _forecast_after_clock(circle_id: str, sid: str, request: Request) -> list[dict[str, Any]]:
@@ -56,6 +60,8 @@ class JudgeBody(BaseModel):
     days: float | None = Field(default=None, ge=0, le=366)
     round_n: int | None = Field(default=None, ge=1)
     on: bool | None = None
+    amount: str | None = Field(default=None, max_length=20)  # try_overcharge
+    member: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]{1,15}$")  # try_overcharge
 
 
 @router.post("/{action}")
@@ -138,7 +144,88 @@ async def judge_action(
     if action == "reroute_unclaimed":
         return _start_reroute(body.circle_id, body.round_n, sess)
 
+    if action == "toggle_member_mandates":
+        return await _toggle_member_mandates(body, sess)
+
+    if action == "try_overcharge":
+        return await _try_overcharge(body, sess)
+
     raise HTTPException(status_code=404, detail="unknown action")  # pragma: no cover
+
+
+async def _toggle_member_mandates(body: JudgeBody, sess: Session) -> dict[str, Any]:
+    from app.engine import member_mandates
+
+    if member_mandates.killed():
+        raise HTTPException(status_code=404, detail="member agents are switched off (TK_MEMBER_AGENTS=0)")
+    on = (not member_mandates.enabled(body.circle_id)) if body.on is None else bool(body.on)
+    seeded = 0
+    if on:
+        seeded = member_mandates.enable(body.circle_id)["seeded"]
+    else:
+        state.set_flag(body.circle_id, state.MEMBER_MANDATES_FLAG, False)
+    bus = get_event_bus()
+    await bus.publish(
+        sess.sid, {"type": "toast", "level": "info", "text": f"member_mandates = {'on' if on else 'off'}"}
+    )
+    await bus.publish(sess.sid, {"type": "board"})
+    return {
+        "ok": True,
+        "action": "toggle_member_mandates",
+        "enabled": member_mandates.enabled(body.circle_id),
+        "seeded": seeded,
+    }
+
+
+async def _try_overcharge(body: JudgeBody, sess: Session) -> dict[str, Any]:
+    """Ask the policy engine (only) to authorize an over-limit charge. PayPal is never called: this builds the
+    CircleState and calls ``PolicyEngine.authorize``; the answer is the denial reason."""
+    from app.domain.policy import PolicyDenied, PolicyEngine
+    from app.routes.member_agents import require_enabled
+
+    cid = body.circle_id
+    require_enabled(cid)
+    member = body.member or TRY_OVERCHARGE_MEMBER
+    amount = body.amount or TRY_OVERCHARGE_AMOUNT
+    round_n = body.round_n
+    if round_n is None:
+        open_rounds = [r["n"] for r in state.board_model(cid)["rounds"] if r["status"] not in ("PAID", "VOID")]
+        round_n = open_rounds[0] if open_rounds else 1
+    if state.get_round(cid, round_n) is None:
+        raise HTTPException(status_code=404, detail=f"round {round_n} not found")
+    charter = state.load_charter(cid)
+    engine = PolicyEngine(charter, state.circle_state(cid, round_n))
+    bus = get_event_bus()
+    try:
+        ticket = engine.authorize("charge", member=member, amount=amount)
+    except PolicyDenied as e:
+        banner = f"DENIED before PayPal is called: {e.reason}"
+        await bus.publish(sess.sid, {"type": "toast", "level": "error", "text": banner})
+        await bus.publish(
+            sess.sid, {"type": "trace", "kind": "system", "source": "policy", "text": banner}
+        )
+        return {
+            "ok": True,
+            "action": "try_overcharge",
+            "denied": True,
+            "reason": e.reason,
+            "banner": banner,
+            "member": member,
+            "amount": amount,
+            "round_n": round_n,
+            "paypal_called": False,
+        }
+    return {
+        "ok": True,
+        "action": "try_overcharge",
+        "denied": False,
+        "reason": "the policy engine allows this charge (it is within the member's mandate); nothing was sent",
+        "ticket": ticket.id,
+        "member": member,
+        "amount": amount,
+        "round_n": round_n,
+        "paypal_called": False,
+    }
 
 
 def _start_reroute(circle_id: str, round_n: int | None, sess: Session) -> dict[str, Any]:

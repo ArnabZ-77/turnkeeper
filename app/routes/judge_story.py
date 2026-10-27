@@ -60,6 +60,15 @@ def can_charge_live(circle_id: str) -> bool:
     return bool(get_settings().paypal_configured) and circle_vault_seeded(circle_id)
 
 
+def _variant(circle_id: str) -> str | None:
+    """"member_agents" for the opt-in Story B (flag member_mandates on AND this circle started as Story B), else
+    None: the default story's responses then carry no extra keys."""
+    try:
+        return story.VARIANT_B if state.is_story_b(state.load_circle(circle_id)) else None
+    except LookupError:
+        return None
+
+
 def _current(sess: Session) -> Session:
     """The session as stored now (a story reset moves it to a new circle)."""
     return sessions.resolve_session(sess.sid) or sess
@@ -194,6 +203,8 @@ async def _maybe_finish(sess: Session) -> None:
             if rec is not None and rec.canonical
             else "Story complete (Advanced controls were used, so it is not the public replay)"
         )
+        if _variant(sess.circle_id) is not None:
+            text = "Story B complete (member agents): recorded, but never the public replay"
         await get_event_bus().publish(sess.sid, {"type": "toast", "level": "success", "text": text})
 
 
@@ -298,7 +309,81 @@ async def _step_start_recovery(sess: Session, request: Request) -> StepOut:
     return res, res["task_id"], "rules", "Recovery started", {"paypal": None, "ai": None}
 
 
+def _agent_ai_mode(decisions: list[dict[str, Any]]) -> str:
+    """How the agents' explanations were worded: rules | replay | live (the decisions are always rules code)."""
+    modes = {str(d.get("explanation_mode")) for d in decisions}
+    return "live" if "live" in modes else ("replay" if "replay" in modes else "rules")
+
+
+async def _step_consents_b(sess: Session, request: Request) -> StepOut:
+    """Story B step 6: each affected member's AGENT answers inside its mandate. An 'ask' is posted to the member's
+    inbox and answered by the judge's click as the human (recorded with source "judge", labelled in the summary)."""
+    from app.engine import member_agent
+
+    cid = sess.circle_id
+    row = recovery.latest_set(cid)
+    if row is None:
+        raise HTTPException(status_code=409, detail="no remedy proposal yet; start the recovery first")
+    needed = recovery.domain_set(row).affected_members()
+    try:
+        res = await member_agent.run_member_agents(
+            cid,
+            row.id,
+            kinds=("consent",),
+            answers={h: "yes" for h in needed},  # only used where the agent asks
+            answer_source="judge",
+            publish=_publish(sess),
+            live_allowed=tasks.live_allowed_for(request),
+        )
+    except recovery.RecoveryError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    missing = [h for h in needed if h not in res["consents"]["given"]]
+    if missing:
+        raise HTTPException(status_code=409, detail=f"consent missing from {', '.join(missing)}")
+    parts = []
+    for d in res["decisions"]:
+        who = _name(cid, d["member"])
+        if d["source"] == "agent":
+            parts.append(f"{who}'s agent {d['choice']} ({d['rule']})")
+        else:
+            parts.append(f"{who}'s agent asked, answered {d.get('recorded_choice')} by the judge's click")
+    mode = _agent_ai_mode(res["decisions"])
+    out = {"consented": needed, "decisions": res["decisions"], "asked": res["asked"], "variant": "member_agents"}
+    return out, None, mode, "Consents: " + ("; ".join(parts) or "none needed"), {"paypal": None, "ai": mode}
+
+
+async def _step_votes_b(sess: Session, request: Request) -> StepOut:
+    """Story B step 7: every member's agent votes inside its mandate; an 'ask' stays pending in the inbox."""
+    from app.engine import member_agent
+
+    cid = sess.circle_id
+    row = recovery.latest_set(cid)
+    if row is None:
+        raise HTTPException(status_code=409, detail="no remedy proposal yet; start the recovery first")
+    try:
+        res = await member_agent.run_member_agents(
+            cid,
+            row.id,
+            kinds=("vote",),
+            publish=_publish(sess),
+            live_allowed=tasks.live_allowed_for(request),
+        )
+    except recovery.RecoveryError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    votes = res["votes"]
+    if not votes.get("passed"):
+        raise HTTPException(status_code=409, detail=f"vote did not pass: {votes}")
+    summary = f"Votes: {votes.get('yes')} of {votes.get('total')} yes (quorum {votes.get('needed')}), by member agents"
+    if res["asked"]:
+        summary += "; asked the human: " + ", ".join(_name(cid, h) for h in res["asked"])
+    mode = _agent_ai_mode(res["decisions"])
+    out = {"votes": votes, "decisions": res["decisions"], "asked": res["asked"], "variant": "member_agents"}
+    return out, None, mode, summary, {"paypal": None, "ai": mode}
+
+
 async def _step_consents(sess: Session, request: Request) -> StepOut:
+    if _variant(sess.circle_id) is not None:
+        return await _step_consents_b(sess, request)
     from app.routes.recovery import RecoveryJudgeBody, consent_as_affected
 
     res = await consent_as_affected(RecoveryJudgeBody(circle_id=sess.circle_id), sess)
@@ -307,6 +392,8 @@ async def _step_consents(sess: Session, request: Request) -> StepOut:
 
 
 async def _step_votes(sess: Session, request: Request) -> StepOut:
+    if _variant(sess.circle_id) is not None:
+        return await _step_votes_b(sess, request)
     from app.routes.recovery import RecoveryJudgeBody, vote_as_members
 
     res = await vote_as_members(RecoveryJudgeBody(circle_id=sess.circle_id), sess)
@@ -441,24 +528,32 @@ async def get_story(sess: CurrentSession) -> dict[str, Any]:
     except story.StoryError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail) from None
     return story.story_view(
-        sess.circle_id, live=can_charge_live(sess.circle_id), running=_running(sess.circle_id)
+        sess.circle_id,
+        live=can_charge_live(sess.circle_id),
+        running=_running(sess.circle_id),
+        variant=_variant(sess.circle_id),
     )
 
 
 @router.post("/story/{step}")
-async def post_story(step: str, sess: CurrentSession, request: Request) -> dict[str, Any]:
+async def post_story(
+    step: str, sess: CurrentSession, request: Request, variant: str | None = None
+) -> dict[str, Any]:
+    """``variant=member_agents`` (only with the reset step) starts the opt-in Story B; never the default."""
     sess = _current(sess)
     lock = _lock_for(sess.circle_id)
     if lock.locked():
         raise HTTPException(status_code=409, detail="a story step is already running")
     async with lock:
         try:
-            return await _post_story_locked(step, sess, request)
+            return await _post_story_locked(step, sess, request, variant)
         except story.StoryError as e:
             raise HTTPException(status_code=e.status_code, detail=e.detail) from None
 
 
-async def _post_story_locked(step: str, sess: Session, request: Request) -> dict[str, Any]:
+async def _post_story_locked(
+    step: str, sess: Session, request: Request, variant: str | None = None
+) -> dict[str, Any]:
     await settle(sess)
     cid = sess.circle_id
     nxt = story.next_step(story.load(cid))
@@ -477,6 +572,16 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
         if step != nxt:
             raise HTTPException(status_code=409, detail=f"the next story step is {nxt!r}, not {step!r}")
 
+    if variant is not None:
+        if variant != story.VARIANT_B:
+            raise HTTPException(status_code=422, detail=f"unknown story variant {variant!r}")
+        if step != "reset":
+            raise HTTPException(status_code=422, detail="a story variant can only be chosen with the reset step")
+        from app.engine import member_mandates
+
+        if member_mandates.killed():
+            raise HTTPException(status_code=404, detail="member agents are switched off (TK_MEMBER_AGENTS=0)")
+
     if step == "reset":
         # Restart always works: reset_session closes the old circle, and background runs still going on it stop
         # reaching this session's stream (tasks.make_publisher checks the session's current circle).
@@ -486,6 +591,12 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
         await story.mark_step_start(sess.sid, cid, "reset")
         new = sessions.reset_session(sess.sid)
         story.begin(new.circle_id, new.sid, new.run_id)
+        if variant == story.VARIANT_B:  # opt-in per run: mandates on, default mandates signed, never canonical
+            from app.engine import member_mandates
+
+            member_mandates.enable(new.circle_id)
+            state.set_flag(new.circle_id, state.STORY_B_FLAG, True)
+            story.taint(new.circle_id, "story_b")
         bus = get_event_bus()
         await bus.publish(
             sess.sid, {"type": "toast", "level": "info", "text": "Story reset: new circle, new run id"}
@@ -503,7 +614,7 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
             "ok": True,
             "step": "reset",
             "session": session_shape(new),
-            "story": story.story_view(new.circle_id, live=live),
+            "story": story.story_view(new.circle_id, live=live, variant=_variant(new.circle_id)),
         }
 
     if story.load(cid) is None:  # defensive: next_step() is "reset" for a circle without a story
@@ -542,5 +653,5 @@ async def _post_story_locked(step: str, sess: Session, request: Request) -> dict
         "summary": summary,
         "task_id": task_id,
         "result": result,
-        "story": story.story_view(cid, live=live, running=_running(cid)),
+        "story": story.story_view(cid, live=live, running=_running(cid), variant=_variant(cid)),
     }

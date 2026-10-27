@@ -5,7 +5,8 @@ The model proposes, the policy engine decides, humans approve. ``PolicyEngine.au
 read on screen. Rules follow PLAN.md section 5 "Guardrails and policy limits":
 
 - frozen circle (kill switch or "Pause circle"): everything is denied
-- charge / retry_charge: exactly ``charter.amount``; one success per member per round; at most 2 retries
+- charge / retry_charge: (only when ``CircleState.member_mandate_ok`` is not None: the member's signed mandate is
+  valid, unexpired and allows the amount) exactly ``charter.amount``; one success per member per round; at most 2 retries
   per member per round, 24 virtual hours apart when the clock is known; never after PAYER_ACTION_REQUIRED;
   never for a member who revoked consent
 - payout: recipient is the rotation's recipient for the round (or the approved swap); a verified mandate
@@ -24,7 +25,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,6 +68,11 @@ class CircleState(BaseModel):
     decline_codes: dict[str, str] = Field(default_factory=dict)  # member -> last decline issue code
     revoked: set[str] = Field(default_factory=set)  # members whose vault token was deleted
     now: datetime | None = None  # the circle's virtual clock
+    # Member mandates (flag ``member_mandates``). None = NOT required: the policy path is exactly the old one.
+    # A dict = required: {member: {"ok": bool, "reason": str, "max_charge_per_round": "200.00" | None}}, built by
+    # ``app.domain.member_mandate.policy_entry``. A charge for a member with no entry, an invalid or expired
+    # mandate, or an amount over the limit is denied before any PayPal call.
+    member_mandate_ok: dict[str, dict[str, Any]] | None = None
 
 
 class PolicyTicket(BaseModel):
@@ -195,6 +201,7 @@ class PolicyEngine:
         s, c = self.state, self.charter
         m = self._member(member)
         amt = c.amount if amount is None else self._amount(amount, "charge")
+        self._member_mandate_allows(m, amt)
         if amt != c.amount:
             raise PolicyDenied(f"charge amount {amt} differs from the charter amount {c.amount}")
         if m in s.revoked:
@@ -223,6 +230,22 @@ class PolicyEngine:
                         f"retry for {m} is too soon: {hours:.0f}h since the last attempt, 24h required"
                     )
         return m, amt
+
+    def _member_mandate_allows(self, member: str, amt: Decimal) -> None:
+        """Deny a charge outside the member's mandate. A no-op when member mandates are not required (None)."""
+        required = self.state.member_mandate_ok
+        if required is None:
+            return
+        entry = required.get(member)
+        if not entry:
+            raise PolicyDenied(f"no member mandate on file for {member}; charges are blocked")
+        if not entry.get("ok"):
+            raise PolicyDenied(f"{entry.get('reason') or f'{member} has no valid member mandate'}; charge blocked")
+        limit = entry.get("max_charge_per_round")
+        if limit is None:
+            raise PolicyDenied(f"{member}'s mandate has no charge limit; charge blocked")
+        if amt > money(limit):
+            raise PolicyDenied(f"charge {amt} exceeds {member}'s mandate limit {money(limit)} per round")
 
     def _payout(
         self, recipient: str | None, amount: MoneyInput | None, consents: set[str]

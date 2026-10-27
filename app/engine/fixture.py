@@ -113,6 +113,15 @@ def _create_mandate(db: DbSession, circle: Circle, charter: Any, now: datetime) 
     return True
 
 
+def _seed_member_mandates(db: DbSession, circle: Circle, charter: Any, now: datetime) -> None:
+    """Flag ``member_mandates`` (TK_MEMBER_MANDATES) on: sign a default mandate for each of the six members.
+    With the flag off (the default) this does nothing and no row is written."""
+    from app.engine import member_mandates
+
+    if member_mandates.wanted_at_clone():
+        member_mandates.seed_in(db, circle, charter, now)
+
+
 def clone_fixture(db: DbSession, *, circle_id: str, run_id: str, now: datetime | None = None) -> Circle:
     """Insert a complete clone of the demo circle (circle, members, rounds, contributions, ledger, mandate)."""
     fx = load_fixture()
@@ -282,5 +291,6 @@ def clone_fixture(db: DbSession, *, circle_id: str, run_id: str, now: datetime |
         db.add(rnd)
 
     _create_mandate(db, circle, charter, now)
+    _seed_member_mandates(db, circle, charter, now)
     db.flush()
     return circle

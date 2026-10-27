@@ -46,6 +46,11 @@ def _hmac_hex(payload: str, secret: str) -> str:
     return hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def hmac_hex(payload: str, secret: str) -> str:
+    """The shared signing primitive (hex HMAC-SHA256); ``app.domain.member_mandate`` reuses it."""
+    return _hmac_hex(payload, secret)
+
+
 def sign_mandate(m: Mandate, secret: str) -> Mandate:
     """A copy of ``m`` with ``signature`` = hex HMAC-SHA256(secret, canonical non-signature fields)."""
     if not secret:

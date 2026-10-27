@@ -60,26 +60,59 @@ def charter_of(circle: Circle) -> Any:
     return _charter_mod().Charter.model_validate_json(circle.charter_json)
 
 
-def get_flags(circle: Circle) -> dict[str, bool]:
+MEMBER_MANDATES_FLAG = "member_mandates"  # circle flag (default off); also TK_MEMBER_MANDATES for every circle
+STORY_B_FLAG = "member_agents_story"  # this circle's Judge story is the opt-in "Story B" (member agents)
+EXTRA_FLAG_KEYS = (MEMBER_MANDATES_FLAG, STORY_B_FLAG)  # stored in flags_json, never part of get_flags' base keys
+
+
+def _raw_flags(circle: Circle) -> dict[str, Any]:
     try:
         raw = json.loads(circle.flags_json or "{}")
     except ValueError:
-        raw = {}
-    return {k: bool(raw.get(k, False)) for k in FLAG_KEYS}
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def member_mandates_enabled(circle: Circle) -> bool:
+    """Member mandates are required for this circle: the circle's own ``member_mandates`` flag or the global
+    TK_MEMBER_MANDATES, unless TK_MEMBER_AGENTS=0 (kill switch). Default OFF: nothing below runs."""
+    settings = get_settings()
+    if settings.member_agents_killed:
+        return False
+    return bool(settings.member_mandates or _raw_flags(circle).get(MEMBER_MANDATES_FLAG))
+
+
+def is_story_b(circle: Circle) -> bool:
+    """The circle runs the opt-in Story B (member agents answer steps 6-7) and mandates are on."""
+    return bool(_raw_flags(circle).get(STORY_B_FLAG)) and member_mandates_enabled(circle)
+
+
+def get_flags(circle: Circle) -> dict[str, bool]:
+    raw = _raw_flags(circle)
+    flags = {k: bool(raw.get(k, False)) for k in FLAG_KEYS}
+    if member_mandates_enabled(circle):  # absent (not False) when off: the board JSON is unchanged
+        flags[MEMBER_MANDATES_FLAG] = True
+        if is_story_b(circle):
+            flags[STORY_B_FLAG] = True
+    return flags
 
 
 def set_flag(circle_id: str, name: str, value: bool) -> dict[str, bool]:
-    if name not in FLAG_KEYS:
+    if name not in FLAG_KEYS and name not in EXTRA_FLAG_KEYS:
         raise ValueError(f"unknown flag {name}")
     with session_scope() as db:
         circle = db.get(Circle, circle_id)
         if circle is None:
             raise LookupError(f"circle {circle_id} not found")
-        flags = get_flags(circle)
-        flags[name] = bool(value)
-        circle.flags_json = json.dumps(flags)
+        raw = _raw_flags(circle)  # keep keys this function does not own (member_mandates)
+        raw.update({k: bool(raw.get(k, False)) for k in FLAG_KEYS})
+        if name in EXTRA_FLAG_KEYS and not value:
+            raw.pop(name, None)
+        else:
+            raw[name] = bool(value)
+        circle.flags_json = json.dumps(raw)
         db.add(circle)
-        return flags
+        return get_flags(circle)
 
 
 def get_counters(circle: Circle) -> dict[str, int]:
@@ -217,6 +250,10 @@ def circle_state(circle_id: str, round_n: int, *, paypal_available: Decimal | No
         "revoked": revoked,
         "rotation_override": effective if effective and effective != list(charter.rotation) else None,
     }
+    if member_mandates_enabled(circle):  # None (not required) otherwise: the old policy path, untouched
+        from app.engine import member_mandates
+
+        extras["member_mandate_ok"] = member_mandates.policy_map(circle, charter)
     allowed = set(getattr(pm.CircleState, "model_fields", {}).keys())
     return pm.CircleState(
         circle_id=circle_id,
