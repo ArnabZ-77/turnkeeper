@@ -7,12 +7,16 @@
 
 import type { ConnectionState } from "./events";
 import { movedHandles, normalizeMode } from "./recovery";
+import { NO_DECISIONS, mergeDecisions, type AgentDecisions } from "./mandates";
 import { applyForecastEvent } from "./forecast";
 import { applyRerouteToRound } from "./payouts";
 import { markStoryStart, parseStepFailureToast, type StoryFailure } from "./story";
 import type {
+  AgentDecision,
   BoardModel,
   ContributionInfo,
+  MandatesView,
+  OverchargeResult,
   PayoutEvent,
   RecoveryInfo,
   RunMode,
@@ -72,6 +76,12 @@ export interface UiState {
   replayUrl: string | null;
   /** Last failed attempt at a story step; stays visible until a retry, a pass or a reset. */
   storyFailure: StoryFailure | null;
+  /** Member mandates (flag `member_mandates`, default off): null whenever the feature is off or not loaded yet. */
+  mandates: MandatesView | null;
+  /** What the member agents answered for the current remedy set (from the run and Story B responses). */
+  agentDecisions: AgentDecisions;
+  /** The last "Try a $230 charge" answer (policy only, PayPal is never called). */
+  overcharge: OverchargeResult | null;
 }
 
 export type UiAction =
@@ -95,7 +105,10 @@ export type UiAction =
   | { type: "story"; story: StoryView | null }
   | { type: "replayUrl"; url: string | null }
   | { type: "storyError"; step: string; text: string }
-  | { type: "clearStoryError" };
+  | { type: "clearStoryError" }
+  | { type: "mandates"; mandates: MandatesView | null }
+  | { type: "agentDecisions"; setId: string | null; decisions: AgentDecision[] }
+  | { type: "overcharge"; result: OverchargeResult | null };
 
 export const TRACE_LIMIT = 500;
 export const TOAST_LIMIT = 2;
@@ -120,6 +133,9 @@ export const initialState: UiState = {
   story: null,
   replayUrl: null,
   storyFailure: null,
+  mandates: null,
+  agentDecisions: NO_DECISIONS,
+  overcharge: null,
 };
 
 let seq = 0;
@@ -298,6 +314,14 @@ export function reducer(state: UiState, action: UiAction): UiState {
       return state.storyFailure ? { ...state, storyFailure: null } : state;
     case "replayUrl":
       return { ...state, replayUrl: action.url };
+    case "mandates":
+      return action.mandates === null && state.mandates === null ? state : { ...state, mandates: action.mandates };
+    case "agentDecisions":
+      return action.decisions.length || state.agentDecisions.setId !== action.setId
+        ? { ...state, agentDecisions: mergeDecisions(state.agentDecisions, action.setId, action.decisions) }
+        : state;
+    case "overcharge":
+      return { ...state, overcharge: action.result };
     case "event":
       return applyEvent(state, action.event);
     case "toast":
@@ -320,6 +344,9 @@ export function reducer(state: UiState, action: UiAction): UiState {
         translations: {},
         moved: null,
         storyFailure: null,
+        mandates: null,
+        agentDecisions: NO_DECISIONS,
+        overcharge: null,
       };
     case "connection":
       return { ...state, connection: action.state };

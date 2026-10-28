@@ -1,0 +1,1574 @@
+{
+ "board": {
+  "circle": {
+   "amount": "200.00",
+   "buffer_balance": "57.47",
+   "cadence": "monthly",
+   "charter_sha256": "b85cfed8ada903122d41249e0f8cfab62d1420a137638c921259511cda616f25",
+   "circle_available": "2310.36",
+   "currency": "USD",
+   "fee_policy": "net_pot",
+   "flags": {
+    "next_payout_unclaimed": false,
+    "ravi_declines": false
+   },
+   "frozen": false,
+   "id": "<circle>",
+   "is_fixture_clone": true,
+   "mandate_present": true,
+   "name": "Temple Circle A",
+   "paypal_balance": {
+    "checked_at": null,
+    "last_refreshed": null,
+    "source": "paypal_balances",
+    "stale": null,
+    "value": null
+   },
+   "rotation": [
+    "meena",
+    "asha",
+    "dev",
+    "lin",
+    "tomas",
+    "ravi"
+   ],
+   "run_id": "<run>",
+   "status": "active",
+   "virtual_now": "<ts>"
+  },
+  "contributions": [
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-ASHA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "asha",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-ASHA",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-RAVI",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured late (replay)",
+    "member": "ravi",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-RAVI",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-MEENA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "meena",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-MEENA",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-TOMAS",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "tomas",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-TOMAS",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-LIN",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "lin",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-LIN",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-1-DEV",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "dev",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-1-DEV",
+    "predicted": false,
+    "round_n": 1,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-ASHA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "asha",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-ASHA",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-RAVI",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured late (replay)",
+    "member": "ravi",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-RAVI",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-MEENA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "meena",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-MEENA",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-TOMAS",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "tomas",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-TOMAS",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-LIN",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "lin",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-LIN",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-2-DEV",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (replay)",
+    "member": "dev",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-2-DEV",
+    "predicted": false,
+    "round_n": 2,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-3-ASHA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "asha",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-3-ASHA",
+    "predicted": false,
+    "round_n": 3,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": null,
+    "decline_code": "INSTRUMENT_DECLINED",
+    "decline_source": "simulated",
+    "fee": null,
+    "gross": null,
+    "label": "Covered by buffer",
+    "member": "ravi",
+    "net": null,
+    "order_id": null,
+    "predicted": true,
+    "round_n": 3,
+    "status": "COVERED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-3-MEENA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "meena",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-3-MEENA",
+    "predicted": false,
+    "round_n": 3,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-3-TOMAS",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "tomas",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-3-TOMAS",
+    "predicted": false,
+    "round_n": 3,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-3-LIN",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "lin",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-3-LIN",
+    "predicted": false,
+    "round_n": 3,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-3-DEV",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "dev",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-3-DEV",
+    "predicted": false,
+    "round_n": 3,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-ASHA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "asha",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-ASHA",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-RAVI",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "ravi",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-RAVI",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-MEENA",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "meena",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-MEENA",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-TOMAS",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "tomas",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-TOMAS",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-LIN",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "lin",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-LIN",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 1,
+    "capture_id": "REPLAY-CAP-4-DEV",
+    "decline_code": null,
+    "decline_source": null,
+    "fee": "7.47",
+    "gross": "200.00",
+    "label": "Captured (simulated, no PayPal call)",
+    "member": "dev",
+    "net": "192.53",
+    "order_id": "REPLAY-ORD-4-DEV",
+    "predicted": false,
+    "round_n": 4,
+    "status": "COMPLETED",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "asha",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "ravi",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "meena",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "tomas",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "lin",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "dev",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 5,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "asha",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "ravi",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "meena",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "tomas",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "lin",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   },
+   {
+    "attempt": 0,
+    "capture_id": null,
+    "decline_code": null,
+    "decline_source": null,
+    "fee": null,
+    "gross": null,
+    "label": null,
+    "member": "dev",
+    "net": null,
+    "order_id": null,
+    "predicted": false,
+    "round_n": 6,
+    "status": "PENDING",
+    "webhook_verified": false
+   }
+  ],
+  "counters": {
+   "organizer_messages_typed": 0,
+   "rounds_paid_on_time": 2,
+   "shortfalls_covered": 1
+  },
+  "forecasts": [
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     },
+     {
+      "detail": "paid late in rounds 1 and 2",
+      "factor": "late_history",
+      "weight": 0.4
+     },
+     {
+      "detail": "last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08",
+      "factor": "payday",
+      "weight": 0.25
+     },
+     {
+      "detail": "1 earlier reply asked for more time",
+      "factor": "replies",
+      "weight": 0.1
+     },
+     {
+      "detail": "no track record in earlier circles",
+      "factor": "track_record",
+      "weight": 0.05
+     }
+    ],
+    "flagged": true,
+    "lang": "hi",
+    "member": "ravi",
+    "mode": "rules",
+    "nudge": "नमस्ते Ravi, याद दिला दें: राउंड 3 के $200.00 2027-01-01 को देय हैं। अगर सैलरी बाद में आएगी, तो तारीख बता दें, सर्कल पहले से इंतज़ाम कर लेगा।",
+    "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
+    "reason": "Ravi at risk (score 0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+    "round_n": 3,
+    "score": 0.85
+   },
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     },
+     {
+      "detail": "no track record in earlier circles",
+      "factor": "track_record",
+      "weight": 0.05
+     }
+    ],
+    "flagged": false,
+    "lang": "en",
+    "member": "tomas",
+    "mode": "rules",
+    "nudge": null,
+    "nudge_en": null,
+    "reason": "Tomas (score 0.10): no track record in earlier circles",
+    "round_n": 3,
+    "score": 0.1
+   },
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     }
+    ],
+    "flagged": false,
+    "lang": "en",
+    "member": "asha",
+    "mode": "rules",
+    "nudge": null,
+    "nudge_en": null,
+    "reason": "Asha (score 0.05): no risk factors",
+    "round_n": 3,
+    "score": 0.05
+   },
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     }
+    ],
+    "flagged": false,
+    "lang": "en",
+    "member": "dev",
+    "mode": "rules",
+    "nudge": null,
+    "nudge_en": null,
+    "reason": "Dev (score 0.05): no risk factors",
+    "round_n": 3,
+    "score": 0.05
+   },
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     }
+    ],
+    "flagged": false,
+    "lang": "en",
+    "member": "lin",
+    "mode": "rules",
+    "nudge": null,
+    "nudge_en": null,
+    "reason": "Lin (score 0.05): no risk factors",
+    "round_n": 3,
+    "score": 0.05
+   },
+   {
+    "as_of": "<ts>",
+    "factors": [
+     {
+      "detail": "base rate",
+      "factor": "base",
+      "weight": 0.05
+     }
+    ],
+    "flagged": false,
+    "lang": "en",
+    "member": "meena",
+    "mode": "rules",
+    "nudge": null,
+    "nudge_en": null,
+    "reason": "Meena (score 0.05): no risk factors",
+    "round_n": 3,
+    "score": 0.05
+   }
+  ],
+  "members": [
+   {
+    "handle": "meena",
+    "label": null,
+    "lang": "en",
+    "name": "Meena Iyer",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 1,
+    "vaulted": false
+   },
+   {
+    "handle": "asha",
+    "label": null,
+    "lang": "en",
+    "name": "Asha Patel",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 2,
+    "vaulted": false
+   },
+   {
+    "handle": "dev",
+    "label": null,
+    "lang": "en",
+    "name": "Dev Mehta",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 3,
+    "vaulted": false
+   },
+   {
+    "handle": "lin",
+    "label": null,
+    "lang": "en",
+    "name": "Lin Zhao",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 4,
+    "vaulted": false
+   },
+   {
+    "handle": "tomas",
+    "label": "Turn moved to round 5 (swap with ravi)",
+    "lang": "en",
+    "name": "Tomas Alvarez",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 5,
+    "vaulted": false
+   },
+   {
+    "handle": "ravi",
+    "label": "Round 3: covered by buffer · Invoice due Fri · Turn moved to round 6 (swap with tomas)",
+    "lang": "hi",
+    "name": "Ravi Sharma",
+    "payout_wallet": "PAYPAL",
+    "rotation_pos": 6,
+    "vaulted": false
+   }
+  ],
+  "recovery": {
+   "approval": {
+    "at": "<ts>",
+    "by": "priya",
+    "status": "approved"
+   },
+   "blockers": [],
+   "commitment": {
+    "amount": "200.00",
+    "date": "2027-01-08",
+    "member": "ravi",
+    "source": "rules"
+   },
+   "consents": {
+    "given": [
+     "ravi",
+     "tomas"
+    ],
+    "needed": [
+     "ravi",
+     "tomas"
+    ],
+    "refused": []
+   },
+   "invoice": {
+    "amount": "200.00",
+    "due_date": "2027-01-08",
+    "id": "SIM-INV-<run>-3-ravi",
+    "member": "ravi",
+    "qr": null,
+    "round_n": 3,
+    "simulated": true,
+    "status": "SENT"
+   },
+   "member": "ravi",
+   "problems": [],
+   "remedies": [
+    {
+     "id": "<rm_id>",
+     "label": "Buffer advanced 192.53",
+     "member": "ravi",
+     "params": {
+      "amount": "192.53",
+      "due_date": null,
+      "swap_with": null
+     },
+     "reason": "The buffer covers Ravi Sharma's net share ($192.53) now, so round 3 pays on time.",
+     "round_n": 3,
+     "status": "executed",
+     "type": "buffer_advance"
+    },
+    {
+     "id": "<rm_id>",
+     "label": "Invoice due Fri 2027-01-08 (simulated)",
+     "member": "ravi",
+     "params": {
+      "amount": "200.00",
+      "due_date": "2027-01-08",
+      "swap_with": null
+     },
+     "reason": "Ravi Sharma repays $200.00 by PayPal invoice due 2027-01-08 (Friday), the payday they named; the buffer is refilled when it is paid.",
+     "round_n": 3,
+     "status": "executed",
+     "type": "repay_by_invoice"
+    },
+    {
+     "id": "<rm_id>",
+     "label": "Turn moved to round 6 (swap with tomas)",
+     "member": "ravi",
+     "params": {
+      "amount": null,
+      "due_date": null,
+      "swap_with": "tomas"
+     },
+     "reason": "Ravi Sharma's payout turn moves later (round 5 -> 6) and Tomas Alvarez takes round 5, so Ravi Sharma's unreceived pot keeps protecting the circle until the invoice is paid.",
+     "round_n": 3,
+     "status": "executed",
+     "type": "turn_swap"
+    }
+   ],
+   "round_n": 3,
+   "set_id": "<rs_id>",
+   "source": "rules",
+   "status": "executed",
+   "votes": {
+    "closes_at": "<ts>",
+    "needed": 4,
+    "no": 0,
+    "passed": true,
+    "total": 6,
+    "yes": 4
+   }
+  },
+  "rounds": [
+   {
+    "due_at": "<ts>",
+    "n": 1,
+    "paid_at": "<ts>",
+    "payout": {
+     "amount": "1154.93",
+     "batch_id": "REPLAY-BATCH-1",
+     "fee": "0.25",
+     "item_id": "REPLAY-ITEM-1",
+     "status": "SUCCESS"
+    },
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "meena",
+    "status": "PAID"
+   },
+   {
+    "due_at": "<ts>",
+    "n": 2,
+    "paid_at": "<ts>",
+    "payout": {
+     "amount": "1154.93",
+     "batch_id": "REPLAY-BATCH-2",
+     "fee": "0.25",
+     "item_id": "REPLAY-ITEM-2",
+     "status": "SUCCESS"
+    },
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "asha",
+    "status": "PAID"
+   },
+   {
+    "due_at": "<ts>",
+    "n": 3,
+    "paid_at": null,
+    "payout": null,
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "dev",
+    "status": "COLLECTED"
+   },
+   {
+    "due_at": "<ts>",
+    "n": 4,
+    "paid_at": null,
+    "payout": null,
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "lin",
+    "status": "COLLECTED"
+   },
+   {
+    "due_at": "<ts>",
+    "n": 5,
+    "paid_at": null,
+    "payout": null,
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "tomas",
+    "status": "PENDING"
+   },
+   {
+    "due_at": "<ts>",
+    "n": 6,
+    "paid_at": null,
+    "payout": null,
+    "payout_attempts": [],
+    "payout_rev": 1,
+    "pending_return": null,
+    "recipient": "ravi",
+    "status": "PENDING"
+   }
+  ],
+  "ticker": {
+   "last_capture_at": "<ts>",
+   "paid_at": null,
+   "seconds": null
+  }
+ },
+ "steps": [
+  {
+   "ai": "rules",
+   "mode": "rules",
+   "paypal": null,
+   "result": {
+    "advanced_days": 0.0,
+    "flagged": [
+     "ravi"
+    ],
+    "forecasts": [
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       },
+       {
+        "detail": "paid late in rounds 1 and 2",
+        "factor": "late_history",
+        "weight": 0.4
+       },
+       {
+        "detail": "last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08",
+        "factor": "payday",
+        "weight": 0.25
+       },
+       {
+        "detail": "1 earlier reply asked for more time",
+        "factor": "replies",
+        "weight": 0.1
+       },
+       {
+        "detail": "no track record in earlier circles",
+        "factor": "track_record",
+        "weight": 0.05
+       }
+      ],
+      "flagged": true,
+      "lang": "hi",
+      "member": "ravi",
+      "mode": "rules",
+      "nudge": "नमस्ते Ravi, याद दिला दें: राउंड 3 के $200.00 2027-01-01 को देय हैं। अगर सैलरी बाद में आएगी, तो तारीख बता दें, सर्कल पहले से इंतज़ाम कर लेगा।",
+      "nudge_en": "Hi Ravi, a friendly reminder: your $200.00 for round 3 is due 2027-01-01. If your pay comes later, reply with the date and the circle can plan for it.",
+      "reason": "Ravi at risk (score 0.85): paid late in rounds 1 and 2; last payday 2026-12-11 is 21 days before the 2027-01-01 due date, next 2027-01-08; 1 earlier reply asked for more time",
+      "round_n": 3,
+      "score": 0.85
+     },
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       },
+       {
+        "detail": "no track record in earlier circles",
+        "factor": "track_record",
+        "weight": 0.05
+       }
+      ],
+      "flagged": false,
+      "lang": "en",
+      "member": "tomas",
+      "mode": "rules",
+      "nudge": null,
+      "nudge_en": null,
+      "reason": "Tomas (score 0.10): no track record in earlier circles",
+      "round_n": 3,
+      "score": 0.1
+     },
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       }
+      ],
+      "flagged": false,
+      "lang": "en",
+      "member": "asha",
+      "mode": "rules",
+      "nudge": null,
+      "nudge_en": null,
+      "reason": "Asha (score 0.05): no risk factors",
+      "round_n": 3,
+      "score": 0.05
+     },
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       }
+      ],
+      "flagged": false,
+      "lang": "en",
+      "member": "dev",
+      "mode": "rules",
+      "nudge": null,
+      "nudge_en": null,
+      "reason": "Dev (score 0.05): no risk factors",
+      "round_n": 3,
+      "score": 0.05
+     },
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       }
+      ],
+      "flagged": false,
+      "lang": "en",
+      "member": "lin",
+      "mode": "rules",
+      "nudge": null,
+      "nudge_en": null,
+      "reason": "Lin (score 0.05): no risk factors",
+      "round_n": 3,
+      "score": 0.05
+     },
+     {
+      "as_of": "<ts>",
+      "factors": [
+       {
+        "detail": "base rate",
+        "factor": "base",
+        "weight": 0.05
+       }
+      ],
+      "flagged": false,
+      "lang": "en",
+      "member": "meena",
+      "mode": "rules",
+      "nudge": null,
+      "nudge_en": null,
+      "reason": "Meena (score 0.05): no risk factors",
+      "round_n": 3,
+      "score": 0.05
+     }
+    ]
+   },
+   "step": "advance_to_t3",
+   "summary": "Forecast at T-3 for round 3; flagged: Ravi Sharma"
+  },
+  {
+   "ai": null,
+   "mode": "simulated",
+   "paypal": "simulated",
+   "result": {
+    "captured": [
+     "asha",
+     "meena",
+     "tomas",
+     "lin",
+     "dev"
+    ],
+    "label": "API decline: simulated (no live sandbox for this circle)",
+    "member": "ravi",
+    "ok": true,
+    "round_n": 3,
+    "simulated": true,
+    "status": "DECLINED"
+   },
+   "step": "run_round3",
+   "summary": "Round 3: 5 of 6 paid, Ravi Sharma declined (simulated, no PayPal call)"
+  },
+  {
+   "ai": null,
+   "mode": "judge",
+   "paypal": null,
+   "result": {
+    "action": "reply_as_ravi",
+    "message": {
+     "direction": "in",
+     "id": 3,
+     "lang": "hi",
+     "member": "ravi",
+     "round_n": 3,
+     "source": "judge",
+     "text": "शुक्रवार को सैलरी आएगी, तब भर दूंगा",
+     "ts": "<ts>"
+    },
+    "ok": true,
+    "payday": "2027-01-08",
+    "translation": "Salary comes on Friday, I will pay then."
+   },
+   "step": "reply_as_ravi",
+   "summary": "Ravi Sharma replied; payday 2027-01-08"
+  },
+  {
+   "ai": null,
+   "mode": "rules",
+   "paypal": null,
+   "result": {
+    "agent": true,
+    "circle_id": "<circle>",
+    "kind": "recover",
+    "member": "ravi",
+    "round_n": 3,
+    "task_id": "<uuid>"
+   },
+   "step": "start_recovery",
+   "summary": "Recovery started"
+  },
+  {
+   "ai": null,
+   "mode": "judge",
+   "paypal": null,
+   "result": {
+    "action": "consent_as_affected",
+    "approval": {
+     "at": null,
+     "by": "priya",
+     "status": "requested"
+    },
+    "blockers": [
+     "0/4 yes votes",
+     "organizer approval missing"
+    ],
+    "consented": [
+     "ravi",
+     "tomas"
+    ],
+    "consents": {
+     "given": [
+      "ravi",
+      "tomas"
+     ],
+     "needed": [
+      "ravi",
+      "tomas"
+     ],
+     "refused": []
+    },
+    "ok": true,
+    "ready": false,
+    "set_id": "<rs_id>",
+    "status": "voting",
+    "votes": {
+     "closes_at": "<ts>",
+     "needed": 4,
+     "no": 0,
+     "passed": false,
+     "rejected": false,
+     "total": 6,
+     "voters": [
+      {
+       "choice": "pending",
+       "member": "asha"
+      },
+      {
+       "choice": "pending",
+       "member": "ravi"
+      },
+      {
+       "choice": "pending",
+       "member": "meena"
+      },
+      {
+       "choice": "pending",
+       "member": "tomas"
+      },
+      {
+       "choice": "pending",
+       "member": "lin"
+      },
+      {
+       "choice": "pending",
+       "member": "dev"
+      }
+     ],
+     "yes": 0
+    }
+   },
+   "step": "consents",
+   "summary": "Consents: Ravi Sharma, Tomas Alvarez"
+  },
+  {
+   "ai": null,
+   "mode": "judge",
+   "paypal": null,
+   "result": {
+    "action": "vote_as_members",
+    "approval": {
+     "at": null,
+     "by": "priya",
+     "status": "requested"
+    },
+    "blockers": [
+     "organizer approval missing"
+    ],
+    "cast": [
+     "asha",
+     "meena",
+     "lin",
+     "dev"
+    ],
+    "consents": {
+     "given": [
+      "ravi",
+      "tomas"
+     ],
+     "needed": [
+      "ravi",
+      "tomas"
+     ],
+     "refused": []
+    },
+    "ok": true,
+    "ready": false,
+    "set_id": "<rs_id>",
+    "status": "voting",
+    "votes": {
+     "closes_at": "<ts>",
+     "needed": 4,
+     "no": 0,
+     "passed": true,
+     "rejected": false,
+     "total": 6,
+     "voters": [
+      {
+       "choice": "yes",
+       "member": "asha"
+      },
+      {
+       "choice": "pending",
+       "member": "ravi"
+      },
+      {
+       "choice": "yes",
+       "member": "meena"
+      },
+      {
+       "choice": "pending",
+       "member": "tomas"
+      },
+      {
+       "choice": "yes",
+       "member": "lin"
+      },
+      {
+       "choice": "yes",
+       "member": "dev"
+      }
+     ],
+     "yes": 4
+    }
+   },
+   "step": "votes",
+   "summary": "Votes: 4 of 6 yes (quorum 4)"
+  },
+  {
+   "ai": null,
+   "mode": "judge",
+   "paypal": null,
+   "result": {
+    "approval": {
+     "at": "<ts>",
+     "by": "priya",
+     "status": "approved"
+    },
+    "blockers": [],
+    "consents": {
+     "given": [
+      "ravi",
+      "tomas"
+     ],
+     "needed": [
+      "ravi",
+      "tomas"
+     ],
+     "refused": []
+    },
+    "ok": true,
+    "ready": true,
+    "set_id": "<rs_id>",
+    "status": "approved",
+    "votes": {
+     "closes_at": "<ts>",
+     "needed": 4,
+     "no": 0,
+     "passed": true,
+     "rejected": false,
+     "total": 6,
+     "voters": [
+      {
+       "choice": "yes",
+       "member": "asha"
+      },
+      {
+       "choice": "pending",
+       "member": "ravi"
+      },
+      {
+       "choice": "yes",
+       "member": "meena"
+      },
+      {
+       "choice": "pending",
+       "member": "tomas"
+      },
+      {
+       "choice": "yes",
+       "member": "lin"
+      },
+      {
+       "choice": "yes",
+       "member": "dev"
+      }
+     ],
+     "yes": 4
+    }
+   },
+   "step": "approve",
+   "summary": "Priya approved (one tap)"
+  },
+  {
+   "ai": null,
+   "mode": "simulated",
+   "paypal": "simulated",
+   "result": {
+    "ok": true,
+    "payout": null,
+    "results": [
+     {
+      "amount": "192.53",
+      "member": "ravi",
+      "ok": true,
+      "remedy_id": "<rm_id>",
+      "type": "buffer_advance"
+     },
+     {
+      "member": "ravi",
+      "ok": true,
+      "remedy_id": "<rm_id>",
+      "rotation": [
+       "meena",
+       "asha",
+       "dev",
+       "lin",
+       "tomas",
+       "ravi"
+      ],
+      "swap_with": "tomas",
+      "type": "turn_swap"
+     },
+     {
+      "amount": "200.00",
+      "due_date": "2027-01-08",
+      "invoice_id": "SIM-INV-<run>-3-ravi",
+      "ok": true,
+      "qr": false,
+      "remedy_id": "<rm_id>",
+      "simulated": true,
+      "status": "SENT",
+      "type": "repay_by_invoice"
+     }
+    ],
+    "set_id": "<rs_id>",
+    "status": "executed"
+   },
+   "step": "execute",
+   "summary": "Executed: buffer advance, turn swap, repay by PayPal invoice"
+  },
+  {
+   "ai": null,
+   "mode": "simulated",
+   "paypal": "simulated",
+   "result": {
+    "ok": true,
+    "skipped": "the round's charges were simulated"
+   },
+   "step": "payout",
+   "summary": "Payout skipped: the round's charges were simulated"
+  },
+  {
+   "ai": null,
+   "mode": "simulated",
+   "paypal": "simulated",
+   "result": {
+    "captured": [
+     "asha",
+     "ravi",
+     "meena",
+     "tomas",
+     "lin",
+     "dev"
+    ],
+    "ok": true,
+    "round_n": 4,
+    "settled": true,
+    "simulated": true
+   },
+   "step": "clean_round4",
+   "summary": "Round 4: 6 of 6 paid; round collected (simulated, payout skipped)"
+  }
+ ],
+ "story_steps": [
+  {
+   "label": "Reset demo (new circle, new run id)",
+   "mode": "judge",
+   "status": "done",
+   "step": "reset"
+  },
+  {
+   "label": "Advance to T-3 (forecast)",
+   "mode": "rules",
+   "status": "done",
+   "step": "advance_to_t3"
+  },
+  {
+   "label": "Simulate Round 3 (no sandbox: Ravi's decline is simulated)",
+   "mode": "simulated",
+   "status": "done",
+   "step": "run_round3"
+  },
+  {
+   "label": "Reply as Ravi (Hindi)",
+   "mode": "judge",
+   "status": "done",
+   "step": "reply_as_ravi"
+  },
+  {
+   "label": "Start recovery",
+   "mode": "rules",
+   "status": "done",
+   "step": "start_recovery"
+  },
+  {
+   "label": "Consent as the affected members",
+   "mode": "judge",
+   "status": "done",
+   "step": "consents"
+  },
+  {
+   "label": "Vote as members (quorum)",
+   "mode": "judge",
+   "status": "done",
+   "step": "votes"
+  },
+  {
+   "label": "Approve as Priya (one tap)",
+   "mode": "judge",
+   "status": "done",
+   "step": "approve"
+  },
+  {
+   "label": "Execute remedies",
+   "mode": "simulated",
+   "status": "done",
+   "step": "execute"
+  },
+  {
+   "label": "Pay Round 3 (skipped: the round was simulated)",
+   "mode": "simulated",
+   "status": "done",
+   "step": "payout"
+  },
+  {
+   "label": "Simulate clean Round 4 (no sandbox)",
+   "mode": "simulated",
+   "status": "done",
+   "step": "clean_round4"
+  }
+ ]
+}

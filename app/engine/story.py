@@ -269,11 +269,25 @@ def capture(sid: str, step: str) -> list[dict[str, Any]]:
 # --- views ------------------------------------------------------------------------------------------
 
 
-def story_view(circle_id: str, *, live: bool, running: dict[str, Any] | None = None) -> dict[str, Any]:
+# Opt-in "Story B": steps 6-7 are answered by the members' own agents inside their signed mandates.
+VARIANT_B = "member_agents"
+B_LABELS: dict[str, str] = {
+    "consents": "Member agents answer consents (inside their mandates)",
+    "votes": "Member agents vote (inside their mandates)",
+}
+
+
+def story_view(
+    circle_id: str, *, live: bool, running: dict[str, Any] | None = None, variant: str | None = None
+) -> dict[str, Any]:
     row = load(circle_id)
     done = done_steps(row)
     nxt = next_step(row)
     err = last_error(row)
+
+    def lab(name: str) -> str:
+        return B_LABELS[name] if variant == VARIANT_B and name in B_LABELS else label_for(name, live=live)
+
     if err is not None and err.get("step") != nxt:
         err = None  # stale: that step has since succeeded or the story moved on
     steps = []
@@ -290,7 +304,7 @@ def story_view(circle_id: str, *, live: bool, running: dict[str, Any] | None = N
         steps.append(
             {
                 "step": name,
-                "label": label_for(name, live=live),
+                "label": lab(name),
                 "status": status,
                 "at": rec.get("at"),
                 "mode": rec.get("mode"),
@@ -310,11 +324,11 @@ def story_view(circle_id: str, *, live: bool, running: dict[str, Any] | None = N
     if nxt is not None:
         next_view = {
             "step": nxt,
-            "label": label_for(nxt, live=live),
-            "action_label": ("Running: " if running else "Next: ") + label_for(nxt, live=live),
+            "label": lab(nxt),
+            "action_label": ("Running: " if running else "Next: ") + lab(nxt),
             "index": STEP_NAMES.index(nxt),
         }
-    return {
+    view = {
         "ok": True,
         "circle_id": circle_id,
         "run_id": row.run_id if row else None,
@@ -328,6 +342,9 @@ def story_view(circle_id: str, *, live: bool, running: dict[str, Any] | None = N
         "last_error": err,
         "tainted": bool(row.tainted) if row else False,
     }
+    if variant is not None:  # the key exists only for Story B: the default story's view is unchanged
+        view["variant"] = variant
+    return view
 
 
 # --- recordings -------------------------------------------------------------------------------------

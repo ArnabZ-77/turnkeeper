@@ -106,7 +106,10 @@ export type JudgeAction =
   // M3 builder C: force the T-3 forecast
   | "run_forecast"
   // Builder E (D1): UNCLAIMED pot -> one cancel attempt, new batch r{rev+1} (background task)
-  | "reroute_unclaimed";
+  | "reroute_unclaimed"
+  // Member mandates (flag member_mandates, default off): switch the flag, and try an over-limit charge
+  | "toggle_member_mandates"
+  | "try_overcharge";
 
 /** `POST /api/judge/{action}` with `{circle_id, ...extra}`. */
 export function judge(action: JudgeAction, circleId: string, extra: Record<string, unknown> = {}): Promise<JudgeResult> {
@@ -138,11 +141,23 @@ export const api = {
       judge("run_forecast", circleId, roundN ? { round_n: roundN } : {}),
     rerouteUnclaimed: (circleId: string, roundN?: number) =>
       judge("reroute_unclaimed", circleId, roundN ? { round_n: roundN } : {}),
+    toggleMemberMandates: (circleId: string, on: boolean) => judge("toggle_member_mandates", circleId, { on }),
+    /** The policy engine only: denied before PayPal is ever called. */
+    tryOvercharge: (circleId: string, amount: string, member = "ravi") =>
+      judge("try_overcharge", circleId, { amount, member }),
+  },
+  /** Member mandates and member agents; both routes answer 404 while the feature is off for the circle. */
+  mandates: {
+    get: (circleId: string): Promise<unknown> => request("GET", `/api/circles/${enc(circleId)}/mandates`),
+    runAgents: (circleId: string, body: { set_id?: string; answers?: Record<string, string> } = {}): Promise<unknown> =>
+      request("POST", `/api/circles/${enc(circleId)}/member-agents/run`, body),
   },
   /** Judge Mode story: one "Next step" button (builder E). */
   story: {
     get: (): Promise<StoryView> => request("GET", "/api/judge/story"),
-    run: (step: string = "next"): Promise<StoryStepResult> => request("POST", `/api/judge/story/${enc(step)}`),
+    /** `variant` ("member_agents") is only valid with the reset step; omitted, the default story runs. */
+    run: (step: string = "next", variant?: string): Promise<StoryStepResult> =>
+      request("POST", `/api/judge/story/${enc(step)}${variant ? `?variant=${enc(variant)}` : ""}`),
   },
   /** Charter compiler (builder B). */
   compile: {

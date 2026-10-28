@@ -1,0 +1,163 @@
+/* Member mandates and member agents (flag member_mandates, default off). Nothing here applies unless those
+   components render. Tokens: theme/tokens.css. */
+
+/* ---- mandates card (right rail) ----------------------------------------------------------- */
+
+.tk-mandate-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tk-mandate {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 5px 0;
+  border-top: 1px solid var(--tk-hairline);
+}
+.tk-mandate:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.tk-mandate-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 13px;
+}
+.tk-mandate-limit {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.tk-mandate-chip {
+  margin-left: auto;
+}
+.tk-mandate-chip.tk-chip-good {
+  color: var(--tk-good-ink);
+  border-color: color-mix(in srgb, var(--tk-good) 45%, transparent);
+  background: color-mix(in srgb, var(--tk-good) 10%, var(--tk-surface));
+}
+.tk-mandate-chip.tk-chip-critical {
+  color: var(--tk-critical-ink);
+  border-color: color-mix(in srgb, var(--tk-critical) 45%, transparent);
+  background: color-mix(in srgb, var(--tk-critical) 10%, var(--tk-surface));
+}
+.tk-mandate-rules {
+  color: var(--tk-ink-2);
+  line-height: 1.3;
+}
+.tk-mandate-expiry {
+  font-size: 11px;
+}
+.tk-mandate-labels {
+  border-top: 1px solid var(--tk-hairline);
+  padding-top: 8px;
+  color: var(--tk-ink-2);
+}
+.tk-mandate-labels p {
+  margin: 0 0 4px;
+}
+.tk-mandate-labels p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- agent rows in the vote panel -------------------------------------------------------- */
+
+.tk-agent-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.tk-agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* With agent rows in the vote panel, the remedy reasons give up lines to make room (full text in the title). */
+.tk-recovery-agents .tk-remedy-reason {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tk-agent-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tk-agent-line {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk-agent-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.tk-agent-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+.tk-agent-choice-yes {
+  color: var(--tk-good-ink);
+}
+.tk-agent-choice-no {
+  color: var(--tk-critical-ink);
+}
+.tk-agent-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--tk-warn-ink);
+}
+.tk-agent-badge {
+  font-size: 11px;
+  padding: 0 7px;
+}
+.tk-agent-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+  padding: 2px 0;
+}
+
+/* ---- try a $230 charge -------------------------------------------------------------------- */
+
+.tk-overcharge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 8px 0 0;
+  color: var(--tk-ink);
+}
+.tk-overcharge svg {
+  flex: none;
+}
+.tk-overcharge-reason {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tk-overcharge-chip {
+  margin-left: auto;
+}

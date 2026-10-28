@@ -166,6 +166,31 @@ Measured in the sandbox (D1 b, d) and matching PayPal's US merchant fee page (up
   (`gross_up`) or paid by the organizer (`organizer_absorbs`), the compiler uses `net_pot` and lists that as a
   problem on the draft.
 
+## Member mandates and member agents (opt-in, default OFF)
+
+Behind the `member_mandates` flag (a per-circle flag, or `TK_MEMBER_MANDATES=1` for every new circle; `TK_MEMBER_AGENTS=0`
+is a global kill switch). **With the flag off nothing changes**: the default Judge story, the board JSON and the policy
+path are byte-for-byte what they were (a golden-file test proves it).
+
+- **Member mandate.** Each member holds a signed mandate: max charge per round, expiry, the charter hash, and three
+  rules for their agent (accept a swap that moves them earlier, the largest advance they will vote yes on, ask them
+  before a later turn). It lives in its own table and is external to the charter, so no charter hash changes.
+- **The charge gate.** When the flag is on, `PolicyEngine` refuses a charge for a member with a missing, invalid,
+  expired or over-limit mandate, with a readable reason, before any PayPal call. Judge, Advanced, "Try a $230 charge"
+  runs `policy.authorize` only and shows the denial.
+- **Member agents.** `engine/member_agent.py` decides yes, no or ask from a fixed table (charter-legal and shortfall
+  covered: yes; a swap that moves you earlier: yes; later: ask the human; an advance over your cap: no). Answers are
+  recorded with `source="agent"`; an ask goes to the member's inbox and the vote stays pending. A model never decides:
+  it may only word the explanation (replay cache, rules fallback, so everything works with no AI key).
+- **Story B.** `POST /api/judge/story/reset?variant=member_agents` starts an opt-in variant where steps 6-7 are
+  answered by the agents instead of simulated clicks (the human's answer to an ask is still a judge click, labelled
+  as such). It is never the default and never becomes the public replay.
+
+Honest labels, shown wherever a mandate is shown:
+
+- **AP2-style Intent Mandate, our own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support.**
+- **Server-attested HMAC signature, not a key held by the member.**
+
 ## Limitations and custody
 
 Full list: [docs/limitations.md](docs/limitations.md).

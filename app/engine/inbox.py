@@ -49,6 +49,11 @@ _OUT_TEMPLATES = {
         "en": "Hi {name}, the circle covered your share. Here is your PayPal invoice for {amount}, due {due}.",
         "hi": "नमस्ते {name}, सर्कल ने आपका हिस्सा भर दिया है। {amount} का PayPal इनवॉइस, देय तिथि {due}।",
     },
+    # member agents (flag member_mandates): the agent needs the human's answer
+    "agent_ask": {
+        "en": "Hi {name}, your agent needs you: {reason}. Reply yes or no.",
+        "hi": "नमस्ते {name}, आपके एजेंट को आपका जवाब चाहिए: {reason}। हाँ या नहीं में जवाब दें।",
+    },
 }
 
 

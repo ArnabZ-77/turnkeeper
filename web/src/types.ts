@@ -14,6 +14,10 @@ export type Cadence = "monthly" | "weekly";
 export interface CircleFlags {
   ravi_declines: boolean;
   next_payout_unclaimed: boolean;
+  /** Member mandates: present (true) only when the feature is on for this circle; absent when off. */
+  member_mandates?: boolean;
+  /** Present (true) only for a circle started as Story B (member agents answer steps 6-7). */
+  member_agents_story?: boolean;
 }
 
 export interface CircleInfo {
@@ -448,6 +452,8 @@ export interface StoryView {
   complete: boolean;
   paypal: "live" | "simulated" | string;
   replay_url: string | null;
+  /** Only present for the opt-in Story B ("member_agents"); absent otherwise. */
+  variant?: string;
 }
 
 /** `POST /api/judge/story/{step}`. */
@@ -458,6 +464,8 @@ export interface StoryStepResult {
   summary?: string;
   task_id?: string | null;
   session?: SessionInfo;
+  /** The step's own payload; Story B consent/vote steps carry `decisions[]` (member agents). */
+  result?: Record<string, unknown> | null;
   story: StoryView;
 }
 
@@ -633,3 +641,77 @@ export interface JudgeCircleResult {
   notes: string[];
 }
 
+
+// ---------------------------------------------------------------------------------------------
+// Member mandates and member agents (docs/CONTRACTS.md "Member mandates"; flag `member_mandates`, default OFF)
+// ---------------------------------------------------------------------------------------------
+
+export interface MemberMandateRules {
+  accept_earlier_swap: boolean;
+  max_advance: string;
+  require_ask_for_later_swap: boolean;
+  summary: string;
+}
+
+/** One member's signed mandate as `GET /api/circles/{id}/mandates` reports it. */
+export interface MemberMandateInfo {
+  member: string;
+  name: string;
+  present: boolean;
+  signature_verified: boolean;
+  /** The verification reason from the server ("ok", "expired", ...). */
+  status: string;
+  max_charge_per_round: string | null;
+  max_advance: string | null;
+  expires: string | null;
+  approved_at: string | null;
+  charter_sha256: string | null;
+  rules: MemberMandateRules | null;
+  /** First 16 hex chars of the HMAC plus an ellipsis; never the whole signature. */
+  signature: string | null;
+}
+
+export interface MandatesView {
+  circle_id: string;
+  enabled: boolean;
+  charter_sha256: string;
+  /** "AP2-style Intent Mandate, our own implementation; ..." (server text, shown as is). */
+  label: string;
+  /** "server-attested HMAC signature, not a key held by the member". */
+  signature_label: string;
+  members: MemberMandateInfo[];
+}
+
+export type AgentKind = "consent" | "vote";
+export type AgentChoice = "yes" | "no" | "ask";
+/** Who recorded the answer: the member's agent, the member (a human's tap) or the judge's click. */
+export type AnswerSource = "agent" | "member" | "judge";
+
+/** One entry of `decisions[]` from `POST .../member-agents/run` and the Story B steps. */
+export interface AgentDecision {
+  member: string;
+  kind: AgentKind;
+  choice: AgentChoice;
+  reason: string;
+  /** Decision-table row, e.g. "swap_earlier". */
+  rule: string;
+  explanation?: string | null;
+  explanation_mode?: string | null;
+  trace?: string[];
+  recorded: boolean;
+  source: AnswerSource | null;
+  recorded_choice?: "yes" | "no";
+  asked: boolean;
+}
+
+/** `POST /api/judge/try_overcharge`: the policy engine's answer; PayPal is never called. */
+export interface OverchargeResult {
+  ok?: boolean;
+  denied: boolean;
+  reason?: string;
+  banner?: string;
+  member?: string;
+  amount?: string;
+  round_n?: number;
+  paypal_called?: boolean;
+}

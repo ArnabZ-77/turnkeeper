@@ -109,6 +109,7 @@ def _include_routers() -> None:
         "app.routes.circles",
         "app.routes.recovery",  # before judge: its fixed /api/judge/* recovery actions win
         "app.routes.judge",
+        "app.routes.member_agents",  # flag member_mandates (default off): 404 when off
         "app.routes.join",
         "app.routes.compile",  # charter compiler + freeze (builder B)
         "app.routes.webhooks",

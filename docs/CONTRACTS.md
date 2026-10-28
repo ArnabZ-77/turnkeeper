@@ -1330,3 +1330,62 @@ Only `web/**` changed. `npm run build` and `npx vitest run` are green: 71 tests,
   Ravi Sharma declined"). Traces and logs keep the identifiers.
 - **client_ip** strips a port from each X-Forwarded-For hop (`203.0.113.5:54321`, `[2001:db8::1]:443`).
 - **Live-AI budget.** The story's `advance_to_t3` charges `live_allowed_for` only when no forecast is stored yet.
+
+
+## Member mandates and member agents (builder, 2026-10-28, additive, flag `member_mandates`, default OFF)
+
+Flag: circle `flags_json["member_mandates"]` (only in the JSON when switched on, so the board JSON is unchanged when off)
+or env `TK_MEMBER_MANDATES=1` (every new circle). `TK_MEMBER_AGENTS=0` is the kill switch: routes answer 404 and
+mandates are no longer required. Story B marks its circle with `flags_json["member_agents_story"]`.
+
+Labels (constants in `app/domain/member_mandate.py`, returned by the API): `MANDATE_LABEL` = "AP2-style Intent Mandate, our
+own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support"; `SIGNATURE_LABEL` = "server-attested HMAC
+signature, not a key held by the member".
+
+### `app/domain/member_mandate.py` (pure)
+`MemberMandate(member, circle_id, charter_sha256, max_charge_per_round, expires, approved_at, approved_by,
+accept_earlier_swap=True, max_advance, require_ask_for_later_swap=True, signature)`, frozen. `sign_member_mandate(m, secret)`
+= hex HMAC-SHA256 over `canonical_dumps` of every field but `signature` (reuses `domain.mandate.hmac_hex`).
+`verify_member_mandate(m, secret, *, circle_id, member, charter_sha256, today, amount=None) -> (ok, reason)` checks, in order:
+secret, signed, signature, circle, member, charter hash, expiry, amount <= limit. `policy_entry(...)` builds the
+`{"ok","reason","max_charge_per_round"}` record. `default_member_mandates(...)` signs one default per charter member
+(limit = charter amount, advance cap = charter amount, accepts earlier, asks for later: Tomas's rule).
+
+### Policy
+`CircleState.member_mandate_ok: dict[str, dict] | None = None`. `None` = not required (the old path, untouched). A dict =
+required: `PolicyEngine._charge` denies (reason names the member) when the member has no entry, `ok` is false, the limit is
+missing, or the amount is over the limit. Only `charge` / `retry_charge` are affected.
+
+### Tables (`app/models.py`, one NEW table, no column changes)
+`MemberMandateRow` (`member_mandates`: id, circle_id, member, json, approved_at). The newest row per member wins. Seeded by
+`engine/member_mandates.seed_in` when a fixture circle is cloned with `TK_MEMBER_MANDATES` on, or by
+`member_mandates.enable(circle_id)` (flag on + `ensure_seeded`, idempotent). `state.circle_state` fills `member_mandate_ok`
+only when the flag is on (verified against the CURRENT charter hash and the circle's virtual date).
+
+### `app/engine/member_agent.py`
+`decide(AgentRequest(kind, member, remedy_set), mandate, charter, state) -> Decision(choice yes|no|ask, reason, rule, trace)`,
+pure and deterministic. Rows: no valid mandate -> ask `no_mandate`; not charter-legal -> no `not_legal`; shortfall not covered
+-> no `not_covered`; advance > `max_advance` -> no `advance_over_cap`; swap earlier -> yes `swap_earlier` (or ask
+`swap_earlier_ask`); swap later -> ask `swap_later_ask` (or yes `swap_allowed`); otherwise yes `auto_legal_covered`. Any ask
+beats a yes. `run_member_agents(circle_id, set_id=None, *, kinds, answers, answer_source, publish, live_allowed, provider)`
+records yes/no with `source="agent"`; an ask posts an `agent_ask` inbox message (once per identical text) and leaves the item
+pending unless a human `answers` entry exists (recorded with `answer_source`). `explain_decision` words the reason through
+`llm.complete_text` (replay cache; the deterministic reason is the fallback); it never changes the choice.
+
+### Routes (all 404 when the flag is off or killed)
+- `GET /api/circles/{id}/mandates` -> `{circle_id, enabled, charter_sha256, label, signature_label, members:[{member, name,
+  present, signature_verified, status, max_charge_per_round, max_advance, expires, approved_at, charter_sha256, rules{...},
+  signature (first 16 chars)}]}`.
+- `POST /api/circles/{id}/member-agents/run` body `{set_id?, answers?: {member: yes|no}}` -> `{action, set_id, decisions[],
+  asked[], pending[], votes, consents, labels, ...}`; 409 without an open vote; taints a running story.
+- Judge actions `toggle_member_mandates` `{circle_id, on?}` and `try_overcharge` `{circle_id, amount="230.00", member="ravi",
+  round_n?}` (calls `policy.authorize` ONLY; returns `{denied, reason, banner, paypal_called: false}`).
+- `POST /api/judge/story/reset?variant=member_agents` starts Story B (the `variant` query param is only valid with the reset
+  step; the story view then carries `"variant": "member_agents"`, otherwise the key is absent). Steps 6-7 call the member
+  agents; an ask is answered by the judge's click (source `judge`). Story B taints its circle: never the public replay.
+
+### Tests
+`tests/domain/test_charter_hash_stability.py` (pins the demo hash), `test_member_mandate.py`, `test_policy_member_mandate.py`,
+`test_member_agent_decide.py`, `tests/engine/test_member_mandates_engine.py`, `tests/routes/test_member_mandates_routes.py`,
+and the flag-off regression `tests/routes/test_member_mandates_regression.py` (golden `tests/routes/golden/
+default_story_flag_off.json`, generated from the pre-feature code).

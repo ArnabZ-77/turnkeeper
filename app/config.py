@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     paypal_rate_per_min: int = Field(default=40, alias="TK_PAYPAL_RATE_PER_MIN")
     max_active_sessions: int = Field(default=6, alias="TK_MAX_ACTIVE_SESSIONS")
 
+    # Member mandates + member agents (docs/CONTRACTS.md "Member mandates"). Default OFF. TK_MEMBER_MANDATES turns the
+    # feature on for every new circle (a circle can also switch it on alone with its ``member_mandates`` flag);
+    # TK_MEMBER_AGENTS=0 is the global kill switch (routes answer 404, mandates stop being required).
+    member_mandates: bool = Field(default=False, alias="TK_MEMBER_MANDATES")
+    member_agents_switch: str = Field(default="", alias="TK_MEMBER_AGENTS")
+
     # Judge mini-circle payee (optional sandbox values; empty is fine)
     judge_payee_receiver: str = Field(
         default="", alias="TK_JUDGE_PAYEE_RECEIVER"
@@ -99,6 +105,11 @@ class Settings(BaseSettings):
         if v.lower() != "sandbox":
             raise ValueError("Turnkeeper runs against the PayPal sandbox only (PAYPAL_ENV=sandbox)")
         return "sandbox"
+
+    @property
+    def member_agents_killed(self) -> bool:
+        """TK_MEMBER_AGENTS=0 (or false/off/no) switches the whole member-mandate feature off."""
+        return self.member_agents_switch.strip().lower() in ("0", "false", "off", "no")
 
     @property
     def paypal_base_url(self) -> str:

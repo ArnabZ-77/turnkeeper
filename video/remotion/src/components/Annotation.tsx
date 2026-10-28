@@ -4,6 +4,8 @@ import {brand, HEIGHT, WIDTH} from '../brand';
 import type {Rect} from '../types';
 
 export type AnnotationProps = {
+  /** the capture window; labels stay inside it */
+  winBox?: {x: number; y: number; w: number; h: number};
   /** box in OUTPUT (screen) px, already projected through the camera */
   box: Rect;
   label: string;
@@ -16,7 +18,7 @@ const GAP = 46;
 const PAD = 8;
 
 /** Highlights a real UI rectangle and labels it with a short connector. Rendered per frame inside a Sequence. */
-export const Annotation: React.FC<AnnotationProps> = ({box, label, side = 'right', durationInFrames}) => {
+export const Annotation: React.FC<AnnotationProps> = ({box, label, side = 'right', durationInFrames, winBox}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const p = spring({frame, fps, config: {damping: 20, stiffness: 170, mass: 0.8}});
@@ -35,7 +37,9 @@ export const Annotation: React.FC<AnnotationProps> = ({box, label, side = 'right
   // anchor on the box edge, label offset by GAP
   const anchor = {left: [bx, cy], right: [bx + bw, cy], top: [cx, by], bottom: [cx, by + bh]}[side];
   const lx = Math.min(Math.max(anchor[0] + (side === 'right' ? GAP : side === 'left' ? -GAP : 0), 8), WIDTH - 8);
-  const ly = Math.min(Math.max(anchor[1] + (side === 'bottom' ? GAP : side === 'top' ? -GAP : 0), 130), HEIGHT - 300);
+  const yMin = (winBox?.y ?? 0) + 70;
+  const yMax = winBox ? winBox.y + winBox.h - 70 : HEIGHT - 300;
+  const ly = Math.min(Math.max(anchor[1] + (side === 'bottom' ? GAP : side === 'top' ? -GAP : 0), yMin), yMax);
   const labelStyle: React.CSSProperties = {
     position: 'absolute',
     maxWidth: side === 'right' ? Math.min(720, WIDTH - lx - 56) : side === 'left' ? Math.min(720, lx - 56) : 720,
@@ -45,10 +49,10 @@ export const Annotation: React.FC<AnnotationProps> = ({box, label, side = 'right
     color: brand.white,
     border: `3px solid ${brand.accent}`,
     borderRadius: 16,
-    padding: '12px 24px',
+    padding: '10px 20px',
     fontFamily: brand.font,
     fontWeight: 600,
-    fontSize: 34,
+    fontSize: 30,
     lineHeight: 1.2,
     boxShadow: '0 12px 34px rgba(0,0,0,.38)',
     ...(side === 'right' && {left: lx, top: ly, translate: '0 -50%'}),

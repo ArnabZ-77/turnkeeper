@@ -2,28 +2,28 @@ import React from 'react';
 import {Easing, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {brand} from '../brand';
 
-/** Subtle persistent badge, top centre. */
-export const SandboxBadge: React.FC<{modes?: boolean; shiftX?: number}> = ({modes, shiftX = 0}) => {
+/** One pill, top right, clear of the capture window: sandbox label, PayPal mode and AI mode together. */
+export const SandboxBadge: React.FC<{modes?: boolean}> = ({modes}) => {
   const frame = useCurrentFrame();
-  const a = interpolate(frame, [20, 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const pill: React.CSSProperties = {
-    fontFamily: brand.font,
-    fontWeight: 600,
-    fontSize: 20,
-    color: brand.white,
-    background: 'rgba(11,31,58,0.82)',
-    border: '1.5px solid rgba(245,166,35,0.75)',
-    borderRadius: 999,
-    padding: '6px 18px',
-    whiteSpace: 'nowrap',
-    letterSpacing: 0.2,
-  };
+  const a = interpolate(frame, [0, 8], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
-    <div style={{position: 'absolute', top: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 12, opacity: a * 0.92, translate: `${shiftX}px 0`, pointerEvents: 'none'}}>
-      <div style={pill}>
-        <span style={{color: brand.accent}}>●</span>&nbsp; Sandbox demo — no real money
+    <div style={{position: 'absolute', top: 10, right: 24, opacity: a * 0.95, pointerEvents: 'none'}}>
+      <div
+        style={{
+          fontFamily: brand.font,
+          fontWeight: 600,
+          fontSize: 22,
+          color: brand.white,
+          background: 'rgba(11,31,58,0.92)',
+          border: '1.5px solid rgba(245,166,35,0.75)',
+          borderRadius: 999,
+          padding: '4px 18px',
+          whiteSpace: 'nowrap',
+          letterSpacing: 0.2,
+        }}
+      >
+        <span style={{color: brand.accent}}>●</span>&nbsp; {modes ? 'PayPal sandbox live · rules mode · no real money' : 'Sandbox demo · no real money'}
       </div>
-      {modes ? <div style={{...pill, border: '1.5px solid rgba(90,168,245,0.8)'}}>PayPal sandbox live · AI: rules mode</div> : null}
     </div>
   );
 };
@@ -68,19 +68,19 @@ export const LowerThird: React.FC<{text: string; kicker?: string; frames: number
 };
 
 /** Small footnote line, lower left. */
-export const Footnote: React.FC<{text: string; frames: number; bottom?: number}> = ({text, frames, bottom = 232}) => {
+export const Footnote: React.FC<{text: string; frames: number; bottom?: number; top?: number; left?: number}> = ({text, frames, bottom = 232, top, left = 96}) => {
   const f = useCurrentFrame();
   const a = interpolate(f, [0, 10, frames - 10, frames], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <div
       style={{
         position: 'absolute',
-        left: 96,
-        bottom,
+        left,
+        ...(top === undefined ? {bottom} : {top}),
         opacity: a,
         fontFamily: brand.font,
         fontWeight: 600,
-        fontSize: 26,
+        fontSize: top === undefined ? 26 : 24,
         color: brand.white,
         background: 'rgba(8,22,42,0.9)',
         borderLeft: `6px solid ${brand.accent}`,
