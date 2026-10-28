@@ -11,6 +11,19 @@ import { ApiError, api, describeError } from "./api";
 import { openEventStream } from "./events";
 import { initialState, nextRound, reducer } from "./state";
 import type { JudgeResult, SessionInfo, StoryStepResult, TaskStatus, ToastLevel } from "./types";
+import {
+  OVERCHARGE_AMOUNT,
+  agentRows,
+  answerBody,
+  decisionsFor,
+  mandatesOn,
+  memberAgentsRequested,
+  overchargeView,
+  parseDecisions,
+  parseMandates,
+  parseOvercharge,
+  storyVariant,
+} from "./mandates";
 import { MODE_HELP, forecastTranslations, hasActiveSet, modeChip, nameOf, paypalChip, recoveryButtons } from "./recovery";
 import { lastStoryAi, storyFailure } from "./story";
 import { PhoneInbox } from "./components/PhoneInbox";
@@ -18,6 +31,7 @@ import { RecoveryPanel } from "./components/RecoveryPanel";
 import { useTheme } from "./theme/useTheme";
 import { AgentTrace } from "./components/AgentTrace";
 import { CharterCard } from "./components/CharterCard";
+import { MandatesCard } from "./components/MandatesCard";
 import { Counters } from "./components/Counters";
 import { JudgeBar } from "./components/JudgeBar";
 import { PayoutReceipt } from "./components/PayoutReceipt";
@@ -70,6 +84,8 @@ export default function App() {
   const resettingRef = useRef(false);
   /** Bumped on reset/unmount so task polls from an old run stop. */
   const pollGen = useRef(0);
+  /** Set id of the open remedy set (member agent decisions are kept per set). */
+  const setIdRef = useRef<string | null>(null);
   useEffect(
     () => () => {
       pollGen.current += 1;
@@ -150,6 +166,29 @@ export default function App() {
     const id = setInterval(() => void loadStory(), STORY_POLL_MS);
     return () => clearInterval(id);
   }, [storyRunning, loadStory]);
+
+  // Member mandates (flag member_mandates, default OFF): only fetched when the board says the flag is on, so a
+  // default circle never makes the request and shows nothing new. A 404 means the endpoint says "not enabled".
+  const mandatesFlag = mandatesOn(state.board);
+  useEffect(() => {
+    if (!circleId || resettingRef.current) return;
+    if (!mandatesFlag) {
+      dispatch({ type: "mandates", mandates: null });
+      return;
+    }
+    let alive = true;
+    api.mandates
+      .get(circleId)
+      .then((raw) => {
+        if (alive && !resettingRef.current) dispatch({ type: "mandates", mandates: parseMandates(raw) });
+      })
+      .catch(() => {
+        if (alive) dispatch({ type: "mandates", mandates: null });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [circleId, mandatesFlag, state.boardVersion]);
 
   const [advancedOpen, setAdvancedOpen] = useState(readAdvancedOpen);
   const onToggleAdvanced = useCallback((open: boolean) => {
@@ -348,17 +387,23 @@ export default function App() {
         resettingRef.current = false;
         void loadSession();
       }
+      const decisions = parseDecisions(res?.result);
+      if (decisions.length) {
+        const sid = (res?.result as { set_id?: unknown } | null | undefined)?.set_id;
+        dispatch({ type: "agentDecisions", setId: typeof sid === "string" ? sid : setIdRef.current, decisions });
+      }
       if (res?.story) dispatch({ type: "story", story: res.story });
       if (res?.summary && res.step !== "reset") toast(res.task_id ? "info" : "success", res.summary);
     },
     [toast, loadSession],
   );
+  const variantRef = useRef<string | undefined>(undefined);
   const onStoryNext = useCallback(
     (step: string) => {
       // The story's first step is a reset too: stop polling the old circle until the new session arrives.
       if (step === "reset") resettingRef.current = true;
       void run(
-        () => api.story.run(step) as unknown as Promise<JudgeResult>,
+        () => api.story.run(step, step === "reset" ? variantRef.current : undefined) as unknown as Promise<JudgeResult>,
         afterStory,
         // Kept on screen (under the step dots) until a retry, a pass or a reset: toasts fade.
         (text) => {
@@ -372,7 +417,7 @@ export default function App() {
   const onStoryRestart = useCallback(() => {
     resettingRef.current = true;
     void run(
-      () => api.story.run("reset") as unknown as Promise<JudgeResult>,
+      () => api.story.run("reset", variantRef.current) as unknown as Promise<JudgeResult>,
       afterStory,
       () => {
         resettingRef.current = false;
@@ -402,6 +447,56 @@ export default function App() {
     );
   }, [run]);
 
+  // Member agents. Each handler is only wired into the UI while the flag is on.
+  const afterAgentRun = useCallback((r: unknown) => {
+    const decisions = parseDecisions(r);
+    const sid = (r as { set_id?: unknown } | null)?.set_id;
+    dispatch({ type: "agentDecisions", setId: typeof sid === "string" ? sid : setIdRef.current, decisions });
+  }, []);
+  const onRunAgents = useCallback(() => {
+    if (!circleId) return;
+    void run(
+      () => api.mandates.runAgents(circleId, setIdRef.current ? { set_id: setIdRef.current } : {}) as Promise<JudgeResult>,
+      (r) => {
+        afterAgentRun(r);
+        const asked = (r as { asked?: unknown }).asked;
+        toast("info", Array.isArray(asked) && asked.length ? `Member agents answered; ${asked.length} asked the human` : "Member agents answered inside their mandates");
+      },
+    );
+  }, [circleId, run, toast, afterAgentRun]);
+  const onAnswerAsk = useCallback(
+    (member: string, choice: "yes" | "no") => {
+      if (!circleId) return;
+      void run(
+        () => api.mandates.runAgents(circleId, answerBody(setIdRef.current, member, choice)) as Promise<JudgeResult>,
+        afterAgentRun,
+      );
+    },
+    [circleId, run, afterAgentRun],
+  );
+  const onTryOvercharge = useCallback(() => {
+    if (!circleId) return;
+    void run(
+      () => api.judge.tryOvercharge(circleId, OVERCHARGE_AMOUNT),
+      (r) => {
+        const result = parseOvercharge(r);
+        if (result) dispatch({ type: "overcharge", result });
+      },
+    );
+  }, [circleId, run]);
+  const onToggleMandates = useCallback(
+    (on: boolean) => {
+      if (!circleId) return;
+      void run(
+        () => api.judge.toggleMemberMandates(circleId, on),
+        () => {
+          if (!on) dispatch({ type: "overcharge", result: null });
+        },
+      );
+    },
+    [circleId, run],
+  );
+
   const onDismissToast = useCallback((id: number) => dispatch({ type: "dismissToast", id }), []);
   const onClearTrace = useCallback(() => dispatch({ type: "clearTrace" }), []);
 
@@ -429,6 +524,16 @@ export default function App() {
   const phoneMember = recovery?.member ?? inbox[0]?.member ?? null;
   const recoveryMember = hasActiveSet(recovery) ? (recovery?.member ?? null) : null;
   const showRecovery = hasActiveSet(recovery);
+  setIdRef.current = recovery?.set_id ?? null;
+  variantRef.current = storyVariant(board, state.story?.variant, typeof window === "undefined" ? "" : window.location.search);
+  const optedIn = typeof window !== "undefined" && memberAgentsRequested(window.location.search);
+  const mandatesShown = mandatesFlag && state.mandates !== null;
+  const agentRowList = useMemo(
+    () => (mandatesFlag ? agentRows(decisionsFor(state.agentDecisions, recovery), recovery, board) : []),
+    [mandatesFlag, state.agentDecisions, recovery, board],
+  );
+  const overchargeShown = mandatesFlag ? overchargeView(state.overcharge, board?.circle.currency) : null;
+  const runAgentsBlocked = recovery?.status === "voting" ? null : "Start the recovery and open the vote first";
   const rerouteRound = rounds.find((r) => (r.payout?.status ?? "").toUpperCase() === "UNCLAIMED")?.n ?? null;
 
   return (
@@ -507,11 +612,20 @@ export default function App() {
       <main className="tk-main">
         <RotationBoard board={board} moved={state.moved?.handles ?? NO_MOVES} recoveryMember={recoveryMember} />
         {showRecovery && recovery && (
-          <RecoveryPanel recovery={recovery} board={board} busy={state.busy} approveBlocked={recButtons.approve} onApprove={onApprove} />
+          <RecoveryPanel
+            recovery={recovery}
+            board={board}
+            busy={state.busy}
+            approveBlocked={recButtons.approve}
+            onApprove={onApprove}
+            agentRows={agentRowList}
+            onAnswerAsk={onAnswerAsk}
+          />
         )}
       </main>
 
       <aside className="tk-rail">
+        {mandatesShown && state.mandates && <MandatesCard view={state.mandates} currency={board?.circle.currency ?? "USD"} />}
         <ForecastCard board={board} phoneShown={Boolean(phoneMember)} />
         {phoneMember && (
           <PhoneInbox memberName={nameOf(board, phoneMember)} messages={inbox} translations={translations} />
@@ -544,6 +658,12 @@ export default function App() {
           rerouteRound={rerouteRound}
           onReroute={onReroute}
           onJudgeCircle={onJudgeCircle}
+          mandatesOn={mandatesFlag}
+          onToggleMandates={mandatesFlag || optedIn ? onToggleMandates : undefined}
+          onRunAgents={mandatesFlag ? onRunAgents : undefined}
+          runAgentsBlocked={runAgentsBlocked}
+          onTryOvercharge={mandatesFlag ? onTryOvercharge : undefined}
+          overcharge={overchargeShown}
           circle={board?.circle ?? null}
           busy={state.busy}
           paypalLive={Boolean(session?.paypal_live)}

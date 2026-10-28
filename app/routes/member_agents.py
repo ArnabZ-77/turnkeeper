@@ -62,7 +62,9 @@ async def run_agents(
         raise HTTPException(status_code=422, detail=f"answers must be yes or no (got {', '.join(bad)})")
     from app.engine import story
 
-    story.taint(circle_id, "member_agents_run")  # a direct run mid-story: that run is not the canonical replay
+    story.taint(
+        circle_id, "member_agents_run"
+    )  # a direct run mid-story: that run is not the canonical replay
     try:
         res = await member_agent.run_member_agents(
             circle_id,

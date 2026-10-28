@@ -28,9 +28,7 @@ from app.domain.charter import Charter, canonical_dumps, to_utc
 from app.domain.fees import MoneyInput, NonNegativeMoney, PositiveMoney, money
 from app.domain.mandate import hmac_hex
 
-MANDATE_LABEL = (
-    "AP2-style Intent Mandate, our own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support"
-)
+MANDATE_LABEL = "AP2-style Intent Mandate, our own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support"
 SIGNATURE_LABEL = "server-attested HMAC signature, not a key held by the member"
 SCHEME = "turnkeeper-member-intent-mandate-v1"
 ATTESTATION: Literal["server-hmac-sha256"] = "server-hmac-sha256"
@@ -135,7 +133,11 @@ def policy_entry(
 
     ``max_charge_per_round`` is None when there is no mandate (the policy then denies with ``reason``)."""
     if m is None:
-        return {"ok": False, "reason": f"no member mandate on file for {member}", "max_charge_per_round": None}
+        return {
+            "ok": False,
+            "reason": f"no member mandate on file for {member}",
+            "max_charge_per_round": None,
+        }
     ok, reason = verify_member_mandate(
         m, secret, circle_id=circle_id, member=member, charter_sha256=charter_sha256, today=today
     )

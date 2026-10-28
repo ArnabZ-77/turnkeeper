@@ -92,7 +92,12 @@ def _positions(rotation: list[str], remedy_set: rd.RemedySet, member: str) -> li
     out: list[tuple[int, int, str]] = []
     for r in remedy_set.of_type("turn_swap"):
         partner = r.params.swap_with
-        if not partner or member not in (r.member, partner) or r.member not in rotation or partner not in rotation:
+        if (
+            not partner
+            or member not in (r.member, partner)
+            or r.member not in rotation
+            or partner not in rotation
+        ):
             continue
         other = partner if member == r.member else r.member
         out.append((rotation.index(member) + 1, rotation.index(other) + 1, other))
@@ -108,7 +113,9 @@ def decide(
 
     if (problem := _mandate_problem(mandate, member, state_)) is not None:
         trace.append(f"mandate: {problem}")
-        return Decision("ask", f"no valid mandate, only you can answer: {problem}", "no_mandate", tuple(trace))
+        return Decision(
+            "ask", f"no valid mandate, only you can answer: {problem}", "no_mandate", tuple(trace)
+        )
     assert mandate is not None
     trace.append(f"mandate ok: {mandate.rule_summary}, advance cap {mandate.max_advance}")
 
@@ -179,7 +186,10 @@ def decide(
             if v.choice == pick:
                 return v
     return Decision(
-        "yes", "rule: charter-legal and shortfall covered", "auto_legal_covered", (*trace, "nothing out of scope")
+        "yes",
+        "rule: charter-legal and shortfall covered",
+        "auto_legal_covered",
+        (*trace, "nothing out of scope"),
     )
 
 
@@ -307,7 +317,9 @@ async def run_member_agents(
         name = _first_name(circle_id, member)
         text, mode = d.reason, "rules"
         if worded < MAX_WORDED_DECISIONS:
-            text, mode = await explain_decision(name, request, d, provider=provider, live_allowed=live_allowed)
+            text, mode = await explain_decision(
+                name, request, d, provider=provider, live_allowed=live_allowed
+            )
             worded += 1
         entry: dict[str, Any] = {
             "member": member,
@@ -334,7 +346,9 @@ async def run_member_agents(
             if kind == "vote":
                 await recovery.cast_vote(circle_id, set_id, member, choice, source=source, publish=publish)
             else:
-                await recovery.record_consent(circle_id, set_id, member, choice, source=source, publish=publish)
+                await recovery.record_consent(
+                    circle_id, set_id, member, choice, source=source, publish=publish
+                )
             entry.update(recorded=True, source=source, recorded_choice=choice)
         decisions.append(entry)
         verb = {"yes": "says yes", "no": "says no", "ask": "asks the human"}[d.choice]
@@ -351,7 +365,9 @@ async def run_member_agents(
         "ok": True,
         "set_id": set_id,
         "decisions": decisions,
-        "asked": list(dict.fromkeys(d["member"] for d in decisions if d["choice"] == "ask" and not d["recorded"])),
+        "asked": list(
+            dict.fromkeys(d["member"] for d in decisions if d["choice"] == "ask" and not d["recorded"])
+        ),
         "pending": list(dict.fromkeys(d["member"] for d in decisions if not d["recorded"])),
         "labels": {"mandate": mm.MANDATE_LABEL, "signature": mm.SIGNATURE_LABEL},
         **{k: v for k, v in recovery.vote_status(circle_id, set_id).items() if k != "ok"},

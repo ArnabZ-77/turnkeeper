@@ -2,6 +2,8 @@ import type { BoardModel, InvoiceInfo, RecoveryInfo, RemedyInfo } from "../types
 import { fmtDate, fmtDateTime, fmtMoney, shortId } from "../format";
 import { consentRows, nameOf, remedyHeadline, remedyProblems, setProblems, voteBar } from "../recovery";
 import { IconCheck, IconClock, IconX } from "./icons";
+import type { AgentRow } from "../mandates";
+import { AgentRows } from "./AgentRows";
 
 const STATUS_TEXT: Record<string, string> = {
   invalid: "proposal rejected by the charter",
@@ -61,12 +63,21 @@ export interface VotePanelProps {
   /** Why approval is not possible yet (null = Priya can approve). */
   approveBlocked: string | null;
   onApprove: () => void;
+  /** Member agents (flag member_mandates): rows for the agents' answers; absent or empty renders nothing extra. */
+  agentRows?: AgentRow[];
+  onAnswerAsk?: (member: string, choice: "yes" | "no") => void;
 }
 
 /** Quorum bar, consents of the affected members and the organizer's one tap. */
-export function VotePanel({ recovery, board, busy, approveBlocked, onApprove }: VotePanelProps) {
+export function VotePanel({ recovery, board, busy, approveBlocked, onApprove, agentRows, onAnswerAsk }: VotePanelProps) {
   const bar = voteBar(recovery);
   const consents = consentRows(recovery);
+  // Member agents (flag member_mandates): their rows sit under the vote bar and in the consent column.
+  const consentAgents = (agentRows ?? []).filter((r) => r.kind === "consent");
+  const voteAgents = (agentRows ?? []).filter((r) => r.kind === "vote");
+  const answer = (m: string, c: "yes" | "no") => onAnswerAsk?.(m, c);
+  // A member whose agent already has a row is shown by that row, not twice.
+  const consentChips = consentAgents.length ? consents.filter((c) => !consentAgents.some((a) => a.member === c.member)) : consents;
   const approval = recovery.approval;
   const approved = approval?.status === "approved";
   return (
@@ -92,6 +103,7 @@ export function VotePanel({ recovery, board, busy, approveBlocked, onApprove }: 
           >
             <span style={{ width: `${bar.pct}%` }} />
           </div>
+          {voteAgents.length > 0 && <AgentRows rows={voteAgents} label="Member agent votes" busy={busy} onAnswer={answer} />}
         </div>
       )}
       <div className="tk-vote-row">
@@ -99,8 +111,11 @@ export function VotePanel({ recovery, board, busy, approveBlocked, onApprove }: 
         {consents.length === 0 ? (
           <span className="tk-muted tk-small">No turn swap proposed, so no consent is needed.</span>
         ) : (
+          <>
+            {consentAgents.length > 0 && <AgentRows rows={consentAgents} label="Member agent consents" busy={busy} onAnswer={answer} />}
+            {consentChips.length > 0 && (
           <span className="tk-chips">
-            {consents.map((c) => (
+            {consentChips.map((c) => (
               <span
                 key={c.member}
                 className={`tk-chip ${c.state === "given" ? "tk-chip-good" : c.state === "refused" ? "tk-chip-critical" : "tk-chip-pending"}`}
@@ -110,6 +125,8 @@ export function VotePanel({ recovery, board, busy, approveBlocked, onApprove }: 
               </span>
             ))}
           </span>
+            )}
+          </>
         )}
       </div>
       <div className="tk-vote-row tk-vote-approve">
@@ -184,15 +201,17 @@ export interface RecoveryPanelProps {
   busy: boolean;
   approveBlocked: string | null;
   onApprove: () => void;
+  agentRows?: AgentRow[];
+  onAnswerAsk?: (member: string, choice: "yes" | "no") => void;
 }
 
 /** The whole recovery story for one shortfall: commitment, remedies, vote, invoice. */
-export function RecoveryPanel({ recovery, board, busy, approveBlocked, onApprove }: RecoveryPanelProps) {
+export function RecoveryPanel({ recovery, board, busy, approveBlocked, onApprove, agentRows, onAnswerAsk }: RecoveryPanelProps) {
   const currency = board?.circle.currency ?? "USD";
   const general = setProblems(recovery.remedies, recovery.problems);
   const member = nameOf(board, recovery.member);
   return (
-    <section className="tk-card tk-recovery" aria-label="Recovery">
+    <section className={`tk-card tk-recovery${agentRows && agentRows.length > 0 ? " tk-recovery-agents" : ""}`} aria-label="Recovery">
       <h2 className="tk-card-title">
         <span>
           Recovery · {member} · round {recovery.round_n}
@@ -231,7 +250,15 @@ export function RecoveryPanel({ recovery, board, busy, approveBlocked, onApprove
           ))}
         </ol>
         <div className="tk-recovery-side">
-          <VotePanel recovery={recovery} board={board} busy={busy} approveBlocked={approveBlocked} onApprove={onApprove} />
+          <VotePanel
+            recovery={recovery}
+            board={board}
+            busy={busy}
+            approveBlocked={approveBlocked}
+            onApprove={onApprove}
+            agentRows={agentRows}
+            onAnswerAsk={onAnswerAsk}
+          />
           {recovery.invoice && <InvoiceChip invoice={recovery.invoice} currency={currency} />}
         </div>
       </div>

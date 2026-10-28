@@ -189,7 +189,9 @@ async def _try_overcharge(body: JudgeBody, sess: Session) -> dict[str, Any]:
     amount = body.amount or TRY_OVERCHARGE_AMOUNT
     round_n = body.round_n
     if round_n is None:
-        open_rounds = [r["n"] for r in state.board_model(cid)["rounds"] if r["status"] not in ("PAID", "VOID")]
+        open_rounds = [
+            r["n"] for r in state.board_model(cid)["rounds"] if r["status"] not in ("PAID", "VOID")
+        ]
         round_n = open_rounds[0] if open_rounds else 1
     if state.get_round(cid, round_n) is None:
         raise HTTPException(status_code=404, detail=f"round {round_n} not found")
@@ -201,9 +203,7 @@ async def _try_overcharge(body: JudgeBody, sess: Session) -> dict[str, Any]:
     except PolicyDenied as e:
         banner = f"DENIED before PayPal is called: {e.reason}"
         await bus.publish(sess.sid, {"type": "toast", "level": "error", "text": banner})
-        await bus.publish(
-            sess.sid, {"type": "trace", "kind": "system", "source": "policy", "text": banner}
-        )
+        await bus.publish(sess.sid, {"type": "trace", "kind": "system", "source": "policy", "text": banner})
         return {
             "ok": True,
             "action": "try_overcharge",

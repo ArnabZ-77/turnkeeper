@@ -60,9 +60,14 @@ def charter_of(circle: Circle) -> Any:
     return _charter_mod().Charter.model_validate_json(circle.charter_json)
 
 
-MEMBER_MANDATES_FLAG = "member_mandates"  # circle flag (default off); also TK_MEMBER_MANDATES for every circle
+MEMBER_MANDATES_FLAG = (
+    "member_mandates"  # circle flag (default off); also TK_MEMBER_MANDATES for every circle
+)
 STORY_B_FLAG = "member_agents_story"  # this circle's Judge story is the opt-in "Story B" (member agents)
-EXTRA_FLAG_KEYS = (MEMBER_MANDATES_FLAG, STORY_B_FLAG)  # stored in flags_json, never part of get_flags' base keys
+EXTRA_FLAG_KEYS = (
+    MEMBER_MANDATES_FLAG,
+    STORY_B_FLAG,
+)  # stored in flags_json, never part of get_flags' base keys
 
 
 def _raw_flags(circle: Circle) -> dict[str, Any]:

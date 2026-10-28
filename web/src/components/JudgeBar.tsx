@@ -1,7 +1,8 @@
 import type { CircleInfo } from "../types";
 import { fmtDateTime } from "../format";
 import { PAYPAL_NOT_CONFIGURED, SIMULATE_DECLINE_LABEL, canChargeLive, type RecoveryButtons } from "../recovery";
-import { IconBolt, IconCheck, IconClock, IconCoins } from "./icons";
+import type { OverchargeView } from "../mandates";
+import { IconBolt, IconCheck, IconClock, IconCoins, IconX } from "./icons";
 
 export interface JudgeBarProps {
   circle: CircleInfo | null;
@@ -36,6 +37,14 @@ export interface JudgeBarProps {
   onReroute?: (roundN: number) => void;
   /** Builder B: the $5 two-member judge circle that uses the real join flow. */
   onJudgeCircle?: () => void;
+  /** Member mandates (flag member_mandates, default off): each control renders only when its handler is given. */
+  mandatesOn?: boolean;
+  onToggleMandates?: (on: boolean) => void;
+  onRunAgents?: () => void;
+  /** Why "Run member agents" is disabled (null = enabled). */
+  runAgentsBlocked?: string | null;
+  onTryOvercharge?: () => void;
+  overcharge?: OverchargeView | null;
   /** Drawer open state (remembered by the App). */
   open?: boolean;
   onToggleOpen?: (open: boolean) => void;
@@ -241,11 +250,54 @@ export function JudgeBar(p: JudgeBarProps) {
             Try a real PayPal approval
           </button>
         )}
+        {p.onToggleMandates && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm"
+            aria-pressed={Boolean(p.mandatesOn)}
+            disabled={disabled}
+            onClick={() => p.onToggleMandates?.(!p.mandatesOn)}
+            title="Member mandates: each member holds a signed mandate and their agent answers inside it (default off)"
+          >
+            Member mandates: {p.mandatesOn ? "on" : "off"}
+          </button>
+        )}
+        {p.onRunAgents && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm"
+            disabled={disabled || Boolean(p.runAgentsBlocked)}
+            onClick={p.onRunAgents}
+            title={p.runAgentsBlocked ?? "Every pending member agent answers inside its mandate; an ask goes to the member's inbox"}
+          >
+            Run member agents
+          </button>
+        )}
+        {p.onTryOvercharge && (
+          <button
+            type="button"
+            className="tk-btn tk-btn-sm tk-btn-danger"
+            disabled={disabled}
+            onClick={p.onTryOvercharge}
+            title="Asks the policy engine to authorize a $230 charge, over the member's per-round mandate limit. It is denied before PayPal is called."
+          >
+            Try a $230 charge
+          </button>
+        )}
         <span className="tk-spacer" />
         <span className="tk-judge-clock" title="Virtual clock of this circle">
           clock: {fmtDateTime(circle?.virtual_now)}
         </span>
       </div>
+      {p.overcharge && (
+        <p className={`tk-callout tk-callout-${p.overcharge.tone} tk-overcharge`} role="status">
+          {p.overcharge.tone === "critical" ? <IconX /> : <IconCheck />} <strong>{p.overcharge.headline}.</strong>{" "}
+          <span className="tk-overcharge-reason">{p.overcharge.reason}</span>{" "}
+          <span className="tk-chip tk-chip-good tk-overcharge-chip" title="try_overcharge only calls the policy engine">
+            {p.overcharge.paypal}
+          </span>
+        </p>
+      )}
     </section>
     </details>
   );

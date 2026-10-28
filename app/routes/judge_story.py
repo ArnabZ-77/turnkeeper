@@ -61,7 +61,7 @@ def can_charge_live(circle_id: str) -> bool:
 
 
 def _variant(circle_id: str) -> str | None:
-    """"member_agents" for the opt-in Story B (flag member_mandates on AND this circle started as Story B), else
+    """ "member_agents" for the opt-in Story B (flag member_mandates on AND this circle started as Story B), else
     None: the default story's responses then carry no extra keys."""
     try:
         return story.VARIANT_B if state.is_story_b(state.load_circle(circle_id)) else None
@@ -348,7 +348,12 @@ async def _step_consents_b(sess: Session, request: Request) -> StepOut:
         else:
             parts.append(f"{who}'s agent asked, answered {d.get('recorded_choice')} by the judge's click")
     mode = _agent_ai_mode(res["decisions"])
-    out = {"consented": needed, "decisions": res["decisions"], "asked": res["asked"], "variant": "member_agents"}
+    out = {
+        "consented": needed,
+        "decisions": res["decisions"],
+        "asked": res["asked"],
+        "variant": "member_agents",
+    }
     return out, None, mode, "Consents: " + ("; ".join(parts) or "none needed"), {"paypal": None, "ai": mode}
 
 
@@ -576,7 +581,9 @@ async def _post_story_locked(
         if variant != story.VARIANT_B:
             raise HTTPException(status_code=422, detail=f"unknown story variant {variant!r}")
         if step != "reset":
-            raise HTTPException(status_code=422, detail="a story variant can only be chosen with the reset step")
+            raise HTTPException(
+                status_code=422, detail="a story variant can only be chosen with the reset step"
+            )
         from app.engine import member_mandates
 
         if member_mandates.killed():
@@ -591,7 +598,9 @@ async def _post_story_locked(
         await story.mark_step_start(sess.sid, cid, "reset")
         new = sessions.reset_session(sess.sid)
         story.begin(new.circle_id, new.sid, new.run_id)
-        if variant == story.VARIANT_B:  # opt-in per run: mandates on, default mandates signed, never canonical
+        if (
+            variant == story.VARIANT_B
+        ):  # opt-in per run: mandates on, default mandates signed, never canonical
             from app.engine import member_mandates
 
             member_mandates.enable(new.circle_id)

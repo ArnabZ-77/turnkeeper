@@ -8,6 +8,7 @@ import "./theme/tokens.css";
 import "./styles.css";
 import "./recovery.css";
 import "./pages.css";
+import "./mandates.css";
 import { applyTheme, readPreference, resolveTheme } from "./theme/useTheme";
 
 // Stamp the theme before the first paint (index.html already set data-theme from storage; this

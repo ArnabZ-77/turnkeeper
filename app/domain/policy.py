@@ -240,7 +240,9 @@ class PolicyEngine:
         if not entry:
             raise PolicyDenied(f"no member mandate on file for {member}; charges are blocked")
         if not entry.get("ok"):
-            raise PolicyDenied(f"{entry.get('reason') or f'{member} has no valid member mandate'}; charge blocked")
+            raise PolicyDenied(
+                f"{entry.get('reason') or f'{member} has no valid member mandate'}; charge blocked"
+            )
         limit = entry.get("max_charge_per_round")
         if limit is None:
             raise PolicyDenied(f"{member}'s mandate has no charge limit; charge blocked")

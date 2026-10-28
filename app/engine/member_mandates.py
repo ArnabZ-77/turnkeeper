@@ -56,7 +56,9 @@ def seed_in(db: DbSession, circle: Circle, charter: Any, now: datetime, *, only_
     """Insert signed default mandates for the circle's members (inside the caller's transaction)."""
     have: set[str] = set()
     if only_missing:
-        have = {r.member for r in db.exec(select(MemberMandateRow).where(MemberMandateRow.circle_id == circle.id))}
+        have = {
+            r.member for r in db.exec(select(MemberMandateRow).where(MemberMandateRow.circle_id == circle.id))
+        }
     mandates = mm.default_member_mandates(
         charter,
         circle_id=circle.id,
@@ -67,7 +69,9 @@ def seed_in(db: DbSession, circle: Circle, charter: Any, now: datetime, *, only_
         members=[m.handle for m in charter.members if m.handle not in have],
     )
     for m in mandates:
-        db.add(MemberMandateRow(circle_id=circle.id, member=m.member, json=m.model_dump_json(), approved_at=now))
+        db.add(
+            MemberMandateRow(circle_id=circle.id, member=m.member, json=m.model_dump_json(), approved_at=now)
+        )
     return len(mandates)
 
 
@@ -100,7 +104,9 @@ def enable(circle_id: str) -> dict[str, Any]:
 def _latest_rows(circle_id: str) -> dict[str, MemberMandateRow]:
     with session_scope() as db:
         rows = db.exec(
-            select(MemberMandateRow).where(MemberMandateRow.circle_id == circle_id).order_by(MemberMandateRow.id)
+            select(MemberMandateRow)
+            .where(MemberMandateRow.circle_id == circle_id)
+            .order_by(MemberMandateRow.id)
         ).all()
     return {r.member: r for r in rows}  # newest row per member wins
 
