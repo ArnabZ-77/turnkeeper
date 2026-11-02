@@ -1,11 +1,31 @@
 name: keep-warm
+# Render's free plan sleeps after 15 idle minutes, and GitHub runs scheduled workflows only every few hours.
+# So each scheduled run starts a long job that pings /healthz every 8 minutes for ~5h50m; the next scheduled
+# run (or a manual dispatch) takes over. Long jobs are only run once the repository is public, because
+# private repositories have a limited Actions minute budget. Until then, a short single ping runs instead.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
 jobs:
-  ping:
+  ping-loop:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Ping the hosted demo every 8 minutes
+        run: |
+          end=$(( $(date +%s) + 350*60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            curl -fsS --max-time 90 "${{ vars.DEMO_URL }}/healthz" -o /dev/null && echo "$(date -u +%H:%M) ok" || echo "$(date -u +%H:%M) not reachable"
+            sleep 480
+          done
+  ping-once:
+    if: ${{ github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
-      - name: Ping the hosted demo so the free instance does not sleep
-        run: curl -fsS --max-time 60 "${{ vars.DEMO_URL }}/healthz" || echo "demo not reachable"
+      - name: Ping the hosted demo once
+        run: curl -fsS --max-time 90 "${{ vars.DEMO_URL }}/healthz" -o /dev/null || echo "demo not reachable"
