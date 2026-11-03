@@ -108,3 +108,31 @@ export const TraceCard: React.FC<{ai: string; collect: string; tools: string[]; 
     </div>
   );
 };
+
+/** What PayPal's own sandbox API returned when the payout batch was read back (GET /v1/payments/payouts/{batch}). */
+export const ReadbackCard: React.FC<{rb: {request: string; host: string; payout_batch_id: string; batch_status: string; amount: string; fees: string; currency: string; time_completed: string; payout_item_id: string; transaction_status: string}; left: number; top: number; width?: number}> = ({rb, left, top, width = 820}) => {
+  const f = useCurrentFrame();
+  const inP = interpolate(f, [0, 14], [0, 1], {easing: Easing.bezier(0.16, 1, 0.3, 1), extrapolateRight: 'clamp'});
+  const row = (k: string, v: string, good = false) => (
+    <div style={{display: 'flex', justifyContent: 'space-between', gap: 24, padding: '9px 0', borderTop: '1px solid rgba(255,255,255,0.14)', fontSize: 28}}>
+      <span style={{color: brand.mute, fontFamily: brand.mono}}>{k}</span>
+      <span style={{color: good ? brand.good : brand.white, fontWeight: 700, fontFamily: brand.mono}}>{v}</span>
+    </div>
+  );
+  return (
+    <div style={{position: 'absolute', left, top, width, opacity: inP, translate: `${(1 - inP) * 50}px 0`, fontFamily: brand.font, color: brand.white}}>
+      <div style={{background: brand.navy, border: `3px solid ${brand.blueSoft}`, borderRadius: 22, padding: '22px 30px 18px', boxShadow: '0 20px 56px rgba(0,0,0,.5)'}}>
+        <div style={{fontSize: 24, fontWeight: 800, letterSpacing: 1.2, color: brand.blueSoft}}>READ BACK FROM PAYPAL&apos;S SANDBOX API</div>
+        <div style={{fontFamily: brand.mono, fontSize: 21, color: brand.mute, margin: '6px 0 12px', wordBreak: 'break-all'}}>
+          {rb.request} · {rb.host}
+        </div>
+        {row('batch_status', rb.batch_status, true)}
+        {row('payout_batch_id', rb.payout_batch_id)}
+        {row('payout_item_id', rb.payout_item_id)}
+        {row('transaction_status', rb.transaction_status, true)}
+        {row('amount', `${rb.amount} ${rb.currency}  (fee ${rb.fees})`)}
+        {row('time_completed', rb.time_completed)}
+      </div>
+    </div>
+  );
+};

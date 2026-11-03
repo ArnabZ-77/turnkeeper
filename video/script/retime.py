@@ -9,6 +9,7 @@ Scenes play back to back (transitions overlap inside lead/tail), so scene.start 
 Writes `start`, `duration`, `end` and `lines` (absolute and scene-relative start of every voice line) into each
 scene, plus `total_sec` at the top, and fails if the total is above --max seconds.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,7 +31,7 @@ def main() -> None:
     sb_path = Path(args.storyboard)
     sb = json.loads(sb_path.read_text(encoding="utf-8"))
     dur = json.loads(Path(args.durations).read_text(encoding="utf-8"))
-    script = {l["id"]: l for l in json.loads((HERE / "voiceover.json").read_text(encoding="utf-8"))}
+    script = {ln["id"]: ln for ln in json.loads((HERE / "voiceover.json").read_text(encoding="utf-8"))}
 
     t = 0.0
     for sc in sb["scenes"]:
@@ -43,14 +44,16 @@ def main() -> None:
                 sys.exit(f"{sc['id']}: no duration for line {lid}")
             if i:
                 cursor += gap
-            lines.append({
-                "id": lid,
-                "audio": f"audio/vo/{lid}.wav",
-                "at": round(cursor, 3),
-                "abs": round(t + cursor, 3),
-                "dur": dur[lid],
-                "text": script[lid]["text"],
-            })
+            lines.append(
+                {
+                    "id": lid,
+                    "audio": f"audio/vo/{lid}.wav",
+                    "at": round(cursor, 3),
+                    "abs": round(t + cursor, 3),
+                    "dur": dur[lid],
+                    "text": script[lid]["text"],
+                }
+            )
             cursor += dur[lid]
         length = max(cursor + tail, tm.get("min", 0.0))
         sc["start"] = round(t, 3)

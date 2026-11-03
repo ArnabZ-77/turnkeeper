@@ -1,0 +1,32 @@
+[
+{
+"id": "M01",
+"voice": "af_heart",
+"text": "Each member holds a signed mandate for their own agent. It's our own AP2-style design, with a server-attested signature.",
+"speed": 0.92
+},
+{
+"id": "A2",
+"voice": "af_heart",
+"text": "PayPal Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP. A free model can drive it; this take ran in rules mode.",
+"speed": 0.92
+},
+{
+"id": "L22",
+"voice": "af_heart",
+"text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2 support.",
+"speed": 0.92
+},
+{
+"id": "L14",
+"voice": "af_heart",
+"text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs.",
+"speed": 0.92
+},
+{
+"id": "L05",
+"voice": "af_heart",
+"text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash.",
+"speed": 0.92
+}
+]

@@ -1,0 +1,62 @@
+[
+{
+"id": "M01",
+"voice": "af_heart",
+"text": "Each member also holds a signed mandate for their own agent: a charge limit, an expiry, and rules. It's our own AP2-style mandate, with a server-attested signature.",
+"speed": 0.92
+},
+{
+"id": "L08",
+"voice": "af_heart",
+"text": "Round three runs on its own. Five charges complete, each confirmed through the PayPal Agent Toolkit. Ravi's charge is declined, and it's labelled sandbox-injected.",
+"speed": 0.92
+},
+{
+"id": "L12",
+"voice": "af_heart",
+"text": "Now the members' agents answer, each inside its mandate. Tomas's accepts an earlier turn. Ravi's asks him first. Four of six vote yes, and Priya taps once.",
+"speed": 0.92
+},
+{
+"id": "L14",
+"voice": "af_heart",
+"text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees. Those are PayPal's own IDs on the receipt.",
+"speed": 0.92
+},
+{
+"id": "R01",
+"voice": "af_heart",
+"text": "A two hundred thirty dollar charge, over the two hundred dollar mandate, is refused before PayPal is called.",
+"speed": 0.92
+},
+{
+"id": "L15",
+"voice": "af_heart",
+"text": "Round four is clean: six charges, one payout, and Priya typed nothing.",
+"speed": 0.92
+},
+{
+"id": "A1",
+"voice": "af_heart",
+"text": "Under the hood, the model proposes, a policy engine decides, and humans and member agents act inside signed mandates.",
+"speed": 0.92
+},
+{
+"id": "A2",
+"voice": "af_heart",
+"text": "On PayPal: Vault, Orders, Payouts, Invoicing through the Agent Toolkit, Webhooks and Balances. The tools sit behind an MCP server. A free model can drive it; this take used rules mode.",
+"speed": 0.92
+},
+{
+"id": "L19",
+"voice": "af_heart",
+"text": "In a hundred rules-mode runs, ninety-five percent of proposals were charter-legal, and zero illegal actions executed.",
+"speed": 0.92
+},
+{
+"id": "L22",
+"voice": "af_heart",
+"text": "It's sandbox only, the buffer is optional, we make no credit claims, and our mandates are AP2-style, not AP2 support.",
+"speed": 0.92
+}
+]

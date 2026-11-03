@@ -1,0 +1,394 @@
+{
+ "baseUrl": "http://localhost:8050",
+ "viewport": {
+  "width": 1920,
+  "height": 2300
+ },
+ "deviceScaleFactor": 2,
+ "fps": 30,
+ "typeDelay": 40,
+ "hoverMs": 450,
+ "actionTitles": false,
+ "scenes": [
+  {
+   "id": "v2-10-agents",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Member agents answer consents (inside their mandates)"
+     },
+     "label": "story:agents-consents"
+    },
+    {
+     "waitForText": "Next: Member agents vote (inside their mandates)",
+     "timeout": 60000
+    },
+    {
+     "pause": 600
+    },
+    {
+     "zoomTarget": {
+      "selector": "ul[aria-label='Member agent consents']",
+      "as": "agent-consents"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-vote",
+      "as": "vote-panel"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery-consents"
+     }
+    },
+    {
+     "pause": 4500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Member agents vote (inside their mandates)"
+     },
+     "label": "story:agents-votes"
+    },
+    {
+     "waitForText": "Next: Approve as Priya (one tap)",
+     "timeout": 60000
+    },
+    {
+     "pause": 600
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-meter",
+      "as": "quorum"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "ul[aria-label='Member agent votes']",
+      "as": "agent-votes"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery-votes"
+     }
+    },
+    {
+     "pause": 4500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Approve as Priya (one tap)"
+     },
+     "label": "story:Approve as Priya (one tap)"
+    },
+    {
+     "waitForText": "Next: Execute remedies",
+     "timeout": 60000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-approved-chip",
+      "as": "approved"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ],
+   "setup": [
+    {
+     "goto": "/"
+    }
+   ]
+  },
+  {
+   "id": "v2-11-execute",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Execute remedies"
+     },
+     "label": "story:Execute remedies"
+    },
+    {
+     "waitForText": "Next: Pay Round 3",
+     "timeout": 300000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-member-moved",
+      "as": "swap"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-invoice",
+      "as": "invoice-qr"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ]
+  },
+  {
+   "id": "v2-12-payout",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Pay Round 3"
+     },
+     "label": "story:Pay Round 3"
+    },
+    {
+     "waitForText": "Next: Clean Round 4 (no clicks)",
+     "timeout": 360000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section.tk-charter",
+      "as": "ledger"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section.tk-charter",
+      "as": "charter-ledger"
+     }
+    },
+    {
+     "pause": 3000
+    }
+   ]
+  },
+  {
+   "id": "v2-12b-success",
+   "tailMs": 800,
+   "steps": [
+    {
+     "waitForText": "Payout receipt · round 3",
+     "timeout": 30000,
+     "optional": true
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt-before"
+     }
+    },
+    {
+     "waitForSelector": "section[aria-label='Payout receipt'] .tk-receipt-status.tk-chip-good",
+     "timeout": 170000,
+     "optional": true
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt-after"
+     }
+    },
+    {
+     "pause": 3500
+    }
+   ]
+  },
+  {
+   "id": "v2-13-refusal",
+   "tailMs": 800,
+   "steps": [
+    {
+     "click": {
+      "text": "Advanced controls"
+     },
+     "label": "open-advanced"
+    },
+    {
+     "pause": 900
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Try a $230 charge"
+     },
+     "label": "try-230"
+    },
+    {
+     "waitForText": "PayPal was not called",
+     "timeout": 30000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-overcharge",
+      "as": "overcharge"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": ".tk-overcharge",
+      "as": "overcharge"
+     }
+    },
+    {
+     "pause": 5000
+    },
+    {
+     "click": {
+      "text": "Advanced controls"
+     },
+     "label": "close-advanced"
+    },
+    {
+     "pause": 800
+    }
+   ]
+  },
+  {
+   "id": "v2-14-round4",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Clean Round 4 (no clicks)"
+     },
+     "label": "story:Clean Round 4 (no clicks)"
+    },
+    {
+     "waitForText": "Story complete",
+     "timeout": 600000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board-r4"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Counters']",
+      "as": "counters"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Counters']",
+      "as": "counters"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ]
+  }
+ ]
+}

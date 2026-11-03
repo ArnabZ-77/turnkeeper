@@ -8,9 +8,14 @@ Method: find the speech span and every internal pause (>= 90 ms below the noise 
 breaks in the text (, . ; : ? !) are snapped to the nearest detected pause, so phrases start when the voice
 actually restarts. Inside each phrase, words are spread by length. Times are seconds from the start of the WAV.
 """
+
 from __future__ import annotations
-import json, re, wave
+
+import json
+import re
+import wave
 from pathlib import Path
+
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
@@ -64,12 +69,11 @@ def main():
         words = text.split()
         w = np.array([len(re.sub(r"\W", "", t)) + 1.5 for t in words], dtype=float)
         cum = np.concatenate([[0], np.cumsum(w)])
-        total = cum[-1]
         # break after word i if it ends with punctuation (not the last word)
         brk = [i for i, t in enumerate(words[:-1]) if re.search(r"[,.;:!?।]$", t)]
         used, snap = set(), {}
 
-        def expected(i):
+        def expected(i, s0=s0, s1=s1, words=words, snap=snap, cum=cum):
             # interpolate between the nearest already-snapped breaks (or the speech edges) by word length
             lo_i, lo_t = -1, s0
             hi_i, hi_t = len(words) - 1, s1
@@ -98,7 +102,6 @@ def main():
                     used.add(best)
                     snap[i] = gaps[best]
         # phrase spans
-        starts, ends, cur_s, bounds = [], [], s0, []
         phrases, first = [], 0
         for i in brk + [len(words) - 1]:
             phrases.append((first, i))
@@ -123,8 +126,13 @@ def main():
                 res[k] = {"t": words[k], "s": round(float(c), 3), "e": round(float(c + dur), 3)}
                 c += dur
             t_start = next_start
-        out[lid] = {"text": text, "dur": round(len(x) / sr, 3), "speech": [round(float(s0), 3), round(float(s1), 3)],
-                    "pauses": [[round(float(a), 2), round(float(b), 2)] for a, b in gaps], "words": res}
+        out[lid] = {
+            "text": text,
+            "dur": round(len(x) / sr, 3),
+            "speech": [round(float(s0), 3), round(float(s1), 3)],
+            "pauses": [[round(float(a), 2), round(float(b), 2)] for a, b in gaps],
+            "words": res,
+        }
     OUT.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print("wrote", OUT, len(out), "lines")
 

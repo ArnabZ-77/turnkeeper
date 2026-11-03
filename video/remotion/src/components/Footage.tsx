@@ -6,7 +6,8 @@ import type {Note, Rect, Seg, ZoomKeyframe} from '../types';
 import {Annotation} from './Annotation';
 
 export type Win = {x: number; y: number; w: number; h: number};
-export type Src = {w: number; h: number};
+/** Source size in layout px; k = native pixels per layout px (2 for a deviceScaleFactor 2 capture). */
+export type Src = {w: number; h: number; k?: number};
 
 /** v2 layout: the capture sits in the upper part of the frame; a pill strip above and a caption band below stay clear of the UI. */
 export const WIN: Win = {x: 192, y: 56, w: 1536, h: 864};
@@ -43,9 +44,10 @@ const secs = (s: Seg) => (s.to - s.from) / (s.rate ?? 1);
 
 export const segsDuration = (segs: Seg[]) => segs.reduce((a, s) => a + secs(s), 0);
 
-const Vid: React.FC<{src: string; trimBefore: number; rate: number; src_: Src}> = ({src, trimBefore, rate, src_}) => (
-  <OffthreadVideo src={staticFile(src)} trimBefore={trimBefore} playbackRate={rate} muted style={{width: src_.w, height: src_.h, display: 'block'}} />
-);
+const Vid: React.FC<{src: string; trimBefore: number; rate: number; src_: Src}> = ({src, trimBefore, rate, src_}) => {
+  const k = src_.k ?? 1;
+  return <OffthreadVideo src={staticFile(src)} trimBefore={trimBefore} playbackRate={rate} muted style={{width: src_.w * k, height: src_.h * k, display: 'block'}} />;
+};
 
 /**
  * One piece of real footage with its own camera (zoom/pan), speed segments, "sped up" badge and annotations that box
@@ -120,7 +122,7 @@ export const FootageLayer: React.FC<{
     if (badge && (s.rate ?? 1) > 1.2) {
       badges.push(
         <Sequence key={i} from={o2} durationInFrames={n} layout="none">
-          <SpeedBadge rate={s.rate ?? 1} frames={n} left={win.x} />
+          <SpeedBadge rate={s.rate ?? 1} frames={n} left={win.x + 60} />
         </Sequence>,
       );
     }
@@ -142,7 +144,7 @@ export const FootageLayer: React.FC<{
           boxShadow: '0 14px 50px rgba(0,0,0,.45), 0 0 0 1.5px rgba(255,255,255,.14)',
         }}
       >
-        <div style={{position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', translate: `${tx}px ${ty}px`, scale: String(scale)}}>{parts}</div>
+        <div style={{position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', translate: `${tx}px ${ty}px`, scale: String(scale / (src.k ?? 1))}}>{parts}</div>
       </div>
       {notes.map((n, i) => {
         const dur = Math.max(1, Math.round(n.dur * fps));

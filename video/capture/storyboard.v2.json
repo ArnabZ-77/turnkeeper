@@ -1,0 +1,800 @@
+{
+ "baseUrl": "http://localhost:8050",
+ "viewport": {
+  "width": 1920,
+  "height": 2300
+ },
+ "deviceScaleFactor": 2,
+ "fps": 30,
+ "typeDelay": 40,
+ "hoverMs": 450,
+ "actionTitles": false,
+ "scenes": [
+  {
+   "id": "v2-00-reset",
+   "tailMs": 800,
+   "steps": [
+    {
+     "goto": "/?member_agents=1"
+    },
+    {
+     "waitForText": "Next: Reset demo",
+     "timeout": 30000
+    },
+    {
+     "pause": 1200
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Reset demo"
+     },
+     "label": "story:reset"
+    },
+    {
+     "waitForText": "Next: Advance to T-3 (forecast)",
+     "timeout": 60000
+    },
+    {
+     "pause": 800
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Member mandates']",
+      "as": "mandates"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    }
+   ]
+  },
+  {
+   "id": "v2-01-mandates",
+   "tailMs": 800,
+   "steps": [
+    {
+     "pause": 700
+    },
+    {
+     "hover": {
+      "selector": "section[aria-label='Member mandates'] .tk-mandate:nth-child(4)"
+     },
+     "label": "mandate-tomas"
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Member mandates']",
+      "as": "mandates-card"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Member mandates'] .tk-mandate-labels",
+      "as": "mandate-labels"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Member mandates'] h2 .tk-chip",
+      "as": "verified-chip"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "hover": {
+      "selector": "section[aria-label='Member mandates'] .tk-mandate-labels"
+     },
+     "label": "labels"
+    },
+    {
+     "pause": 5500
+    }
+   ],
+   "setup": [
+    {
+     "goto": "/"
+    }
+   ]
+  },
+  {
+   "id": "v2-04-compile",
+   "tailMs": 600,
+   "steps": [
+    {
+     "goto": "/compile"
+    },
+    {
+     "waitForText": "Compile charter",
+     "timeout": 20000
+    },
+    {
+     "zoomTarget": {
+      "label": "Rules text",
+      "as": "rules-hi"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Compile charter"
+     },
+     "label": "compile"
+    },
+    {
+     "waitForText": "same as the demo circle",
+     "timeout": 30000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Compiled charter']",
+      "as": "charter-card"
+     }
+    },
+    {
+     "pause": 1800
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Freeze charter"
+     },
+     "label": "freeze"
+    },
+    {
+     "waitForText": "Billing plan PayPal shows each member",
+     "timeout": 30000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Frozen charter'] .tk-chip-hash",
+      "as": "hash"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Frozen charter'] .tk-fee-line",
+      "as": "fees"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Approve as Priya (organizer)"
+     },
+     "label": "approve-charter"
+    },
+    {
+     "waitForText": "Member invites (signed, expiring)",
+     "timeout": 30000
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Compiled charter']",
+      "as": "compiled-charter"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Frozen charter']",
+      "as": "frozen-charter"
+     }
+    },
+    {
+     "pause": 1000
+    }
+   ]
+  },
+  {
+   "id": "v2-06-forecast",
+   "tailMs": 600,
+   "steps": [
+    {
+     "goto": "/"
+    },
+    {
+     "waitForText": "Next: Advance to T-3 (forecast)",
+     "timeout": 30000
+    },
+    {
+     "pause": 800
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Advance to T-3 (forecast)"
+     },
+     "label": "story:Advance to T-3 (forecast)"
+    },
+    {
+     "waitForText": "Next: Run Round 3 (Ravi declines)",
+     "timeout": 120000
+    },
+    {
+     "waitForSelector": ".tk-forecast-row",
+     "timeout": 10000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Shortfall forecast']",
+      "as": "forecast"
+     }
+    },
+    {
+     "pause": 2500
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-phone-card",
+      "as": "nudge-hi"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Shortfall forecast']",
+      "as": "forecast"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": ".tk-phone-card",
+      "as": "nudge"
+     }
+    },
+    {
+     "pause": 2000
+    }
+   ]
+  },
+  {
+   "id": "v2-07-round3",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Run Round 3 (Ravi declines)"
+     },
+     "label": "story:Run Round 3 (Ravi declines)"
+    },
+    {
+     "waitForText": "Next: Reply as Ravi (Hindi)",
+     "timeout": 600000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board-r3"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "trace-toolkit"
+     }
+    },
+    {
+     "pause": 1200
+    },
+    {
+     "click": {
+      "selector": ".tk-scheduler .b-sch-event-wrap.tk-st-declined .b-sch-event"
+     },
+     "label": "ravi-declined"
+    },
+    {
+     "waitForText": "sandbox-injected",
+     "timeout": 10000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-selected",
+      "as": "decline-detail"
+     }
+    },
+    {
+     "pause": 2500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "close"
+     },
+     "label": "close-detail"
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board"
+     }
+    }
+   ]
+  },
+  {
+   "id": "v2-08-reply",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Reply as Ravi (Hindi)"
+     },
+     "label": "story:Reply as Ravi (Hindi)"
+    },
+    {
+     "waitForText": "Next: Start recovery",
+     "timeout": 30000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-phone-card",
+      "as": "ravi-reply"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": ".tk-phone-card",
+      "as": "phone"
+     }
+    },
+    {
+     "pause": 3500
+    }
+   ]
+  },
+  {
+   "id": "v2-09-recovery",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Start recovery"
+     },
+     "label": "story:Start recovery"
+    },
+    {
+     "waitForText": "Next: Member agents answer consents (inside their mandates)",
+     "timeout": 480000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "remedies"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery"
+     }
+    },
+    {
+     "pause": 3500
+    }
+   ]
+  },
+  {
+   "id": "v2-10-agents",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Member agents answer consents (inside their mandates)"
+     },
+     "label": "story:agents-consents"
+    },
+    {
+     "waitForText": "Next: Member agents vote (inside their mandates)",
+     "timeout": 60000
+    },
+    {
+     "pause": 600
+    },
+    {
+     "zoomTarget": {
+      "selector": "ul[aria-label='Member agent consents']",
+      "as": "agent-consents"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-vote",
+      "as": "vote-panel"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery-consents"
+     }
+    },
+    {
+     "pause": 4500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Member agents vote (inside their mandates)"
+     },
+     "label": "story:agents-votes"
+    },
+    {
+     "waitForText": "Next: Approve as Priya (one tap)",
+     "timeout": 60000
+    },
+    {
+     "pause": 600
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-meter",
+      "as": "quorum"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "ul[aria-label='Member agent votes']",
+      "as": "agent-votes"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery-votes"
+     }
+    },
+    {
+     "pause": 4500
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Approve as Priya (one tap)"
+     },
+     "label": "story:Approve as Priya (one tap)"
+    },
+    {
+     "waitForText": "Next: Execute remedies",
+     "timeout": 60000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-approved-chip",
+      "as": "approved"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ]
+  },
+  {
+   "id": "v2-11-execute",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Execute remedies"
+     },
+     "label": "story:Execute remedies"
+    },
+    {
+     "waitForText": "Next: Pay Round 3",
+     "timeout": 300000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-member-moved",
+      "as": "swap"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-invoice",
+      "as": "invoice-qr"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Recovery']",
+      "as": "recovery"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ]
+  },
+  {
+   "id": "v2-12-payout",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Pay Round 3"
+     },
+     "label": "story:Pay Round 3"
+    },
+    {
+     "waitForText": "Next: Clean Round 4 (no clicks)",
+     "timeout": 360000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section.tk-charter",
+      "as": "ledger"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section.tk-charter",
+      "as": "charter-ledger"
+     }
+    },
+    {
+     "pause": 3000
+    }
+   ]
+  },
+  {
+   "id": "v2-12b-success",
+   "tailMs": 800,
+   "steps": [
+    {
+     "waitForText": "Payout receipt · round 3",
+     "timeout": 30000,
+     "optional": true
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt-before"
+     }
+    },
+    {
+     "waitForSelector": "section[aria-label='Payout receipt'] .tk-receipt-status.tk-chip-good",
+     "timeout": 170000,
+     "optional": true
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt-after"
+     }
+    },
+    {
+     "pause": 3500
+    }
+   ]
+  },
+  {
+   "id": "v2-13-refusal",
+   "tailMs": 800,
+   "steps": [
+    {
+     "click": {
+      "text": "Advanced controls"
+     },
+     "label": "open-advanced"
+    },
+    {
+     "pause": 900
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Try a $230 charge"
+     },
+     "label": "try-230"
+    },
+    {
+     "waitForText": "PayPal was not called",
+     "timeout": 30000
+    },
+    {
+     "zoomTarget": {
+      "selector": ".tk-overcharge",
+      "as": "overcharge"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": ".tk-overcharge",
+      "as": "overcharge"
+     }
+    },
+    {
+     "pause": 5000
+    },
+    {
+     "click": {
+      "text": "Advanced controls"
+     },
+     "label": "close-advanced"
+    },
+    {
+     "pause": 800
+    }
+   ]
+  },
+  {
+   "id": "v2-14-round4",
+   "tailMs": 600,
+   "steps": [
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Clean Round 4 (no clicks)"
+     },
+     "label": "story:Clean Round 4 (no clicks)"
+    },
+    {
+     "waitForText": "Story complete",
+     "timeout": 600000
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board-r4"
+     }
+    },
+    {
+     "pause": 1500
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Counters']",
+      "as": "counters"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Judge mode story']",
+      "as": "story-bar"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Agent trace']",
+      "as": "agent-trace"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Payout receipt']",
+      "as": "receipt"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Counters']",
+      "as": "counters"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Rotation board']",
+      "as": "board"
+     }
+    },
+    {
+     "pause": 2500
+    }
+   ]
+  }
+ ]
+}

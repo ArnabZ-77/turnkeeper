@@ -38,15 +38,17 @@ type Step =
   | {click: Target; label?: string}
   | {type: Target; text: string; delay?: number; submit?: boolean; clear?: boolean; label?: string}
   | {press: string}
-  | {waitForText: string; timeout?: number}
-  | {waitForSelector: string; timeout?: number}
+  | {waitForText: string; timeout?: number; optional?: boolean}
+  | {waitForSelector: string; timeout?: number; optional?: boolean}
   | {waitForUrl: string; timeout?: number}
   | {pause: number}
   | {zoomTarget: Target & {as: string}}
   | {snapshot: Target & {as: string}}
   | {apiPost: string; as: string; gotoField?: string}
   | {chapter: string; description?: string; duration?: number}
-  | {scroll: number};
+  | {scroll: number}
+  | {scrollTo: Target; block?: 'start' | 'center' | 'end'}
+  | {hover: Target; label?: string};
 
 type CaptureScene = {
   id: string;
@@ -290,11 +292,21 @@ for (const scene of sb.scenes) {
       } else if ('press' in step) {
         await page.keyboard.press(step.press);
       } else if ('waitForText' in step) {
-        await page.getByText(step.waitForText).first().waitFor({state: 'visible', timeout: step.timeout ?? 60_000});
-        mark(`seen "${step.waitForText}"`);
+        try {
+          await page.getByText(step.waitForText).first().waitFor({state: 'visible', timeout: step.timeout ?? 60_000});
+          mark(`seen "${step.waitForText}"`);
+        } catch (e) {
+          if (!step.optional) throw e;
+          mark(`NOT seen (optional) "${step.waitForText}"`);
+        }
       } else if ('waitForSelector' in step) {
-        await page.locator(step.waitForSelector).first().waitFor({state: 'visible', timeout: step.timeout ?? 60_000});
-        mark(`seen ${step.waitForSelector}`);
+        try {
+          await page.locator(step.waitForSelector).first().waitFor({state: 'visible', timeout: step.timeout ?? 60_000});
+          mark(`seen ${step.waitForSelector}`);
+        } catch (e) {
+          if (!step.optional) throw e;
+          mark(`NOT seen (optional) ${step.waitForSelector}`);
+        }
       } else if ('waitForUrl' in step) {
         await page.waitForURL(new RegExp(step.waitForUrl), {timeout: step.timeout ?? 60_000, waitUntil: 'domcontentloaded'});
         mark(`url ${page.url().split('?')[0]}`);
@@ -332,6 +344,16 @@ for (const scene of sb.scenes) {
       } else if ('scroll' in step) {
         await page.mouse.wheel(0, step.scroll);
         await sleep(400);
+      } else if ('scrollTo' in step) {
+        // Smoothly bring a target into view (the recording shows the scroll). Used for panels below the fold.
+        const loc = locate(page, step.scrollTo).first();
+        await loc.evaluate((el, block) => el.scrollIntoView({behavior: 'smooth', block}), step.block ?? 'center');
+        await sleep(900);
+      } else if ('hover' in step) {
+        const loc = locate(page, step.hover).first();
+        mark(`hover ${step.label ?? describe(step.hover)}`);
+        if (step.label) await record(step.label, loc);
+        await loc.hover();
       }
     }
     await sleep(scene.tailMs ?? 600);

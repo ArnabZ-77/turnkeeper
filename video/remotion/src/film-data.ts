@@ -1,6 +1,7 @@
 import storyboardJson from '../../script/storyboard.json';
 import captionsJson from './data/captions.json';
 import capturedJson from './data/captured.json';
+import readbackJson from './data/paypal_readback.json';
 
 export type SbLine = {id: string; at: number; abs: number; dur: number; text: string};
 export type SbScene = {
@@ -11,6 +12,7 @@ export type SbScene = {
   end: number;
   transition?: {kind: 'fade' | 'slide' | 'none'; sec: number};
   lines: SbLine[];
+  captions?: {line: string}[];
   overlays?: {type: string; line?: string; offset?: number; text: string}[];
 };
 export type CapWord = {t: string; s: number; e: number};
@@ -24,12 +26,24 @@ export const captured = capturedJson as unknown as {
   hash: string;
   invoice: string;
   payday: string;
-  round3_capture_id: string;
-  ravi_decline: string;
-  trace_round3: {ai: string; collect: string; tools: string[]};
   receipt3: Receipt;
+  receipt3_later: Receipt;
   receipt4: Receipt;
-  round3_final_status: string;
+  refusal: {headline: string; reason: string; chip: string};
+  mandate_labels: string[];
+};
+export const readback = readbackJson as unknown as {
+  request: string;
+  host: string;
+  payout_batch_id: string;
+  batch_status: string;
+  amount: string;
+  fees: string;
+  currency: string;
+  time_completed: string;
+  payout_item_id: string;
+  transaction_status: string;
+  item_amount: string;
 };
 export type Receipt = {title: string; status: string; amount: string; recipient: string; item: string; batch: string; paid_at: string};
 

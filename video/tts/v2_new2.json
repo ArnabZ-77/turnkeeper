@@ -1,0 +1,38 @@
+[
+{
+"id": "M01",
+"voice": "af_heart",
+"text": "Each member holds a signed mandate for their own agent: a limit, an expiry, and rules. It's our own AP2-style design, with a server-attested signature.",
+"speed": 0.92
+},
+{
+"id": "L07",
+"voice": "af_heart",
+"text": "Three days out, the forecast flags Ravi: late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi.",
+"speed": 0.92
+},
+{
+"id": "L08",
+"voice": "af_heart",
+"text": "Round three runs on its own. Five charges complete, confirmed through the PayPal Agent Toolkit. Ravi's charge is declined, labelled sandbox-injected.",
+"speed": 0.92
+},
+{
+"id": "L11",
+"voice": "af_heart",
+"text": "The agent proposes only what the charter allows: the buffer covers Ravi now, he repays by PayPal invoice, and swaps turns with Tomas.",
+"speed": 0.92
+},
+{
+"id": "L12",
+"voice": "af_heart",
+"text": "Now the members' agents answer inside their mandates. Tomas's accepts an earlier turn; Ravi's asks him first. Four of six vote yes, and Priya taps once.",
+"speed": 0.92
+},
+{
+"id": "A2",
+"voice": "af_heart",
+"text": "PayPal Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with the tools behind an MCP server. A free model can drive it; this take ran in rules mode.",
+"speed": 0.92
+}
+]

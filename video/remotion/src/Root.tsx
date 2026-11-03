@@ -3,6 +3,7 @@ import {Composition, staticFile, type CalculateMetadataFunction} from 'remotion'
 import {FPS, HEIGHT, WIDTH} from './brand';
 import {Film, TOTAL_FRAMES} from './Film';
 import {Main, sceneStarts} from './Main';
+import {Thumb} from './Thumb';
 import type {MainProps} from './types';
 import defaultStoryboard from '../storyboard.test.json';
 
@@ -33,6 +34,7 @@ export const RemotionRoot: React.FC = () => (
   <>
     {/* The demo film: scenes, timings and narration come from script/storyboard.json (see edl in CaptureScenes.tsx). */}
     <Composition id="Turnkeeper" component={Film} width={WIDTH} height={HEIGHT} fps={FPS} durationInFrames={TOTAL_FRAMES} />
+    <Composition id="Thumb" component={Thumb} width={1280} height={720} fps={FPS} durationInFrames={1} />
     {/* Toolchain smoke test (npm run render:test). */}
     <Composition
       id="Main"

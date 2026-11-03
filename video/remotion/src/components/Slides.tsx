@@ -162,38 +162,29 @@ const CountUp: React.FC<{t0: number; to: number; suffix: string; dur?: number; d
 };
 
 export const ProblemSlide: React.FC<{sc: SbScene}> = ({sc}) => {
-  const {fps} = useVideoConfig();
-  const tIn = useTIn();
-  const l2 = sc.lines.find((l) => l.id === 'L02')!;
-  const l3 = sc.lines.find((l) => l.id === 'L03')!;
-  const ov = sc.overlays ?? [];
-  const lt = ov.find((o) => o.type === 'lower_third');
-  const srcs = ov.filter((o) => o.type === 'source_caption');
-  const tStat1 = l3.at + (srcs[0]?.offset ?? 0);
-  const tStat2 = l3.at + (srcs[1]?.offset ?? 3.2);
+  const l1 = sc.lines.find((l) => l.id === 'P01')!;
+  const tN = wordAt(sc, 'P02', 'Nineteen');
+  const tS = wordAt(sc, 'P02', 'Sub');
   return (
     <AbsoluteFill>
       <Backdrop />
       <H1>Someone is always the bank</H1>
-      <PersonaCard t0={l2.at} />
-      <StatCard t0={tStat1} x={690} big={<CountUp t0={tStat1} to={19} suffix="M" />} text="U.S. households were underbanked in 2023" tag="FDIC · 14.2% of households" />
-      <StatCard t0={tStat2} x={1290} big={<CountUp t0={tStat2} to={28} suffix="%" />} text="of adults in Sub-Saharan Africa saved through a savings club (2024 data)" tag="World Bank Global Findex 2025 · 28.1%" />
-      {lt ? (
-        <Sequence from={tIn + Math.round(l2.at * fps)} durationInFrames={Math.round((l3.at - l2.at) * fps) + 6} layout="none">
-          <LowerThird kicker="Persona" text={lt.text} frames={Math.round((l3.at - l2.at) * fps) + 6} />
-        </Sequence>
-      ) : null}
-      {srcs.map((o, i) => {
-        const start = l3.at + (o.offset ?? 0);
-        const end = i + 1 < srcs.length ? l3.at + (srcs[i + 1].offset ?? 0) : sc.duration - 0.1;
-        const frames = Math.round((end - start) * fps);
-        return (
-          <Sequence key={i} from={tIn + Math.round(start * fps)} durationInFrames={frames} layout="none">
-            <LowerThird text={o.text} frames={frames} />
-          </Sequence>
-        );
-      })}
+      <PersonaCard t0={l1.at} />
+      <StatCard t0={tN - 0.1} x={690} big={<CountUp t0={tN - 0.1} to={19} suffix="M" dur={0.9} />} text="U.S. households were underbanked in 2023" tag="FDIC National Survey · 14.2% of households" />
+      <TitleBand t0={tS + 0.9} />
+      <StatCard t0={tS - 0.1} x={1290} big={<CountUp t0={tS - 0.1} to={28} suffix="%" dur={0.9} />} text="of adults in Sub-Saharan Africa saved through a savings club (2024 data)" tag="World Bank Global Findex 2025 · 28.1%" />
     </AbsoluteFill>
+  );
+};
+
+/** The title, folded into the end of the problem slide: wordmark plus one line. */
+const TitleBand: React.FC<{t0: number}> = ({t0}) => {
+  const p = useReveal(t0, 16);
+  return (
+    <div style={{position: 'absolute', left: 120, right: 120, top: 790, display: 'flex', alignItems: 'baseline', gap: 36, opacity: p, translate: `0 ${(1 - p) * 40}px`, fontFamily: brand.font}}>
+      <div style={{fontSize: 108, fontWeight: 800, letterSpacing: -3, color: brand.white}}>Turnkeeper</div>
+      <div style={{fontSize: 52, fontWeight: 600, color: brand.accent}}>her AI treasurer, on PayPal</div>
+    </div>
   );
 };
 
@@ -227,24 +218,34 @@ const StatCard: React.FC<{t0: number; x: number; big: React.ReactNode; text: str
     <div style={{position: 'absolute', left: x, top: 250, width: 540, height: 460, boxSizing: 'border-box', borderRadius: 26, background: 'rgba(0,112,224,0.16)', border: `2px solid ${brand.blueSoft}`, padding: 36, opacity: p, translate: `0 ${(1 - p) * 60}px`, fontFamily: brand.font, color: brand.white}}>
       <div style={{fontSize: 150, fontWeight: 800, letterSpacing: -4, color: brand.accent, lineHeight: 1}}>{big}</div>
       <div style={{fontSize: 36, fontWeight: 600, marginTop: 18, lineHeight: 1.25}}>{text}</div>
-      <div style={{fontSize: 22, color: brand.mute, marginTop: 20}}>{tag}</div>
+      <div style={{fontSize: 26, color: brand.mute, marginTop: 20, lineHeight: 1.25}}>{tag}</div>
     </div>
   );
 };
 
-/* ---------- s14 architecture ---------- */
-export const ArchSlide: React.FC<{sc: SbScene}> = ({sc}) => {
+/* ---------- build: architecture + PayPal APIs + AI layer on one slide ---------- */
+export const BuildSlide: React.FC<{sc: SbScene}> = ({sc}) => {
   const nodes = [
-    {label: 'Model', sub: 'proposes remedies, words nudges', t: wordAt(sc, 'L16', 'proposes')},
-    {label: 'Policy engine', sub: 'deterministic · every money action passes it', t: wordAt(sc, 'L16', 'decides'), hi: true},
-    {label: 'Humans', sub: 'consent once · vote · organizer’s one tap', t: wordAt(sc, 'L16', 'approve')},
-    {label: 'PayPal sandbox', sub: 'one FIFO gateway · cached OAuth · PayPal-Request-Id per run', t: wordAt(sc, 'L16', 'matters') - 0.1},
+    {label: 'Model', sub: 'proposes remedies, words the explanation', t: wordAt(sc, 'A1', 'proposes')},
+    {label: 'Policy engine', sub: 'deterministic code; every money action and charge passes it', t: wordAt(sc, 'A1', 'decides'), hi: true},
+    {label: 'Members and agents', sub: 'humans vote; member agents answer inside signed mandates', t: wordAt(sc, 'A1', 'people')},
+    {label: 'PayPal sandbox', sub: 'one FIFO gateway, cached OAuth, idempotent', t: wordAt(sc, 'A1', 'mandates') - 0.1},
   ];
+  const apis = [
+    {k: 'Vault', w: 'Vault'},
+    {k: 'Orders', w: 'Orders'},
+    {k: 'Payouts', w: 'Payouts'},
+    {k: 'Invoicing · Agent Toolkit', w: 'Invoicing'},
+    {k: 'Webhooks', w: 'Webhooks'},
+    {k: 'Balances', w: 'Balances'},
+  ];
+  const tMcp = wordAt(sc, 'A2', 'MCP');
+  const tRules = wordAt(sc, 'A2', 'rules');
   return (
     <AbsoluteFill>
       <Backdrop />
-      <H1 size={64}>The model proposes. Code decides. People approve.</H1>
-      <div style={{position: 'absolute', left: 120, top: 300, display: 'flex', alignItems: 'center'}}>
+      <H1 size={58} top={52}>The model proposes. Code decides. People and agents act within mandates.</H1>
+      <div style={{position: 'absolute', left: 120, top: 214, display: 'flex', alignItems: 'center'}}>
         {nodes.map((n, i) => (
           <React.Fragment key={n.label}>
             <ArchNode {...n} />
@@ -252,8 +253,22 @@ export const ArchSlide: React.FC<{sc: SbScene}> = ({sc}) => {
           </React.Fragment>
         ))}
       </div>
-      <Rise t0={nodes[3].t + 0.5} style={{position: 'absolute', left: 120, top: 700, fontFamily: brand.font, fontSize: 30, color: brand.mute}}>
-        One frozen charter (SHA-256) drives consent, remedies and the payout mandate.
+      <Rise t0={wordAt(sc, 'A2', 'Vault') - 0.5} style={{position: 'absolute', left: 120, top: 548, fontFamily: brand.font, fontSize: 30, fontWeight: 800, color: brand.blueSoft}}>
+        PayPal APIs on the money path
+      </Rise>
+      <div style={{position: 'absolute', left: 120, right: 120, top: 600, display: 'flex', gap: 16, flexWrap: 'wrap'}}>
+        {apis.map((a) => (
+          <ApiChip key={a.k} k={a.k} t={wordAt(sc, 'A2', a.w) - 0.1} />
+        ))}
+      </div>
+      <Rise t0={tMcp - 0.3} style={{position: 'absolute', left: 120, right: 120, top: 724, display: 'flex', gap: 16, alignItems: 'center', fontFamily: brand.font, color: brand.white}}>
+        <div style={{fontSize: 30, fontWeight: 800, color: brand.blueSoft, marginRight: 8}}>AI layer</div>
+        <div style={{fontSize: 28, fontWeight: 600, padding: '8px 22px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.25)'}}>MCP server behind the tools</div>
+        <div style={{fontSize: 28, fontWeight: 600, padding: '8px 22px', borderRadius: 999, background: 'rgba(0,112,224,0.22)', border: `1.5px solid ${brand.blueSoft}`}}>Free model, optional</div>
+        <div style={{fontSize: 28, fontWeight: 800, padding: '8px 22px', borderRadius: 999, background: brand.accent, color: brand.navy, opacity: useReveal(tRules - 0.2, 18)}}>This take: rules mode</div>
+      </Rise>
+      <Rise t0={tRules + 0.4} style={{position: 'absolute', left: 120, right: 120, top: 824, fontFamily: brand.font, fontSize: 26, color: brand.mute, lineHeight: 1.35}}>
+        One frozen charter (SHA-256) drives consent, remedies and the payout mandate. Real webhook delivery is not tested yet.
       </Rise>
     </AbsoluteFill>
   );
@@ -261,9 +276,9 @@ export const ArchSlide: React.FC<{sc: SbScene}> = ({sc}) => {
 const ArchNode: React.FC<{label: string; sub: string; t: number; hi?: boolean}> = ({label, sub, t, hi}) => {
   const p = useReveal(t - 0.1, 16);
   return (
-    <div style={{width: 340, height: 300, borderRadius: 26, padding: 30, boxSizing: 'border-box', background: hi ? 'rgba(245,166,35,0.16)' : 'rgba(255,255,255,0.07)', border: `${hi ? 3 : 1.5}px solid ${hi ? brand.accent : 'rgba(255,255,255,0.2)'}`, opacity: p, scale: String(0.9 + 0.1 * p), boxShadow: hi ? '0 0 46px rgba(245,166,35,.35)' : 'none', fontFamily: brand.font, color: brand.white}}>
-      <div style={{fontSize: 46, fontWeight: 800, lineHeight: 1.1}}>{label}</div>
-      <div style={{fontSize: 26, color: brand.mute, marginTop: 16, lineHeight: 1.3}}>{sub}</div>
+    <div style={{width: 340, height: 268, borderRadius: 26, padding: 26, boxSizing: 'border-box', background: hi ? 'rgba(245,166,35,0.16)' : 'rgba(255,255,255,0.07)', border: `${hi ? 3 : 1.5}px solid ${hi ? brand.accent : 'rgba(255,255,255,0.2)'}`, opacity: p, scale: String(0.9 + 0.1 * p), boxShadow: hi ? '0 0 46px rgba(245,166,35,.35)' : 'none', fontFamily: brand.font, color: brand.white}}>
+      <div style={{fontSize: 42, fontWeight: 800, lineHeight: 1.1}}>{label}</div>
+      <div style={{fontSize: 25, color: brand.mute, marginTop: 14, lineHeight: 1.3}}>{sub}</div>
     </div>
   );
 };
@@ -276,87 +291,10 @@ const Edge: React.FC<{t0: number}> = ({t0}) => {
     </svg>
   );
 };
-
-/* ---------- s15 APIs ---------- */
-export const ApisSlide: React.FC<{sc: SbScene}> = ({sc}) => {
-  const rows = [
-    {k: 'Vault v3', v: 'Setup token with a billing plan: each member approves once', w: 'Vault'},
-    {k: 'Orders v2', v: 'Merchant-initiated capture on the vaulted account, every round', w: 'Orders'},
-    {k: 'Payouts', v: 'The pot to the round’s recipient, under the organizer’s mandate', w: 'Payouts'},
-    {k: 'Invoicing via Agent Toolkit', v: 'create_invoice → send_invoice → generate_invoice_qr_code; get_order_details confirms captures', w: 'Invoicing'},
-    {k: 'Webhooks', v: 'Signature verification, event dedupe, reconciliation', w: 'Webhooks'},
-    {k: 'Balances (Reporting)', v: 'Shown as context with its refresh time; the circle’s ledger is the payout gate', w: 'Balances'},
-  ];
-  return (
-    <AbsoluteFill>
-      <Backdrop />
-      <H1 size={62} top={70}>PayPal on the money path</H1>
-      <div style={{position: 'absolute', left: 120, right: 120, top: 180, display: 'flex', flexDirection: 'column', gap: 12}}>
-        {rows.map((r) => (
-          <ApiRow key={r.k} k={r.k} v={r.v} t={wordAt(sc, 'L17', r.w) - 0.1} />
-        ))}
-      </div>
-      <Rise t0={wordAt(sc, 'L17', 'Balances') + 0.8} style={{position: 'absolute', left: 120, right: 120, top: 806, fontFamily: brand.font, fontSize: 23, color: brand.mute, lineHeight: 1.3}}>
-        4 Agent Toolkit tools on the demo path; Vault, Orders create, Payouts, Balances and Webhooks are direct REST. Real webhook delivery is not tested yet (unit-tested with mocks).
-      </Rise>
-    </AbsoluteFill>
-  );
-};
-const ApiRow: React.FC<{k: string; v: string; t: number}> = ({k, v, t}) => {
+const ApiChip: React.FC<{k: string; t: number}> = ({k, t}) => {
   const p = useReveal(t, 18);
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: 28, height: 84, borderRadius: 18, padding: '0 28px', background: 'rgba(255,255,255,0.06)', borderLeft: `8px solid ${brand.blue}`, opacity: p, translate: `${(1 - p) * 80}px 0`, fontFamily: brand.font, color: brand.white}}>
-      <div style={{width: 400, fontSize: 32, fontWeight: 800, flexShrink: 0}}>{k}</div>
-      <div style={{fontSize: 26, color: '#d5e1f2', lineHeight: 1.25}}>{v}</div>
-    </div>
-  );
-};
-
-/* ---------- s16 AI layer ---------- */
-export const AiLayerSlide: React.FC<{sc: SbScene}> = ({sc}) => {
-  const tMcp = wordAt(sc, 'L18', 'MCP');
-  const tFree = wordAt(sc, 'L18', 'free');
-  const tReplay = wordAt(sc, 'L18', 'replay');
-  const tRules = wordAt(sc, 'L18', 'rules');
-  const mcp = ['Internal MCP server: 18 tools; money tools policy-gated', 'Treasurer agent: at most 25 tool calls per task, per-task allowlists', 'No agent task can execute remedies', 'Public read-only MCP: 4 tools, demo circles only, PII masked'];
-  const modes = [
-    {chip: 'Free model', text: 'Gemini or Groq by default; Anthropic optional', t: tFree},
-    {chip: 'AI replay', text: 'recorded model turns replayed, no quota spent', t: tReplay},
-    {chip: 'Rules mode', text: 'deterministic fallback, same tools, no model', t: tRules},
-  ];
-  return (
-    <AbsoluteFill>
-      <Backdrop />
-      <H1 size={62} top={80}>Tools behind MCP. A model is optional.</H1>
-      <Panel x={120} t0={tMcp - 0.15} heading="MCP">
-        {mcp.map((m, i) => (
-          <Rise key={i} t0={tMcp + 0.2 + i * 0.3} style={{display: 'flex', gap: 14, fontSize: 28, lineHeight: 1.28}}>
-            <div style={{width: 12, height: 12, borderRadius: 6, background: brand.accent, marginTop: 12, flexShrink: 0}} />
-            <div>{m}</div>
-          </Rise>
-        ))}
-      </Panel>
-      <Panel x={1000} t0={tFree - 0.15} heading="Three modes, always labelled">
-        {modes.map((m, i) => (
-          <Rise key={i} t0={m.t - 0.1} style={{display: 'flex', gap: 16, alignItems: 'flex-start', fontSize: 28, lineHeight: 1.28}}>
-            <div style={{fontSize: 22, fontWeight: 800, color: brand.navy, background: i === 2 ? brand.accent : brand.blueSoft, borderRadius: 999, padding: '4px 16px', whiteSpace: 'nowrap', marginTop: 2}}>{m.chip}</div>
-            <div>{m.text}</div>
-          </Rise>
-        ))}
-      </Panel>
-      <Rise t0={tRules + 0.9} style={{position: 'absolute', left: 120, top: 770, fontFamily: brand.font, fontSize: 28, color: brand.accent, fontWeight: 600}}>
-        In the recorded story the free model timed out, so every step ran in labelled rules mode.
-      </Rise>
-    </AbsoluteFill>
-  );
-};
-const Panel: React.FC<{x: number; t0: number; heading: string; children: React.ReactNode}> = ({x, t0, heading, children}) => {
-  const p = useReveal(t0, 20);
-  return (
-    <div style={{position: 'absolute', left: x, top: 230, width: 800, height: 500, borderRadius: 26, padding: '30px 38px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.18)', opacity: p, translate: `0 ${(1 - p) * 50}px`, fontFamily: brand.font, color: brand.white}}>
-      <div style={{fontSize: 40, fontWeight: 800, color: brand.blueSoft, marginBottom: 20}}>{heading}</div>
-      <div style={{display: 'flex', flexDirection: 'column', gap: 20}}>{children}</div>
-    </div>
+    <div style={{fontFamily: brand.font, fontSize: 32, fontWeight: 800, color: brand.white, padding: '12px 28px', borderRadius: 16, background: 'rgba(255,255,255,0.06)', borderLeft: `8px solid ${brand.blue}`, opacity: p, translate: `0 ${(1 - p) * 30}px`}}>{k}</div>
   );
 };
 
@@ -371,58 +309,40 @@ const BigStat: React.FC<{t0: number; big: React.ReactNode; text: string; hi?: bo
   );
 };
 
-export const EvidenceSlide: React.FC<{sc: SbScene}> = ({sc}) => {
-  const {fps} = useVideoConfig();
-  const tIn = useTIn();
+export const EvidenceSlide: React.FC<{sc: SbScene; rec?: {amount: string}}> = ({sc, rec}) => {
   const t = useSceneT();
   const tA = lineAt(sc, 'L19');
   const tB = lineAt(sc, 'L20') - 0.2;
   const swap = interpolate(t, [tB - 0.35, tB + 0.15], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.45, 0, 0.15, 1)});
-  const fA = Math.round((tB - tA - 0.2) * fps);
-  const fB = Math.round((sc.duration - tB - 0.1) * fps);
   return (
     <AbsoluteFill>
       <Backdrop />
       <H1 size={62} top={70}>Evidence</H1>
       <div style={{position: 'absolute', inset: 0, opacity: 1 - swap, translate: `${-swap * 120}px 0`}}>
-        <Rise t0={tA} style={{position: 'absolute', left: 120, top: 170, fontFamily: brand.font, fontSize: 34, fontWeight: 600, color: brand.blueSoft}}>Remedy eval · rules mode · 20 scenarios × 5 runs</Rise>
-        <div style={{position: 'absolute', left: 120, right: 120, top: 240, display: 'flex', gap: 26}}>
-          <BigStat t0={wordAt(sc, 'L19', 'ninety') - 0.1} big={<CountUp t0={wordAt(sc, 'L19', 'ninety') - 0.1} to={0.95} suffix="" decimals={2} />} text="charter-legal before the policy check" />
-          <BigStat t0={wordAt(sc, 'L19', 'zero') - 0.1} big="0" text="illegal actions executed" hi />
-          <BigStat t0={wordAt(sc, 'L19', 'zero') + 1.0} big={<CountUp t0={wordAt(sc, 'L19', 'zero') + 1.0} to={1} suffix=".0" decimals={0} />} text="commitment (date and amount) exact match" />
+        <Rise t0={0.1} style={{position: 'absolute', left: 120, top: 190, fontFamily: brand.font, fontSize: 38, fontWeight: 600, color: brand.blueSoft}}>Remedy eval · rules mode · 100 runs · synthetic scenarios</Rise>
+        <div style={{position: 'absolute', left: 120, right: 120, top: 290, display: 'flex', gap: 26}}>
+          <BigStat t0={0.2} big={<CountUp t0={0.2} to={0.95} suffix="" decimals={2} dur={0.8} />} text="charter-legal before the policy check" />
+          <BigStat t0={0.4} big="0" text="illegal actions executed" hi />
+          <BigStat t0={0.6} big="1.0" text="commitment (date and amount) exact match" />
         </div>
-        <Rise t0={wordAt(sc, 'L19', 'zero') + 1.4} style={{position: 'absolute', left: 120, right: 120, top: 560, fontFamily: brand.font, fontSize: 26, lineHeight: 1.35, color: brand.mute}}>
-          The one miss is blocked by the gates and goes to the organizer. Live free model (gemini-3.5-flash-lite, n = 37): 37/37 legal, 0 illegal, but it matched the preferred remedy in only 3 of 37 runs.
+        <Rise t0={1.2} style={{position: 'absolute', left: 120, right: 120, top: 640, fontFamily: brand.font, fontSize: 32, lineHeight: 1.35, color: brand.mute}}>
+          The one miss is blocked by the gates and goes to the organizer. Source: eval/RESULTS.md
         </Rise>
-        <Sequence from={tIn + Math.round((tA + 0.3) * fps)} durationInFrames={Math.max(1, fA)} layout="none">
-          <LowerThird text="eval/RESULTS.md · synthetic scenarios, rules mode (n = 100 runs)" frames={Math.max(1, fA)} bottom={232} />
-        </Sequence>
       </div>
       <div style={{position: 'absolute', inset: 0, opacity: swap, translate: `${(1 - swap) * 120}px 0`}}>
-        <Rise t0={tB + 0.2} style={{position: 'absolute', left: 120, top: 170, fontFamily: brand.font, fontSize: 34, fontWeight: 600, color: brand.blueSoft}}>Full Judge Mode story · real PayPal sandbox · AI in rules mode</Rise>
-        <div style={{position: 'absolute', left: 120, right: 120, top: 240, display: 'flex', gap: 26}}>
-          <BigStat t0={tB + 0.4} big="11 / 11" text="story steps passed live on the PayPal sandbox" />
-          <BigStat t0={tB + 0.8} big="5 + 1" text="round 3: five captures confirmed via the toolkit, Ravi’s decline sandbox-injected" hi />
-          <BigStat t0={tB + 1.2} big="2" text={`payouts: round 3 and clean round 4, ${captured.receipt3.amount} each`} />
+        <Rise t0={tB + 0.1} style={{position: 'absolute', left: 120, top: 190, fontFamily: brand.font, fontSize: 38, fontWeight: 600, color: brand.blueSoft}}>Full Judge Mode story · real PayPal sandbox · AI in rules mode</Rise>
+        <div style={{position: 'absolute', left: 120, right: 120, top: 290, display: 'flex', gap: 26}}>
+          <BigStat t0={tB + 0.2} big="11 / 11" text="story steps passed live on the PayPal sandbox" />
+          <BigStat t0={tB + 0.4} big="5 + 1" text="round 3: five captures confirmed via the toolkit, Ravi’s decline sandbox-injected" hi />
+          <BigStat t0={tB + 0.6} big="2" text={`payouts to the round’s recipient, ${rec?.amount ?? ''} each`} />
         </div>
-        <Rise t0={tB + 1.8} style={{position: 'absolute', left: 120, right: 120, top: 560, fontFamily: brand.font, fontSize: 26, lineHeight: 1.35, color: brand.mute}}>
-          Round 3’s payout item later read SUCCESS ($0.25 fee); round 4 was still PENDING when captured. Forecaster backtest (synthetic, n = 60): precision 0.647, recall 0.647.
-        </Rise>
-        <Sequence from={tIn + Math.round((tB + 0.4) * fps)} durationInFrames={Math.max(1, fB)} layout="none">
-          <LowerThird text="capture-log.json (this recording) · docs/live-run/ · eval/RESULTS.md (backtest, synthetic)" frames={Math.max(1, fB)} bottom={232} />
-        </Sequence>
       </div>
-      <Rise t0={tA + 6} style={{position: 'absolute', left: 120, right: 120, top: 720, fontFamily: brand.font, fontSize: 24, color: brand.mute}}>
-        711 pytest + 90 vitest tests; PayPal and every model are mocked in tests.
-      </Rise>
     </AbsoluteFill>
   );
 };
 
 /* ---------- s18 prior art + honesty ---------- */
 export const PriorArtSlide: React.FC<{sc: SbScene}> = ({sc}) => {
-  const {fps} = useVideoConfig();
-  const tIn = useTIn();
   const t = useSceneT();
   const tB = lineAt(sc, 'L22') - 0.25;
   const swap = interpolate(t, [tB - 0.35, tB + 0.15], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.bezier(0.45, 0, 0.15, 1)});
@@ -433,27 +353,25 @@ export const PriorArtSlide: React.FC<{sc: SbScene}> = ({sc}) => {
   ];
   const items = [
     {text: 'Sandbox only: the app refuses any PAYPAL_ENV other than sandbox', w: 'sandbox'},
-    {text: 'Fees shown before consent: 3.49% + $0.49 per charge (≈ $7.47 per $200), $0.25 per payout', w: 'Fees'},
-    {text: 'Buffer optional: organizer-funded, disclosed, used only through a voted remedy', w: 'buffer'},
+    {text: 'The buffer is optional: organizer-funded, disclosed, used only through a voted remedy', w: 'buffer'},
     {text: 'No credit claims: nothing is reported to credit bureaus', w: 'credit'},
+    {text: 'Mandates are our own AP2-style design, with a server-attested signature. PayPal’s AP2 APIs are not public; we do not claim AP2 support', w: 'mandates'},
   ];
-  const tFees = wordAt(sc, 'L22', 'Fees');
-  const fFees = Math.round((sc.duration - tFees - 0.1) * fps);
   return (
     <AbsoluteFill>
       <Backdrop />
       <div style={{position: 'absolute', inset: 0, opacity: 1 - swap, translate: `${-swap * 120}px 0`}}>
-        <H1 size={62} top={80}>Prior art</H1>
+        <H1 size={62} top={80} t0={0.1}>Prior art</H1>
         <div style={{position: 'absolute', left: 120, right: 120, top: 210, display: 'flex', flexDirection: 'column', gap: 16}}>
           {rows.map((r, i) => (
-            <Rise key={r.name} t0={lineAt(sc, 'L21') + 0.1 + i * 0.45} style={{display: 'flex', alignItems: 'center', gap: 28, padding: '18px 28px', borderRadius: 18, background: 'rgba(255,255,255,0.06)', borderLeft: `8px solid ${i === 0 ? brand.accent : brand.blue}`, fontFamily: brand.font, color: brand.white}}>
+            <Rise key={r.name} t0={0.2 + i * 0.3} style={{display: 'flex', alignItems: 'center', gap: 28, padding: '18px 28px', borderRadius: 18, background: 'rgba(255,255,255,0.06)', borderLeft: `8px solid ${i === 0 ? brand.accent : brand.blue}`, fontFamily: brand.font, color: brand.white}}>
               <div style={{width: 560, fontSize: 32, fontWeight: 800}}>{r.name}</div>
               <div style={{flex: 1, fontSize: 28, color: '#d5e1f2'}}>{r.what}</div>
-              <div style={{fontSize: 21, color: brand.mute, textAlign: 'right', width: 280}}>{r.src}</div>
+              <div style={{fontSize: 22, color: brand.mute, textAlign: 'right', width: 290}}>{r.src}</div>
             </Rise>
           ))}
         </div>
-        <Rise t0={wordAt(sc, 'L21', 'rotates') - 0.6} style={{position: 'absolute', left: 120, right: 120, top: 610, fontFamily: brand.font, fontSize: 36, fontWeight: 600, color: brand.accent, lineHeight: 1.3}}>
+        <Rise t0={1.3} style={{position: 'absolute', left: 120, right: 120, top: 610, fontFamily: brand.font, fontSize: 38, fontWeight: 600, color: brand.accent, lineHeight: 1.3}}>
           Turnkeeper is the pool that rotates: consent once, collect every round, recover shortfalls, pay a different member each time.
         </Rise>
       </div>
@@ -461,18 +379,12 @@ export const PriorArtSlide: React.FC<{sc: SbScene}> = ({sc}) => {
         <H1 size={62} top={80} t0={tB - 0.1}>What we do not claim</H1>
         <div style={{position: 'absolute', left: 120, right: 120, top: 210, display: 'flex', flexDirection: 'column', gap: 16}}>
           {items.map((it, i) => (
-            <Rise key={i} t0={wordAt(sc, 'L22', it.w) - 0.1} style={{display: 'flex', alignItems: 'center', gap: 22, padding: '16px 28px', borderRadius: 18, background: 'rgba(255,255,255,0.06)', fontFamily: brand.font, color: brand.white, fontSize: 31, lineHeight: 1.25}}>
+            <Rise key={i} t0={tB + 0.2 + i * 0.3} style={{display: 'flex', alignItems: 'center', gap: 22, padding: '16px 28px', borderRadius: 18, background: 'rgba(255,255,255,0.06)', fontFamily: brand.font, color: brand.white, fontSize: 32, lineHeight: 1.25}}>
               <div style={{width: 40, height: 40, borderRadius: 20, background: 'rgba(55,196,123,0.2)', border: `2px solid ${brand.good}`, color: brand.good, fontSize: 24, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>✓</div>
               <div>{it.text}</div>
             </Rise>
           ))}
         </div>
-        <Rise t0={wordAt(sc, 'L22', 'credit') + 1.1} style={{position: 'absolute', left: 120, right: 120, top: 660, fontFamily: brand.font, fontSize: 24, color: brand.mute}}>
-          Production would need PayPal’s Payouts approval. PayPal wallet only; Venmo cut.
-        </Rise>
-        <Sequence from={tIn + Math.round(tFees * fps)} durationInFrames={Math.max(1, fFees)} layout="none">
-          <LowerThird text="PayPal merchant fees page, updated 1 Oct 2026 · docs/sources.md" frames={Math.max(1, fFees)} bottom={232} />
-        </Sequence>
       </div>
     </AbsoluteFill>
   );
@@ -495,8 +407,9 @@ export const OutroSlide: React.FC = () => {
           <Rise t0={0.9} style={{marginTop: 54, display: 'inline-block', fontSize: 44, fontWeight: 600, fontFamily: brand.mono, padding: '14px 36px', borderRadius: 18, background: 'rgba(0,112,224,0.22)', border: `2px solid ${brand.blueSoft}`}}>
             github.com/ArnabZ-77/turnkeeper
           </Rise>
-          <Rise t0={1.3} style={{marginTop: 30, fontSize: 28, color: brand.mute}}>Try Judge Mode in the repo: 11 steps, one button</Rise>
-          <Rise t0={1.6} style={{marginTop: 18, fontSize: 24, color: brand.mute}}>PayPal AI Hackathon 2026 · PayPal sandbox · MIT license</Rise>
+          <Rise t0={1.3} style={{marginTop: 30, fontSize: 30, color: brand.mute}}>Try Judge Mode in the repo: 11 steps, one button</Rise>
+          <Rise t0={1.6} style={{marginTop: 18, fontSize: 28, color: brand.accent, fontWeight: 600}}>Sandbox only. AP2-style mandates are our own implementation.</Rise>
+          <Rise t0={1.9} style={{marginTop: 14, fontSize: 24, color: brand.mute}}>PayPal AI Hackathon 2026 · PayPal sandbox · MIT license</Rise>
         </div>
       </AbsoluteFill>
     </AbsoluteFill>

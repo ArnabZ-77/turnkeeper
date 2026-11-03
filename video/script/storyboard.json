@@ -89,8 +89,8 @@
         "C01"
       ],
       "timing": {
-        "lead": 0.12,
-        "tail": 0.5
+        "lead": 0.1,
+        "tail": 0.35
       },
       "captions": [
         {
@@ -103,52 +103,16 @@
         "sec": 0
       },
       "start": 0.0,
-      "duration": 6.892,
-      "end": 6.892,
+      "duration": 6.722,
+      "end": 6.722,
       "lines": [
         {
           "id": "C01",
           "audio": "audio/vo/C01.wav",
-          "at": 0.12,
-          "abs": 0.12,
+          "at": 0.1,
+          "abs": 0.1,
           "dur": 6.272,
           "text": "Ravi's payment just failed. Priya, the organizer, didn't chase him. Here's what her treasurer did next."
-        }
-      ]
-    },
-    {
-      "id": "s03-title",
-      "kind": "title",
-      "section": "hook",
-      "narration_line_ids": [
-        "L04"
-      ],
-      "timing": {
-        "lead": 0.25,
-        "tail": 0.85
-      },
-      "slide": "slides/title.json#title",
-      "captions": [
-        {
-          "line": "L04"
-        }
-      ],
-      "overlays": [],
-      "transition": {
-        "kind": "fade",
-        "sec": 0.4
-      },
-      "start": 6.892,
-      "duration": 3.105,
-      "end": 9.997,
-      "lines": [
-        {
-          "id": "L04",
-          "audio": "audio/vo/L04.wav",
-          "at": 0.25,
-          "abs": 7.142,
-          "dur": 2.005,
-          "text": "This is Turnkeeper, on PayPal."
         }
       ]
     },
@@ -161,59 +125,33 @@
         "P02"
       ],
       "timing": {
-        "lead": 0.3,
-        "gap": 0.3,
-        "tail": 0.5
+        "lead": 0.2,
+        "tail": 0.5,
+        "gap": 0.2
       },
-      "slide": "slides/problem.json",
-      "captions": [
-        {
-          "line": "P01"
-        },
-        {
-          "line": "P02"
-        }
-      ],
-      "overlays": [
-        {
-          "type": "lower_third",
-          "line": "P01",
-          "text": "Priya: a composite persona, not a real person"
-        },
-        {
-          "type": "source_caption",
-          "line": "P02",
-          "offset": 0,
-          "text": "14.2% of U.S. households ≈ 19.0M underbanked, 2023 · FDIC National Survey"
-        },
-        {
-          "type": "source_caption",
-          "line": "P02",
-          "offset": 3.4,
-          "text": "Sub-Saharan Africa 28.1% saved via a savings club, 2024 data · World Bank Global Findex 2025"
-        }
-      ],
+      "captions": [],
+      "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 9.997,
-      "duration": 12.834,
-      "end": 22.831,
+      "start": 6.722,
+      "duration": 12.634,
+      "end": 19.356,
       "lines": [
         {
           "id": "P01",
           "audio": "audio/vo/P01.wav",
-          "at": 0.3,
-          "abs": 10.297,
+          "at": 0.2,
+          "abs": 6.922,
           "dur": 4.587,
           "text": "Priya, a composite organizer, is her circle's bank, collector, and insurer."
         },
         {
           "id": "P02",
           "audio": "audio/vo/P02.wav",
-          "at": 5.187,
-          "abs": 15.184,
+          "at": 4.987,
+          "abs": 11.709,
           "dur": 7.147,
           "text": "Nineteen million US households are underbanked. In Sub-Saharan Africa, over a quarter of adults save in clubs."
         }
@@ -227,161 +165,30 @@
         "L05"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-04-compile",
-      "capture_steps": [
-        {
-          "goto": "/compile"
-        },
-        {
-          "waitForText": "Compile charter",
-          "timeout": 20000
-        },
-        {
-          "zoomTarget": {
-            "label": "Rules text",
-            "as": "rules-hi"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Compile charter"
-          },
-          "label": "compile"
-        },
-        {
-          "waitForText": "same as the demo circle",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Compiled charter']",
-            "as": "charter-card"
-          }
-        },
-        {
-          "pause": 1800
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Freeze charter"
-          },
-          "label": "freeze"
-        },
-        {
-          "waitForText": "Billing plan PayPal shows each member",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Frozen charter'] .tk-chip-hash",
-            "as": "hash"
-          }
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Frozen charter'] .tk-fee-line",
-            "as": "fees"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Approve as Priya (organizer)"
-          },
-          "label": "approve-charter"
-        },
-        {
-          "waitForText": "Member invites (signed, expiring)",
-          "timeout": 30000
-        },
-        {
-          "pause": 1000
-        }
-      ],
-      "footage_edit": "Use from 0.3 s before the 'compile' click to the end of the 'hash' zoom; speed 1.5x through the freeze wait only.",
-      "zoom_targets": [
-        {
-          "selector": "textarea[aria-label='Rules text']",
-          "capture_label": "rules-hi",
-          "at": 0.3,
-          "hold": 2.2,
-          "scale": 1.6
-        },
-        {
-          "selector": "section[aria-label='Compiled charter']",
-          "capture_label": "charter-card",
-          "at": 2.8,
-          "hold": 2.6,
-          "scale": 1.5
-        },
-        {
-          "selector": "section[aria-label='Frozen charter'] .tk-chip-hash",
-          "capture_label": "hash",
-          "at": 6,
-          "hold": 2.2,
-          "scale": 2.2
-        }
-      ],
       "captions": [
         {
           "line": "L05"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 0.6,
-          "dur": 2,
-          "target": "rules-hi",
-          "text": "The circle's own rules, in Hindi"
-        },
-        {
-          "type": "callout",
-          "at": 3.2,
-          "dur": 2.4,
-          "target": "charter-card",
-          "text": "Rules parser, no model call: labelled 'rules mode: parser'"
-        },
-        {
-          "type": "callout",
-          "at": 6.2,
-          "dur": 2,
-          "target": "hash",
-          "text": "Frozen: SHA-256 of the charter"
-        }
-      ],
+      "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 22.831,
-      "duration": 8.473,
-      "end": 31.304,
+      "start": 19.356,
+      "duration": 8.024,
+      "end": 27.38,
       "lines": [
         {
           "id": "L05",
           "audio": "audio/vo/L05.wav",
-          "at": 0.3,
-          "abs": 23.131,
-          "dur": 7.723,
-          "text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, and a hash."
+          "at": 0.25,
+          "abs": 19.606,
+          "dur": 7.424,
+          "text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash."
         }
       ]
     },
@@ -393,159 +200,65 @@
         "L06"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35
       },
-      "viewport": {
-        "device": "phone",
-        "width": 390,
-        "height": 844,
-        "frame": "phone",
-        "deviceScaleFactor": 1
-      },
-      "capture_run": "phone",
-      "capture_id": "cap-05-join",
-      "capture_steps": [
-        {
-          "goto": "/compile"
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Compile charter"
-          },
-          "label": "compile"
-        },
-        {
-          "waitForText": "same as the demo circle",
-          "timeout": 30000
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Freeze charter"
-          },
-          "label": "freeze"
-        },
-        {
-          "waitForText": "Approve as Priya (organizer)",
-          "timeout": 30000
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Approve as Priya (organizer)"
-          },
-          "label": "approve-charter"
-        },
-        {
-          "waitForText": "Member invites (signed, expiring)",
-          "timeout": 30000
-        },
-        {
-          "click": {
-            "selector": ".tk-invites li:has(strong:text-is('Ravi Sharma')) a"
-          },
-          "label": "open-invite"
-        },
-        {
-          "waitForText": "Temple Circle A",
-          "timeout": 20000
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-join-kv",
-            "as": "join-fees"
-          }
-        },
-        {
-          "scroll": 380
-        },
-        {
-          "pause": 1200
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-join-plan",
-            "as": "paypal-plan"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-join-status",
-            "as": "join-status"
-          }
-        },
-        {
-          "pause": 800
-        }
-      ],
-      "footage_edit": "Start the clip 1.0 s after the 'open-invite' click (everything before it is set-up and is cut).",
-      "zoom_targets": [
-        {
-          "selector": ".tk-join-kv",
-          "capture_label": "join-fees",
-          "at": 0.6,
-          "hold": 2,
-          "scale": 1.3
-        },
-        {
-          "selector": ".tk-join-plan",
-          "capture_label": "paypal-plan",
-          "at": 2.8,
-          "hold": 2,
-          "scale": 1.3
-        }
-      ],
       "captions": [
         {
           "line": "L06"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 0.8,
-          "dur": 1.8,
-          "target": "join-fees",
-          "text": "Fees before consent: ≈ $7.47 per $200"
-        },
-        {
-          "type": "callout",
-          "at": 3,
-          "dur": 1.8,
-          "target": "paypal-plan",
-          "text": "The plan PayPal shows (Vault v3)"
-        },
-        {
-          "type": "badge",
-          "at": 0,
-          "text": "member view · phone",
-          "corner": "top-left"
-        }
-      ],
-      "notes": "Seeded demo members are already vaulted in the sandbox, so Ravi's page reads 'You're in. PayPal saved your approval' with the Review and Approve on PayPal steps ticked. That is the true state; do not stage the PayPal login page.",
+      "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 31.304,
-      "duration": 5.763,
-      "end": 37.067,
+      "start": 27.38,
+      "duration": 5.613,
+      "end": 32.993,
       "lines": [
         {
           "id": "L06",
           "audio": "audio/vo/L06.wav",
-          "at": 0.3,
-          "abs": 31.604,
+          "at": 0.25,
+          "abs": 27.63,
           "dur": 5.013,
           "text": "Each member sees the fees up front, then approves the schedule once, on PayPal."
+        }
+      ]
+    },
+    {
+      "id": "s05b-mandates",
+      "kind": "capture",
+      "section": "product",
+      "narration_line_ids": [
+        "M01"
+      ],
+      "timing": {
+        "lead": 0.25,
+        "tail": 0.4
+      },
+      "captions": [
+        {
+          "line": "M01"
+        }
+      ],
+      "overlays": [],
+      "transition": {
+        "kind": "fade",
+        "sec": 0.4
+      },
+      "start": 32.993,
+      "duration": 8.714,
+      "end": 41.707,
+      "lines": [
+        {
+          "id": "M01",
+          "audio": "audio/vo/M01.wav",
+          "at": 0.25,
+          "abs": 33.243,
+          "dur": 8.064,
+          "text": "Each member holds a signed mandate for their own agent. It's our own AP2-style design, with a server-attested signature."
         }
       ]
     },
@@ -557,119 +270,30 @@
         "L07"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-06-forecast",
-      "capture_steps": [
-        {
-          "goto": "/"
-        },
-        {
-          "waitForText": "Next: Advance to T-3 (forecast)",
-          "timeout": 30000
-        },
-        {
-          "pause": 800
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Advance to T-3 (forecast)"
-          },
-          "label": "story:Advance to T-3 (forecast)"
-        },
-        {
-          "waitForText": "Next: Run Round 3 (Ravi declines)",
-          "timeout": 30000
-        },
-        {
-          "waitForSelector": ".tk-forecast-row",
-          "timeout": 10000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Shortfall forecast']",
-            "as": "forecast"
-          }
-        },
-        {
-          "pause": 2500
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-phone-card",
-            "as": "nudge-hi"
-          }
-        },
-        {
-          "pause": 2000
-        }
-      ],
-      "footage_edit": "Start 0.5 s before the story click; real time.",
-      "zoom_targets": [
-        {
-          "selector": "section[aria-label='Rotation board']",
-          "capture_label": null,
-          "at": 0,
-          "hold": 1.2,
-          "scale": 1
-        },
-        {
-          "selector": "section[aria-label='Shortfall forecast']",
-          "capture_label": "forecast",
-          "at": 1.4,
-          "hold": 4.5,
-          "scale": 1.8
-        },
-        {
-          "selector": ".tk-phone-card",
-          "capture_label": "nudge-hi",
-          "at": 6.4,
-          "hold": 2.6,
-          "scale": 1.8
-        }
-      ],
       "captions": [
         {
           "line": "L07"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 1.8,
-          "dur": 3,
-          "target": "forecast",
-          "text": "Risk 0.85, deterministic score: late in rounds 1 and 2"
-        },
-        {
-          "type": "badge",
-          "at": 0,
-          "text": "Judge Mode · step 2 of 11",
-          "corner": "top-left"
-        }
-      ],
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 37.067,
-      "duration": 10.009,
-      "end": 47.076,
+      "start": 41.707,
+      "duration": 9.432,
+      "end": 51.139,
       "lines": [
         {
           "id": "L07",
           "audio": "audio/vo/L07.wav",
-          "at": 0.3,
-          "abs": 37.367,
-          "dur": 9.259,
-          "text": "Three days out, the forecast flags Ravi. He paid late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi."
+          "at": 0.25,
+          "abs": 41.957,
+          "dur": 8.832,
+          "text": "Three days out, the forecast flags Ravi: late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi."
         }
       ]
     },
@@ -681,137 +305,30 @@
         "L08"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.5
+        "lead": 0.25,
+        "tail": 0.4
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-07-round3",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Run Round 3 (Ravi declines)"
-          },
-          "label": "story:Run Round 3 (Ravi declines)"
-        },
-        {
-          "waitForText": "Next: Reply as Ravi (Hindi)",
-          "timeout": 180000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Rotation board']",
-            "as": "board-r3"
-          }
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Agent trace']",
-            "as": "trace-toolkit"
-          }
-        },
-        {
-          "pause": 1200
-        },
-        {
-          "click": {
-            "text": "Declined",
-            "exact": true
-          },
-          "label": "ravi-declined"
-        },
-        {
-          "waitForText": "sandbox-injected",
-          "timeout": 10000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-selected",
-            "as": "decline-detail"
-          }
-        },
-        {
-          "pause": 2500
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "close"
-          },
-          "label": "close-detail"
-        }
-      ],
-      "footage_edit": "The live round takes about 60 s (charges run one after another, then toolkit confirmations). Keep 1.5 s after the click at 1x, ramp the wait to 8x with the 'sped up' badge on, return to 1x 0.5 s before the button reads 'Next: Reply as Ravi'.",
-      "zoom_targets": [
-        {
-          "selector": "section[aria-label='Rotation board']",
-          "capture_label": "board-r3",
-          "at": 0.3,
-          "hold": 4,
-          "scale": 1.3
-        },
-        {
-          "selector": "section[aria-label='Agent trace']",
-          "capture_label": "trace-toolkit",
-          "at": 4.6,
-          "hold": 2.4,
-          "scale": 1.8
-        },
-        {
-          "selector": ".tk-selected",
-          "capture_label": "decline-detail",
-          "at": 7.4,
-          "hold": 3,
-          "scale": 2
-        }
-      ],
       "captions": [
         {
           "line": "L08"
         }
       ],
-      "overlays": [
-        {
-          "type": "badge",
-          "at": 0.8,
-          "dur": 3.4,
-          "text": "sped up 8×",
-          "corner": "top-right"
-        },
-        {
-          "type": "callout",
-          "at": 4.8,
-          "dur": 2.2,
-          "target": "trace-toolkit",
-          "text": "Agent Toolkit get_order_details confirms each capture"
-        },
-        {
-          "type": "callout",
-          "at": 7.6,
-          "dur": 2.8,
-          "target": "decline-detail",
-          "text": "API decline: sandbox-injected (PayPal mock-response header)"
-        }
-      ],
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 47.076,
-      "duration": 11.68,
-      "end": 58.756,
+      "start": 51.139,
+      "duration": 11.317,
+      "end": 62.456,
       "lines": [
         {
           "id": "L08",
           "audio": "audio/vo/L08.wav",
-          "at": 0.3,
-          "abs": 47.376,
-          "dur": 10.88,
-          "text": "Round three runs on its own. Five charges complete, each confirmed through the PayPal Agent Toolkit. Ravi's is declined, and it's labelled sandbox-injected."
+          "at": 0.25,
+          "abs": 51.389,
+          "dur": 10.667,
+          "text": "Round three runs on its own. Five charges complete, confirmed through the PayPal Agent Toolkit. Ravi's charge is declined, labelled sandbox-injected."
         }
       ]
     },
@@ -825,100 +342,51 @@
         "L10"
       ],
       "timing": {
-        "lead": 0.3,
-        "gap": 0.3,
-        "tail": 0.45
+        "lead": 0.2,
+        "tail": 0.3,
+        "gap": 0.2
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-08-reply",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Reply as Ravi (Hindi)"
-          },
-          "label": "story:Reply as Ravi (Hindi)"
-        },
-        {
-          "waitForText": "Next: Start recovery",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-phone-card",
-            "as": "ravi-reply"
-          }
-        },
-        {
-          "pause": 3500
-        }
-      ],
-      "footage_edit": "Real time. Hold on the phone card while the Hindi line plays.",
-      "zoom_targets": [
-        {
-          "selector": ".tk-phone-card",
-          "capture_label": "ravi-reply",
-          "at": 0.6,
-          "hold": 7.5,
-          "scale": 2.2
-        }
-      ],
       "captions": [
         {
           "line": "L09"
         },
         {
-          "line": "H01",
-          "text": "शुक्रवार को सैलरी आएगी, तब भर दूंगा",
-          "translation": "Salary comes on Friday, I'll pay then."
+          "line": "H01"
         },
         {
           "line": "L10"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 6.4,
-          "dur": 2.4,
-          "target": "ravi-reply",
-          "text": "Ravi named a payday: 2027-01-01 (a Friday)"
-        }
-      ],
-      "notes": "H01 is read by edge-tts hi-IN-SwaraNeural (a synthetic voice reading the message), not a recording of a person.",
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 58.756,
-      "duration": 9.963,
-      "end": 68.719,
+      "start": 62.456,
+      "duration": 9.513,
+      "end": 71.969,
       "lines": [
         {
           "id": "L09",
           "audio": "audio/vo/L09.wav",
-          "at": 0.3,
-          "abs": 59.056,
+          "at": 0.2,
+          "abs": 62.656,
           "dur": 1.237,
           "text": "Ravi replies."
         },
         {
           "id": "H01",
           "audio": "audio/vo/H01.wav",
-          "at": 1.837,
-          "abs": 60.593,
+          "at": 1.637,
+          "abs": 64.093,
           "dur": 3.984,
           "text": "शुक्रवार को सैलरी आएगी, तब भर दूंगा।"
         },
         {
           "id": "L10",
           "audio": "audio/vo/L10.wav",
-          "at": 6.121,
-          "abs": 64.877,
+          "at": 5.821,
+          "abs": 68.277,
           "dur": 3.392,
           "text": "Salary comes Friday. That becomes a promise with a date."
         }
@@ -932,219 +400,65 @@
         "L11"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-09-recovery",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Start recovery"
-          },
-          "label": "story:Start recovery"
-        },
-        {
-          "waitForText": "Next: Consent as the affected members",
-          "timeout": 120000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Recovery']",
-            "as": "remedies"
-          }
-        },
-        {
-          "pause": 3500
-        }
-      ],
-      "footage_edit": "Ramp any wait to 4x with the 'sped up' badge; then real time on the remedy list.",
-      "zoom_targets": [
-        {
-          "selector": "section[aria-label='Recovery']",
-          "capture_label": "remedies",
-          "at": 0.6,
-          "hold": 10.5,
-          "scale": 1.6
-        }
-      ],
       "captions": [
         {
           "line": "L11"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 1.2,
-          "dur": 3,
-          "target": "remedies",
-          "text": "Each remedy checked against the charter: 'charter OK'"
-        },
-        {
-          "type": "callout",
-          "at": 5,
-          "dur": 3,
-          "target": "remedies",
-          "text": "Buffer advance · repay by PayPal invoice · swap with Tomas"
-        }
-      ],
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 68.719,
-      "duration": 12.227,
-      "end": 80.946,
+      "start": 71.969,
+      "duration": 10.179,
+      "end": 82.148,
       "lines": [
         {
           "id": "L11",
           "audio": "audio/vo/L11.wav",
-          "at": 0.3,
-          "abs": 69.019,
-          "dur": 11.477,
-          "text": "The agent proposes only what the charter allows. The buffer covers Ravi now, he repays by PayPal invoice, and he swaps turns with Tomas, so his pot comes last."
+          "at": 0.25,
+          "abs": 72.219,
+          "dur": 9.579,
+          "text": "The agent proposes only what the charter allows: the buffer covers Ravi now, he repays by PayPal invoice, and swaps turns with Tomas."
         }
       ]
     },
     {
-      "id": "s10-consent-vote-approve",
+      "id": "s10-agents",
       "kind": "capture",
       "section": "product",
       "narration_line_ids": [
         "L12"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.4
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-10-approve",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Consent as the affected members"
-          },
-          "label": "story:Consent as the affected members"
-        },
-        {
-          "waitForText": "Next: Vote as members (quorum)",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-vote",
-            "as": "consents"
-          }
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Vote as members (quorum)"
-          },
-          "label": "story:Vote as members (quorum)"
-        },
-        {
-          "waitForText": "Next: Approve as Priya (one tap)",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-meter",
-            "as": "quorum"
-          }
-        },
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Approve as Priya (one tap)"
-          },
-          "label": "story:Approve as Priya (one tap)"
-        },
-        {
-          "waitForText": "Next: Execute remedies",
-          "timeout": 30000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-approved-chip",
-            "as": "approved"
-          }
-        },
-        {
-          "pause": 1200
-        }
-      ],
-      "footage_edit": "Three clicks; cut the hover dwell to keep each beat about 1.2 s, real-time otherwise.",
-      "zoom_targets": [
-        {
-          "selector": ".tk-vote",
-          "capture_label": "consents",
-          "at": 0.3,
-          "hold": 1.3,
-          "scale": 1.7
-        },
-        {
-          "selector": ".tk-meter",
-          "capture_label": "quorum",
-          "at": 1.6,
-          "hold": 1.2,
-          "scale": 1.7
-        },
-        {
-          "selector": ".tk-approved-chip",
-          "capture_label": "approved",
-          "at": 2.9,
-          "hold": 1.4,
-          "scale": 2
-        }
-      ],
       "captions": [
         {
           "line": "L12"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 1.7,
-          "dur": 1.2,
-          "target": "quorum",
-          "text": "Votes: 4 of 6 yes (quorum 4)"
-        },
-        {
-          "type": "callout",
-          "at": 3,
-          "dur": 1.3,
-          "target": "approved",
-          "text": "Priya approved (one tap)"
-        }
-      ],
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 80.946,
-      "duration": 4.611,
-      "end": 85.557,
+      "start": 82.148,
+      "duration": 11.68,
+      "end": 93.828,
       "lines": [
         {
           "id": "L12",
           "audio": "audio/vo/L12.wav",
-          "at": 0.3,
-          "abs": 81.246,
-          "dur": 3.861,
-          "text": "Both consent. Four of six vote yes. Priya taps once."
+          "at": 0.25,
+          "abs": 82.398,
+          "dur": 11.03,
+          "text": "The members' agents answer inside their mandates. Tomas's accepts an earlier turn; Ravi's asks him first. Five say yes, four are needed, and Priya taps once."
         }
       ]
     },
@@ -1156,104 +470,28 @@
         "L13"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.5
+        "lead": 0.25,
+        "tail": 0.4
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-11-execute",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Execute remedies"
-          },
-          "label": "story:Execute remedies"
-        },
-        {
-          "waitForText": "Next: Pay Round 3",
-          "timeout": 120000
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-member-moved",
-            "as": "swap"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "zoomTarget": {
-            "selector": ".tk-invoice",
-            "as": "invoice-qr"
-          }
-        },
-        {
-          "pause": 2500
-        }
-      ],
-      "footage_edit": "The live execute takes about 15 s: ramp to 4x with the badge, land on the board while the moved rows are still highlighted (the highlight fades after 4 s).",
-      "zoom_targets": [
-        {
-          "selector": "section[aria-label='Rotation board']",
-          "capture_label": "swap",
-          "at": 0.3,
-          "hold": 2.4,
-          "scale": 1.4
-        },
-        {
-          "selector": ".tk-invoice",
-          "capture_label": "invoice-qr",
-          "at": 2.9,
-          "hold": 2.2,
-          "scale": 2.4
-        }
-      ],
       "captions": [
         {
           "line": "L13"
         }
       ],
-      "overlays": [
-        {
-          "type": "badge",
-          "at": 0.3,
-          "dur": 1,
-          "text": "sped up 4×",
-          "corner": "top-right"
-        },
-        {
-          "type": "callout",
-          "at": 0.8,
-          "dur": 1.8,
-          "target": "swap",
-          "text": "New order: …, Tomas, Ravi"
-        },
-        {
-          "type": "callout",
-          "at": 3.1,
-          "dur": 1.8,
-          "target": "invoice-qr",
-          "text": "PayPal invoice + QR via Agent Toolkit"
-        }
-      ],
+      "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "fade",
+        "sec": 0.4
       },
-      "start": 85.557,
-      "duration": 5.536,
-      "end": 91.093,
+      "start": 93.828,
+      "duration": 5.386,
+      "end": 99.214,
       "lines": [
         {
           "id": "L13",
           "audio": "audio/vo/L13.wav",
-          "at": 0.3,
-          "abs": 85.857,
+          "at": 0.25,
+          "abs": 94.078,
           "dur": 4.736,
           "text": "The agent reschedules the board, and sends Ravi an invoice with a QR code."
         }
@@ -1267,100 +505,86 @@
         "L14"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.55
+        "lead": 0.25,
+        "tail": 0.3
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-12-payout",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Pay Round 3"
-          },
-          "label": "story:Pay Round 3"
-        },
-        {
-          "waitForText": "Next: Clean Round 4 (no clicks)",
-          "timeout": 180000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section.tk-charter",
-            "as": "ledger"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Payout receipt']",
-            "as": "receipt"
-          }
-        },
-        {
-          "pause": 3000
-        }
-      ],
-      "footage_edit": "Ramp the payout wait to 4x with the badge; real time on the receipt. Read the amount and ids from the footage, never type them into the composition.",
-      "zoom_targets": [
-        {
-          "selector": "section.tk-charter",
-          "capture_label": "ledger",
-          "at": 0.3,
-          "hold": 2,
-          "scale": 1.8
-        },
-        {
-          "selector": "section[aria-label='Payout receipt']",
-          "capture_label": "receipt",
-          "at": 2.5,
-          "hold": 4.6,
-          "scale": 2
-        }
-      ],
       "captions": [
         {
           "line": "L14"
         }
       ],
-      "overlays": [
-        {
-          "type": "callout",
-          "at": 0.5,
-          "dur": 1.8,
-          "target": "ledger",
-          "text": "Circle ledger: the payout gate"
-        },
-        {
-          "type": "callout",
-          "at": 3,
-          "dur": 3.4,
-          "target": "receipt",
-          "text": "Payouts batch + item ids from PayPal"
-        }
-      ],
+      "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 91.093,
-      "duration": 5.501,
-      "end": 96.594,
+      "start": 99.214,
+      "duration": 6.929,
+      "end": 106.143,
       "lines": [
         {
           "id": "L14",
           "audio": "audio/vo/L14.wav",
+          "at": 0.25,
+          "abs": 99.464,
+          "dur": 6.379,
+          "text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs."
+        }
+      ]
+    },
+    {
+      "id": "s12b-paypal-proof",
+      "kind": "capture",
+      "section": "product",
+      "narration_line_ids": [],
+      "timing": {
+        "lead": 0.0,
+        "tail": 0.0,
+        "min": 3.4
+      },
+      "captions": [],
+      "overlays": [],
+      "transition": {
+        "kind": "fade",
+        "sec": 0.4
+      },
+      "start": 106.143,
+      "duration": 3.4,
+      "end": 109.543,
+      "lines": []
+    },
+    {
+      "id": "s13a-refusal",
+      "kind": "capture",
+      "section": "product",
+      "narration_line_ids": [
+        "R01"
+      ],
+      "timing": {
+        "lead": 0.3,
+        "tail": 1.0
+      },
+      "captions": [
+        {
+          "line": "R01"
+        }
+      ],
+      "overlays": [],
+      "transition": {
+        "kind": "fade",
+        "sec": 0.4
+      },
+      "start": 109.543,
+      "duration": 8.233,
+      "end": 117.776,
+      "lines": [
+        {
+          "id": "R01",
+          "audio": "audio/vo/R01.wav",
           "at": 0.3,
-          "abs": 91.393,
-          "dur": 4.651,
-          "text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees."
+          "abs": 109.843,
+          "dur": 6.933,
+          "text": "A two hundred thirty dollar charge, over the two hundred dollar mandate, is refused before PayPal is called."
         }
       ]
     },
@@ -1372,214 +596,71 @@
         "L15"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.6
+        "lead": 0.25,
+        "tail": 0.5
       },
-      "viewport": {
-        "device": "desktop",
-        "width": 1920,
-        "height": 1080
-      },
-      "capture_run": "desktop",
-      "capture_id": "cap-13-round4",
-      "capture_steps": [
-        {
-          "click": {
-            "role": "button",
-            "name": "Next: Clean Round 4 (no clicks)"
-          },
-          "label": "story:Clean Round 4 (no clicks)"
-        },
-        {
-          "waitForText": "Story complete",
-          "timeout": 240000
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Rotation board']",
-            "as": "board-r4"
-          }
-        },
-        {
-          "pause": 1500
-        },
-        {
-          "zoomTarget": {
-            "selector": "section[aria-label='Counters']",
-            "as": "counters"
-          }
-        },
-        {
-          "pause": 2500
-        }
-      ],
-      "footage_edit": "Ramp the round to 8x with the badge; land on six green chips, then the counters.",
-      "zoom_targets": [
-        {
-          "selector": "section[aria-label='Rotation board']",
-          "capture_label": "board-r4",
-          "at": 0.3,
-          "hold": 2.4,
-          "scale": 1.3
-        },
-        {
-          "selector": "section[aria-label='Counters']",
-          "capture_label": "counters",
-          "at": 2.9,
-          "hold": 2.4,
-          "scale": 2
-        }
-      ],
       "captions": [
         {
           "line": "L15"
         }
       ],
-      "overlays": [
-        {
-          "type": "badge",
-          "at": 0.3,
-          "dur": 2,
-          "text": "sped up 8×",
-          "corner": "top-right"
-        },
-        {
-          "type": "callout",
-          "at": 3.1,
-          "dur": 2,
-          "target": "counters",
-          "text": "Organizer messages typed: 0"
-        },
-        {
-          "type": "footnote",
-          "at": 0.3,
-          "dur": 4.5,
-          "text": "The Judge Mode button stands in for the calendar; the organizer does nothing."
-        }
-      ],
+      "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 96.594,
-      "duration": 7.385,
-      "end": 103.979,
+      "start": 117.776,
+      "duration": 5.251,
+      "end": 123.027,
       "lines": [
         {
           "id": "L15",
           "audio": "audio/vo/L15.wav",
-          "at": 0.3,
-          "abs": 96.894,
-          "dur": 6.485,
-          "text": "Round four is clean: six charges, one payout with PayPal's own IDs, and Priya typed nothing."
+          "at": 0.25,
+          "abs": 118.026,
+          "dur": 4.501,
+          "text": "Round four is clean: six charges, one payout, and Priya typed nothing."
         }
       ]
     },
     {
-      "id": "s14-architecture",
+      "id": "s14-build",
       "kind": "slide",
       "section": "built",
       "narration_line_ids": [
-        "L16"
+        "A1",
+        "A2"
       ],
       "timing": {
-        "lead": 0.3,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.4,
+        "gap": 0.2
       },
-      "slide": "slides/architecture.json#build-1",
-      "captions": [
-        {
-          "line": "L16"
-        }
-      ],
+      "captions": [],
       "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 103.979,
-      "duration": 6.873,
-      "end": 110.852,
+      "start": 123.027,
+      "duration": 18.045,
+      "end": 141.072,
       "lines": [
         {
-          "id": "L16",
-          "audio": "audio/vo/L16.wav",
-          "at": 0.3,
-          "abs": 104.279,
-          "dur": 6.123,
-          "text": "Under the hood, the model proposes, a policy engine decides, and humans approve where it matters."
-        }
-      ]
-    },
-    {
-      "id": "s15-apis",
-      "kind": "slide",
-      "section": "built",
-      "narration_line_ids": [
-        "L17"
-      ],
-      "timing": {
-        "lead": 0.3,
-        "tail": 0.45
-      },
-      "slide": "slides/apis.json",
-      "captions": [
+          "id": "A1",
+          "audio": "audio/vo/A1.wav",
+          "at": 0.25,
+          "abs": 123.277,
+          "dur": 6.72,
+          "text": "The model proposes, a policy engine decides, and people and member agents act inside signed mandates."
+        },
         {
-          "line": "L17"
-        }
-      ],
-      "overlays": [],
-      "transition": {
-        "kind": "slide",
-        "sec": 0.4
-      },
-      "start": 110.852,
-      "duration": 10.073,
-      "end": 120.925,
-      "lines": [
-        {
-          "id": "L17",
-          "audio": "audio/vo/L17.wav",
-          "at": 0.3,
-          "abs": 111.152,
-          "dur": 9.323,
-          "text": "On PayPal: Vault for consent, Orders for charges, Payouts for the pot, Invoicing through the Agent Toolkit, plus Webhooks and Balances."
-        }
-      ]
-    },
-    {
-      "id": "s16-ai-layer",
-      "kind": "slide",
-      "section": "built",
-      "narration_line_ids": [
-        "L18"
-      ],
-      "timing": {
-        "lead": 0.3,
-        "tail": 0.45
-      },
-      "slide": "slides/architecture.json#build-2",
-      "captions": [
-        {
-          "line": "L18"
-        }
-      ],
-      "overlays": [],
-      "transition": {
-        "kind": "fade",
-        "sec": 0.4
-      },
-      "start": 120.925,
-      "duration": 9.539,
-      "end": 130.464,
-      "lines": [
-        {
-          "id": "L18",
-          "audio": "audio/vo/L18.wav",
-          "at": 0.3,
-          "abs": 121.225,
-          "dur": 8.789,
-          "text": "The agent's tools sit behind an MCP server. A free model can drive them; this recording used the deterministic rules mode."
+          "id": "A2",
+          "audio": "audio/vo/A2.wav",
+          "at": 7.17,
+          "abs": 130.197,
+          "dur": 10.475,
+          "text": "Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP. A free model can drive it; this take ran in rules mode."
         }
       ]
     },
@@ -1592,43 +673,35 @@
         "L20"
       ],
       "timing": {
-        "lead": 0.3,
-        "gap": 0.35,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35,
+        "gap": 0.25
       },
-      "slide": "slides/evidence.json",
-      "captions": [
-        {
-          "line": "L19"
-        },
-        {
-          "line": "L20"
-        }
-      ],
+      "captions": [],
       "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 130.464,
-      "duration": 18.785,
-      "end": 149.249,
+      "start": 141.072,
+      "duration": 11.815,
+      "end": 152.887,
       "lines": [
         {
           "id": "L19",
           "audio": "audio/vo/L19.wav",
-          "at": 0.3,
-          "abs": 130.764,
-          "dur": 13.568,
-          "text": "In a hundred rules-mode runs, ninety-five percent of proposals were charter-legal before the policy check, and zero illegal actions executed. A live free model: thirty-seven of thirty-seven legal."
+          "at": 0.25,
+          "abs": 141.322,
+          "dur": 7.936,
+          "text": "In a hundred rules-mode runs, ninety-five percent of proposals were charter-legal, and zero illegal actions executed."
         },
         {
           "id": "L20",
           "audio": "audio/vo/L20.wav",
-          "at": 14.218,
-          "abs": 144.682,
-          "dur": 4.117,
-          "text": "And the full story ran end to end on the real PayPal sandbox."
+          "at": 8.436,
+          "abs": 149.508,
+          "dur": 3.029,
+          "text": "And the full story ran live on the PayPal sandbox."
         }
       ]
     },
@@ -1641,43 +714,35 @@
         "L22"
       ],
       "timing": {
-        "lead": 0.3,
-        "gap": 0.35,
-        "tail": 0.45
+        "lead": 0.25,
+        "tail": 0.35,
+        "gap": 0.25
       },
-      "slide": "slides/prior-art-honesty.json",
-      "captions": [
-        {
-          "line": "L21"
-        },
-        {
-          "line": "L22"
-        }
-      ],
+      "captions": [],
       "overlays": [],
       "transition": {
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 149.249,
-      "duration": 14.092,
-      "end": 163.341,
+      "start": 152.887,
+      "duration": 14.802,
+      "end": 167.689,
       "lines": [
         {
           "id": "L21",
           "audio": "audio/vo/L21.wav",
-          "at": 0.3,
-          "abs": 149.549,
+          "at": 0.25,
+          "abs": 153.137,
           "dur": 5.547,
           "text": "PayPal's money pooling collects for one group purchase. Turnkeeper is the pool that rotates."
         },
         {
           "id": "L22",
           "audio": "audio/vo/L22.wav",
-          "at": 6.197,
-          "abs": 155.446,
-          "dur": 7.445,
-          "text": "It's sandbox only. Fees are shown before anyone consents, the buffer is optional, and we make no credit claims."
+          "at": 6.047,
+          "abs": 158.934,
+          "dur": 8.405,
+          "text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2 support."
         }
       ]
     },
@@ -1690,9 +755,8 @@
       ],
       "timing": {
         "lead": 0.4,
-        "tail": 3
+        "tail": 2.7
       },
-      "slide": "slides/outro.json",
       "captions": [
         {
           "line": "L23"
@@ -1700,23 +764,24 @@
       ],
       "overlays": [],
       "transition": {
-        "kind": "none"
+        "kind": "none",
+        "sec": 0
       },
-      "start": 163.341,
-      "duration": 5.363,
-      "end": 168.704,
+      "start": 167.689,
+      "duration": 5.063,
+      "end": 172.752,
       "lines": [
         {
           "id": "L23",
           "audio": "audio/vo/L23.wav",
           "at": 0.4,
-          "abs": 163.741,
+          "abs": 168.089,
           "dur": 1.963,
           "text": "Turnkeeper. Your circle, kept."
         }
       ]
     }
   ],
-  "total_sec": 168.704,
-  "total_mmss": "2:48.70"
+  "total_sec": 172.752,
+  "total_mmss": "2:52.75"
 }

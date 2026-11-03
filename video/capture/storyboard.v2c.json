@@ -1,0 +1,76 @@
+{
+ "baseUrl": "http://localhost:8050",
+ "viewport": {
+  "width": 1920,
+  "height": 2300
+ },
+ "deviceScaleFactor": 2,
+ "fps": 30,
+ "typeDelay": 40,
+ "hoverMs": 450,
+ "actionTitles": false,
+ "scenes": [
+  {
+   "id": "v2-01c-mandates",
+   "tailMs": 600,
+   "steps": [
+    {
+     "goto": "/?member_agents=1"
+    },
+    {
+     "waitForText": "Next: Reset demo",
+     "timeout": 30000
+    },
+    {
+     "pause": 600
+    },
+    {
+     "click": {
+      "role": "button",
+      "name": "Next: Reset demo"
+     },
+     "label": "story:reset"
+    },
+    {
+     "waitForText": "Next: Advance to T-3 (forecast)",
+     "timeout": 60000
+    },
+    {
+     "waitForText": "6 of 6 verified",
+     "timeout": 20000,
+     "optional": true
+    },
+    {
+     "hover": {
+      "selector": "section[aria-label='Member mandates'] h2"
+     },
+     "label": "mandates-header"
+    },
+    {
+     "pause": 600
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Member mandates']",
+      "as": "mandates-card"
+     }
+    },
+    {
+     "zoomTarget": {
+      "selector": "section[aria-label='Member mandates'] .tk-mandate-labels",
+      "as": "mandate-labels"
+     }
+    },
+    {
+     "snapshot": {
+      "selector": "section[aria-label='Member mandates']",
+      "as": "mandates"
+     }
+    },
+    {
+     "pause": 9500
+    }
+   ]
+  }
+ ]
+}

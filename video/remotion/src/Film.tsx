@@ -1,13 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import {AbsoluteFill, Audio, Easing, Sequence, continueRender, delayRender, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {FPS} from './brand';
-import {DesktopCapture, PhoneCapture} from './CaptureScenes';
+import {DesktopCapture, PhoneCapture, ProofScene} from './CaptureScenes';
 import {FilmCaptions} from './components/FilmCaptions';
-import {SandboxBadge} from './components/Overlays';
-import {AiLayerSlide, ApisSlide, ArchSlide, EvidenceSlide, HookSlide, OutroSlide, PriorArtSlide, ProblemSlide, TitleSlide} from './components/Slides';
+import {Lockup, SandboxBadge} from './components/Overlays';
+import {BuildSlide, EvidenceSlide, OutroSlide, PriorArtSlide, ProblemSlide} from './components/Slides';
 import {fontsReady} from './fonts';
 import {SceneCtx} from './scene-context';
-import {storyboard, type SbScene} from './film-data';
+import {captured, storyboard, type SbScene} from './film-data';
 
 export const TOTAL_FRAMES = Math.ceil(storyboard.total_sec * FPS);
 const frameOf = (s: number) => Math.round(s * FPS);
@@ -23,22 +23,16 @@ const tInFor = (sc: SbScene, i: number) => {
 
 const Body: React.FC<{sc: SbScene; totalFrames: number}> = ({sc, totalFrames}) => {
   switch (sc.id) {
-    case 's01-hook':
-      return <HookSlide sc={sc} />;
     case 's02-priya-stats':
       return <ProblemSlide sc={sc} />;
-    case 's03-title':
-      return <TitleSlide />;
     case 's05-join-phone':
       return <PhoneCapture sc={sc} totalFrames={totalFrames} />;
-    case 's14-architecture':
-      return <ArchSlide sc={sc} />;
-    case 's15-apis':
-      return <ApisSlide sc={sc} />;
-    case 's16-ai-layer':
-      return <AiLayerSlide sc={sc} />;
+    case 's12b-paypal-proof':
+      return <ProofScene sc={sc} />;
+    case 's14-build':
+      return <BuildSlide sc={sc} />;
     case 's17-evidence':
-      return <EvidenceSlide sc={sc} />;
+      return <EvidenceSlide sc={sc} rec={{amount: captured.receipt3.amount}} />;
     case 's18-prior-art-honesty':
       return <PriorArtSlide sc={sc} />;
     case 's19-outro':
@@ -69,13 +63,20 @@ const SceneWrap: React.FC<{sc: SbScene; i: number}> = ({sc, i}) => {
   );
 };
 
-const PRODUCT = new Set(['s04-compile', 's05-join-phone', 's06-forecast', 's07-round3', 's08-ravi-reply', 's09-remedies', 's10-consent-vote-approve', 's11-execute', 's12-payout', 's13-clean-round']);
+const PRODUCT = new Set(['s00-cold-open', 's04-compile', 's05b-mandates', 's06-forecast', 's07-round3', 's08-ravi-reply', 's09-remedies', 's10-agents', 's11-execute', 's12-payout', 's12b-paypal-proof', 's13a-refusal', 's13-clean-round']);
+const SLIDES = new Set(['s02-priya-stats', 's14-build', 's17-evidence', 's18-prior-art-honesty', 's19-outro']);
 
+/** Fixed safe corners: lockup top left, status pill top right, both in the strip above the capture window. */
 const Badges: React.FC = () => {
   const frame = useCurrentFrame();
   const sc = storyboard.scenes.find((s) => frame >= frameOf(s.start) && frame < frameOf(s.end)) ?? storyboard.scenes[0];
-  const desktopProduct = PRODUCT.has(sc.id) && sc.id !== 's05-join-phone';
-  return <SandboxBadge modes={PRODUCT.has(sc.id)} shiftX={desktopProduct ? -80 : 0} />;
+  if (SLIDES.has(sc.id)) return null;
+  return (
+    <>
+      {sc.id !== 's05-join-phone' && sc.id !== 's00-cold-open' ? <Lockup /> : null}
+      <SandboxBadge modes={PRODUCT.has(sc.id)} />
+    </>
+  );
 };
 
 export const Film: React.FC = () => {
@@ -88,6 +89,8 @@ export const Film: React.FC = () => {
   }, [handle]);
 
   const lines = storyboard.scenes.flatMap((s) => s.lines.map((l) => ({id: l.id, abs: l.abs})));
+  const capIds = new Set(storyboard.scenes.flatMap((s) => (s.captions ?? []).map((c) => c.line)));
+  const capLines = lines.filter((l) => capIds.has(l.id));
   return (
     <AbsoluteFill style={{background: '#0b1f3a'}}>
       {storyboard.scenes.map((sc, i) => {
@@ -104,7 +107,7 @@ export const Film: React.FC = () => {
         </Sequence>
       ))}
       <Badges />
-      <FilmCaptions lines={lines} placeFor={(id) => (id === 'L06' ? {style: {left: 900, right: 40, bottom: 70}, fontSize: 40, maxWidth: 940} : undefined)} />
+      <FilmCaptions lines={capLines} placeFor={(id) => (id === 'L06' ? {style: {left: 900, right: 40, bottom: 70}, fontSize: 40, maxWidth: 940} : undefined)} />
     </AbsoluteFill>
   );
 };

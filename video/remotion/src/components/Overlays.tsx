@@ -1,6 +1,7 @@
 import React from 'react';
 import {Easing, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {brand} from '../brand';
+import {useTIn} from '../scene-context';
 
 /** One pill, top right, clear of the capture window: sandbox label, PayPal mode and AI mode together. */
 export const SandboxBadge: React.FC<{modes?: boolean}> = ({modes}) => {
@@ -91,6 +92,48 @@ export const Footnote: React.FC<{text: string; frames: number; bottom?: number; 
       }}
     >
       {text}
+    </div>
+  );
+};
+
+/** Small persistent Turnkeeper lockup, top left of the pill strip (clear of the capture window). */
+export const Lockup: React.FC = () => (
+  <div style={{position: 'absolute', top: 9, left: 24, display: 'flex', alignItems: 'center', gap: 10, fontFamily: brand.font, color: brand.white, opacity: 0.95, pointerEvents: 'none'}}>
+    <div style={{width: 26, height: 26, borderRadius: 7, background: `linear-gradient(135deg, ${brand.blue}, ${brand.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 17, color: brand.white}}>T</div>
+    <div style={{fontWeight: 800, fontSize: 26, letterSpacing: -0.4}}>Turnkeeper</div>
+  </div>
+);
+
+/** Large honest-label chip used on the mandate scene. Visible from t0 for dur seconds (scene time, inside a Sequence-less layer). */
+export const HonestChip: React.FC<{text: string; sub?: string; t0: number; dur: number; left: number; top: number; good?: boolean}> = ({text, sub, t0, dur, left, top, good}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const tIn = useTIn();
+  const a0 = tIn + Math.round(t0 * fps);
+  const a1 = a0 + Math.round(dur * fps);
+  if (frame < a0 || frame >= a1) return null;
+  const o = interpolate(frame, [a0, a0 + 8, a1 - 8, a1], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const slide = interpolate(frame, [a0, a0 + 10], [40, 0], {extrapolateRight: 'clamp', easing: Easing.bezier(0.16, 1, 0.3, 1)});
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left,
+        top,
+        opacity: o,
+        translate: `${-slide}px 0`,
+        fontFamily: brand.font,
+        background: brand.navy,
+        border: `3px solid ${good ? brand.good : brand.accent}`,
+        borderRadius: 18,
+        padding: '12px 26px 14px',
+        color: brand.white,
+        boxShadow: '0 14px 40px rgba(0,0,0,.45)',
+        maxWidth: 690,
+      }}
+    >
+      <div style={{fontWeight: 800, fontSize: 38, lineHeight: 1.15}}>{text}</div>
+      {sub ? <div style={{fontWeight: 400, fontSize: 24, color: brand.mute, marginTop: 4, lineHeight: 1.25}}>{sub}</div> : null}
     </div>
   );
 };

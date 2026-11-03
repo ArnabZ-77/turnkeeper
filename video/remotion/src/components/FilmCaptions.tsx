@@ -55,7 +55,7 @@ export const FilmCaptions: React.FC<{lines: CaptionLine[]; placeFor?: (id: strin
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 58,
+    bottom: 16,
     display: 'flex',
     justifyContent: 'center',
     pointerEvents: 'none',
@@ -72,9 +72,9 @@ export const FilmCaptions: React.FC<{lines: CaptionLine[]; placeFor?: (id: strin
             color: brand.white,
             fontFamily: isHi ? brand.fontDeva : brand.font,
             fontWeight: 600,
-            fontSize: isHi ? 54 : place?.fontSize ?? 46,
-            lineHeight: 1.28,
-            padding: '14px 34px 16px',
+            fontSize: isHi ? 50 : place?.fontSize ?? 40,
+            lineHeight: 1.24,
+            padding: '8px 28px 10px',
             borderRadius: 18,
             textAlign: 'center',
             opacity: fade * fadeOut,
@@ -94,7 +94,7 @@ export const FilmCaptions: React.FC<{lines: CaptionLine[]; placeFor?: (id: strin
             })}
           </div>
           {isHi ? (
-            <div style={{fontFamily: brand.font, fontWeight: 400, fontStyle: 'italic', fontSize: 34, color: brand.mute, marginTop: 4}}>
+            <div style={{fontFamily: brand.font, fontWeight: 400, fontStyle: 'italic', fontSize: 30, color: brand.mute, marginTop: 2}}>
               {HI_TRANSLATION[active.id]}
             </div>
           ) : null}
