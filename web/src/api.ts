@@ -14,6 +14,8 @@ import type {
   JudgeCircleResult,
   JudgeResult,
   InjectionCheckView,
+  PassbookLink,
+  PassbookView,
   RecoveryInfo,
   SessionInfo,
   StoryStepResult,
@@ -67,8 +69,13 @@ function messageFor(status: number, data: unknown): string {
   return `HTTP ${status}`;
 }
 
-async function request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+async function request<T>(
+  method: "GET" | "POST",
+  path: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json", ...(extraHeaders ?? {}) };
   const init: RequestInit = { method, headers, credentials: "same-origin" };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -152,6 +159,17 @@ export const api = {
     get: (circleId: string): Promise<unknown> => request("GET", `/api/circles/${enc(circleId)}/mandates`),
     runAgents: (circleId: string, body: { set_id?: string; answers?: Record<string, string> } = {}): Promise<unknown> =>
       request("POST", `/api/circles/${enc(circleId)}/member-agents/run`, body),
+  },
+  /** Member Passbook (flag TK_PASSBOOK): the capability rides in a header, never in a URL the server sees. */
+  passbook: {
+    get: (token: string): Promise<PassbookView> =>
+      request("GET", "/api/passbook", undefined, { "X-Turnkeeper-Capability": token }),
+    qr: async (token: string): Promise<Blob | null> => {
+      const res = await fetch("/api/passbook/qr", { headers: { "X-Turnkeeper-Capability": token }, credentials: "omit" });
+      return res.ok ? res.blob() : null;
+    },
+    links: (circleId: string): Promise<{ ok: boolean; links: PassbookLink[] }> =>
+      request("POST", `/api/passbook/links/${enc(circleId)}`),
   },
   /** Judge Mode story: one "Next step" button (builder E). */
   story: {

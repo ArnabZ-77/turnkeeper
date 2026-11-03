@@ -7,7 +7,8 @@
 export type Route =
   | { page: "board" }
   | { page: "compile" }
-  | { page: "join"; invite: string; status: string | null };
+  | { page: "join"; invite: string; status: string | null }
+  | { page: "passbook" };
 
 function safeDecode(s: string): string | null {
   try {
@@ -21,6 +22,7 @@ function safeDecode(s: string): string | null {
 export function parseRoute(pathname: string, search = ""): Route {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/compile") return { page: "compile" };
+  if (path === "/m") return { page: "passbook" }; // the capability is in the fragment (#tkc1...), never sent
   const m = /^\/join\/([^/]+)$/.exec(path);
   if (m) {
     const invite = safeDecode(m[1]);
@@ -39,6 +41,8 @@ export function routePath(route: Route): string {
       return "/compile";
     case "join":
       return `/join/${encodeURIComponent(route.invite)}${route.status ? `?status=${encodeURIComponent(route.status)}` : ""}`;
+    case "passbook":
+      return "/m";
     default:
       return "/";
   }

@@ -42,6 +42,7 @@ import { IconMoon, IconSun } from "./components/icons";
 import { RotationBoard } from "./board/RotationBoard";
 import { ForecastCard } from "./components/ForecastCard";
 import { StoryBar } from "./components/StoryBar";
+import { MemberLinks } from "./components/MemberLinks";
 import { Link } from "./components/Link";
 import { navigate } from "./routes";
 
@@ -659,6 +660,7 @@ export default function App() {
           onRestart={onStoryRestart}
           onInjection={onStoryInjection}
         />
+        <MemberLinks circleId={circleId ?? null} />
         <JudgeBar
           open={advancedOpen}
           onToggleOpen={onToggleAdvanced}

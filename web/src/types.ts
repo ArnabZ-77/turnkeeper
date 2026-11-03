@@ -266,6 +266,52 @@ export interface InboxMessage {
   ts: string | null;
 }
 
+/** One link of the chain of authority behind a charge (app/engine/passbook.py _receipt). */
+export interface ReceiptLink {
+  step: string;
+  label: string;
+  value: string | null;
+}
+
+/** GET /api/passbook (app/engine/passbook.py view): one member's own view, from stored state only. */
+export interface PassbookView {
+  ok: boolean;
+  label: string;
+  member: { handle: string; name: string; lang: string };
+  circle: { name: string; currency: string; amount: string; cadence: string; rounds: number; charter_sha256: string };
+  payments: {
+    round_n: number;
+    status: string;
+    gross: string | null;
+    fee: string | null;
+    net: string | null;
+    capture_id: string | null;
+    label: string | null;
+    receipt: ReceiptLink[];
+  }[];
+  this_round: { round_n: number; paid: number; total: number; covered_by_buffer: number; mine: string | null } | null;
+  turn: {
+    original_round: number | null;
+    round_n: number | null;
+    moved: boolean;
+    payout_status: string | null;
+    payout_amount: string | null;
+    payout_batch_id: string | null;
+    due: string | null;
+    expected_pot: string;
+  };
+  fees: { paid: string; per_payment: string; policy: string };
+  if_someone_misses: { buffer: string; remedy_menu: string[]; quorum: string; grace_days: number; charter_sha256: string };
+  repayment: { invoice_id: string | null; status: string | null; amount: string | null; due_date: string | null; qr: boolean; simulated: boolean } | null;
+  expires_at: number;
+}
+
+export interface PassbookLink {
+  member: string;
+  name: string;
+  path: string;
+}
+
 /** GET /api/circles/{id}/recovery/injection-check (app/engine/recovery.py injection_check). */
 export interface InjectionCheckView {
   ok: boolean;

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { CompilePage } from "./pages/CompilePage";
 import { JoinPage } from "./pages/JoinPage";
+import { PassbookPage } from "./pages/PassbookPage";
 import { NAV_EVENT, parseRoute } from "./routes";
 import "./theme/tokens.css";
 import "./styles.css";
@@ -30,6 +31,7 @@ function Root() {
   }, []);
   if (route.page === "join") return <JoinPage key={route.invite} invite={route.invite} status={route.status} />;
   if (route.page === "compile") return <CompilePage />;
+  if (route.page === "passbook") return <PassbookPage />;
   return <App />;
 }
 

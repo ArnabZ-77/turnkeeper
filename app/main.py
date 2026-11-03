@@ -116,6 +116,7 @@ def _include_routers() -> None:
         "app.routes.member_agents",  # flag member_mandates (default off): 404 when off
         "app.routes.join",
         "app.routes.compile",  # charter compiler + freeze (builder B)
+        "app.routes.passbook",  # flag TK_PASSBOOK (default off): 404 when off
         "app.routes.webhooks",
         "app.routes.events",
     ):

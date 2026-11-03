@@ -199,6 +199,44 @@ Honest labels, shown wherever a mandate is shown:
 - **AP2-style Intent Mandate, our own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support.**
 - **Server-attested HMAC signature, not a key held by the member.**
 
+### A member's own assistant (capability-scoped MCP)
+
+A member can let their own AI assistant (any MCP client) answer for them, for one question only. The organizer
+mints a **member capability** (`POST /api/circles/{id}/member-agents/capability {member}`): an HMAC token bound to
+the circle, the member, the exact remedy set (by hash), the item (consent or vote), the allowed answers and a
+15-minute expiry. The public `/mcp` server then offers three tools that take that token:
+
+- `get_request(cap)`: what the member is being asked;
+- `answer_request(cap, choice, rationale)`: records the one answer. The token is single-use (its nonce is a
+  database primary key, so this holds across restarts). The member's own mandate is a floor: a "yes" that
+  `member_agent.decide` would refuse is recorded as "no" and says so. The rationale is stored HTML-escaped and only
+  shown, never given to a model;
+- `get_my_repayment(cap)`: the member's PayPal invoice, read through the Agent Toolkit `get_invoice` when live, with
+  PayPal's own reminder (`send_invoice_reminder`) sent once if it is still unpaid after the promised date.
+
+Named refusals: `CAPABILITY_SCOPE` (another member, a read token answering, an answer not allowed),
+`CAPABILITY_USED`, `CAPABILITY_EXPIRED`, `CAPABILITY_INVALID`, `SET_SUPERSEDED`, `NOT_A_DEMO_CIRCLE`. There are
+no money tools. `TK_MEMBER_AGENTS=0` switches all of it off.
+
+## Member Passbook (opt-in, `TK_PASSBOOK=1`)
+
+Each member's own read-only view at `/m#<capability>`. The token stays in the URL fragment, which browsers never send
+to a server, and goes to the API in a header. It is phone-width, defaults to the member's language (EN/हिं toggle),
+and is built only from stored rows:
+
+- my payments, each with its PayPal capture id;
+- this round, as counts only ("5 of 6 paid · 1 covered by the circle buffer"). **Dignity rule:** another member's
+  shortfall is never named, and only the short member sees it was them;
+- my turn (and a swap that moved it), the expected pot, my fees;
+- what the frozen charter does if someone misses, with its hash;
+- for the member who owes it, the repayment invoice and its QR code.
+
+Every payment expands into a **receipt that is the chain of authority** behind it: Vault approval, charter hash,
+the fee shown before approval, the member's mandate (server-attested), the organizer's payout mandate, then either
+the policy check or, for a covered share, the remedy, its set hash and the organizer's approval, then the
+`PayPal-Request-Id` and the capture id. A link with no stored value is left out. The organizer gets one link per
+member under "Member passbooks" (with a WhatsApp "Send" that stores no number).
+
 ## What changed (Nov 2 polish pass)
 
 Small, low-risk changes; the default story and the flag-off behaviour are unchanged (the flag-off golden test is the guard).

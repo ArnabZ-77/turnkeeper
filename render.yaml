@@ -41,3 +41,8 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      # The shipped AI recordings (app/fixtures/llm_cache.jsonl) were made on this model; the cache key includes it.
+      - key: TK_LLM_MODEL
+        value: gemini-3.5-flash-lite
+      - key: TK_PASSBOOK
+        value: "1"
