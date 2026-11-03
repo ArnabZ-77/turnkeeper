@@ -79,3 +79,26 @@ async def run_agents(
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
     return {"action": "member_agents_run", **res}
+
+
+class CapabilityBody(BaseModel):
+    member: str = Field(min_length=1, max_length=40, pattern=r"^[a-z0-9._-]+$")
+    scope: str = Field(default="answer", pattern=r"^(answer|read)$")
+
+
+@router.post("/api/circles/{circle_id}/member-agents/capability")
+async def mint_capability(circle_id: str, body: CapabilityBody, sess: CurrentSession) -> dict[str, Any]:
+    """A member capability for that member's own AI assistant (public /mcp tools get_request, answer_request,
+    get_my_repayment). ``answer``: one answer to the member's pending item, 15 minutes. ``read``: a day."""
+    from app.domain.capability import CapabilityError
+    from app.engine import capabilities, story
+
+    sessions.owns_circle(sess, circle_id)
+    require_enabled(circle_id)
+    story.taint(circle_id, "member_capability")  # an outside answer mid-story: not the canonical replay
+    try:
+        if body.scope == "read":
+            return capabilities.mint_read(circle_id, body.member)
+        return capabilities.mint_answer(circle_id, body.member)
+    except CapabilityError as e:
+        raise HTTPException(status_code=409, detail=e.as_dict()) from None

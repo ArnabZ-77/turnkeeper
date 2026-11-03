@@ -24,7 +24,9 @@ log = logging.getLogger("turnkeeper.mcp.public")
 SERVER_NAME = "paypal-ops-public"
 INSTRUCTIONS = (
     "Read-only view of Turnkeeper demo circles on the PayPal sandbox. Personal data is masked. "
-    "No tool here moves money."
+    "No tool here moves money. A member's own assistant can also use a member capability token (tkc1...): "
+    "get_request shows what the member is asked, answer_request records that member's one answer (the "
+    "member's own mandate still applies), get_my_repayment shows their PayPal invoice."
 )
 
 paypal_ops_public = FastMCP(name=SERVER_NAME, instructions=INSTRUCTIONS)
@@ -161,4 +163,63 @@ async def get_payout_status(circle_id: str, round_n: int) -> dict:
     return await _public_call(circle_id, lambda: internal.payout_status_for(circle_id, round_n))
 
 
-PUBLIC_TOOL_NAMES = ("get_circle", "get_round_matrix", "get_charter", "get_payout_status")
+# --- member capability tools (app.domain.capability): one member, one question, 15 minutes -----------------
+
+
+async def _capability_call(call: Any) -> dict[str, Any]:
+    from app.domain.capability import CapabilityError
+
+    try:
+        result = await internal._maybe_await(call())
+    except CapabilityError as e:
+        return e.as_dict()
+    except Exception as exc:  # noqa: BLE001 - never raise to the client
+        return internal.failure_dict(exc)
+    return mask_pii(internal.jsonable(result))
+
+
+@paypal_ops_public.tool
+async def get_request(cap: str, member: str = "") -> dict:
+    """What a member is being asked (the open remedy proposal: remedies, round, allowed answers), using that
+    member's capability token. ``member`` may be empty; a token works for its own member only."""
+    from app.engine import capabilities
+
+    return await _capability_call(lambda: capabilities.request_view(cap, member or None))
+
+
+@paypal_ops_public.tool
+async def answer_request(cap: str, choice: str, rationale: str = "", member: str = "") -> dict:
+    """Record the member's one answer ("yes" or "no") to the item their token was issued for. The token is
+    single-use and expires after 15 minutes. The member's own signed mandate is a floor: a "yes" it would
+    refuse is recorded as "no". ``rationale`` is stored as text and shown; it is never given to a model."""
+    from app.engine import capabilities
+    from app.engine.sessions import circle_publisher
+
+    async def _answer() -> dict[str, Any]:
+        claims = capabilities.open_token(cap, member or None)
+        return await capabilities.answer(
+            cap, choice, rationale, member=member or None, publish=circle_publisher(claims.circle_id)
+        )
+
+    return await _capability_call(_answer)
+
+
+@paypal_ops_public.tool
+async def get_my_repayment(cap: str, member: str = "") -> dict:
+    """The member's repayment invoice (amount, due date, status). When the sandbox is live the status is read
+    through the PayPal Agent Toolkit (get_invoice), and PayPal's reminder is sent once if the invoice is still
+    unpaid after the date the member promised."""
+    from app.engine import capabilities
+
+    return await _capability_call(lambda: capabilities.repayment(cap, member or None))
+
+
+PUBLIC_TOOL_NAMES = (
+    "get_circle",
+    "get_round_matrix",
+    "get_charter",
+    "get_payout_status",
+    "get_request",
+    "answer_request",
+    "get_my_repayment",
+)

@@ -44,11 +44,16 @@ async def test_every_registered_tool_converts_to_a_strict_tool(server_path):
                 "date",
                 "remedy_set_id",
                 "remedies",
+                # public member-capability tools: the token, the member's answer and their assistant's words
+                "cap",
+                "choice",
+                "rationale",
             }, f"{tool.name}.{prop}"
             if prop == "remedies":
                 assert spec["type"] == "array", f"{tool.name}.{prop}"
             else:
-                assert spec["type"] in ("string", "integer"), f"{tool.name}.{prop}"
+                # an optional argument becomes required + nullable under strict mode
+                assert spec["type"] in ("string", "integer", ["string", "null"]), f"{tool.name}.{prop}"
 
 
 async def test_internal_tool_set_matches_contract():
@@ -79,6 +84,9 @@ async def test_internal_tool_set_matches_contract():
     ]
 
 
+CAPABILITY_TOOLS = {"get_request", "answer_request", "get_my_repayment"}  # need a member capability token
+
+
 async def test_public_tool_set_is_read_only_subset():
     from app.mcp.public import PUBLIC_TOOL_NAMES, paypal_ops_public
 
@@ -86,7 +94,7 @@ async def test_public_tool_set_is_read_only_subset():
     assert (
         names
         == set(PUBLIC_TOOL_NAMES)
-        == {"get_circle", "get_round_matrix", "get_charter", "get_payout_status"}
+        == {"get_circle", "get_round_matrix", "get_charter", "get_payout_status"} | CAPABILITY_TOOLS
     )
     assert not names & {"collect_round", "charge_vaulted_member", "create_pot_payout", "record_note"}
 

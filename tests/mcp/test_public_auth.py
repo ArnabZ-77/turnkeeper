@@ -167,7 +167,15 @@ def test_valid_token_lists_and_calls_read_only_tools_with_masking(demo_token, fa
         r = c.post("/mcp", json=TOOLS_LIST, headers=headers)
         assert r.status_code == 200, r.text
         names = {t["name"] for t in r.json()["result"]["tools"]}
-        assert names == {"get_circle", "get_round_matrix", "get_charter", "get_payout_status"}
+        assert names == {
+            "get_circle",
+            "get_round_matrix",
+            "get_charter",
+            "get_payout_status",
+            "get_request",
+            "answer_request",
+            "get_my_repayment",
+        }
         r = c.post("/mcp", json=_rpc_call("get_circle", {"circle_id": DEMO_CIRCLE}), headers=headers)
         assert r.status_code == 200, r.text
         body = r.json()["result"]

@@ -461,3 +461,21 @@ class MemberMandateRow(SQLModel, table=True):
     member: str = Field(index=True)
     json: str  # signed MemberMandate as JSON (the newest row per member wins)
     approved_at: datetime = Field(default_factory=utcnow)
+
+
+class CapabilityUse(SQLModel, table=True):
+    """A member capability that was spent (app.domain.capability). The nonce is the primary key, so a second
+    answer with the same token fails on insert, also after a restart. ``rationale`` is what the member's
+    assistant wrote, HTML-escaped; it is shown, never fed into a later prompt."""
+
+    __tablename__ = "capability_uses"
+
+    nonce: str = Field(primary_key=True, max_length=40)
+    circle_id: str = Field(index=True)
+    member: str
+    set_id: str
+    item: str
+    choice: str  # what the assistant asked for
+    recorded_choice: str  # what was recorded after the decide() floor
+    rationale: str = ""
+    used_at: datetime = Field(default_factory=utcnow)
