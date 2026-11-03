@@ -103,15 +103,15 @@
         "sec": 0
       },
       "start": 0.0,
-      "duration": 6.722,
-      "end": 6.722,
+      "duration": 6.445,
+      "end": 6.445,
       "lines": [
         {
           "id": "C01",
           "audio": "audio/vo/C01.wav",
           "at": 0.1,
           "abs": 0.1,
-          "dur": 6.272,
+          "dur": 5.995,
           "text": "Ravi's payment just failed. Priya, the organizer, didn't chase him. Here's what her treasurer did next."
         }
       ]
@@ -135,23 +135,23 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 6.722,
-      "duration": 12.634,
-      "end": 19.356,
+      "start": 6.445,
+      "duration": 12.57,
+      "end": 19.015,
       "lines": [
         {
           "id": "P01",
           "audio": "audio/vo/P01.wav",
           "at": 0.2,
-          "abs": 6.922,
-          "dur": 4.587,
+          "abs": 6.645,
+          "dur": 4.523,
           "text": "Priya, a composite organizer, is her circle's bank, collector, and insurer."
         },
         {
           "id": "P02",
           "audio": "audio/vo/P02.wav",
-          "at": 4.987,
-          "abs": 11.709,
+          "at": 4.923,
+          "abs": 11.368,
           "dur": 7.147,
           "text": "Nineteen million US households are underbanked. In Sub-Saharan Africa, over a quarter of adults save in clubs."
         }
@@ -178,16 +178,16 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 19.356,
-      "duration": 8.024,
-      "end": 27.38,
+      "start": 19.015,
+      "duration": 7.619,
+      "end": 26.634,
       "lines": [
         {
           "id": "L05",
           "audio": "audio/vo/L05.wav",
           "at": 0.25,
-          "abs": 19.606,
-          "dur": 7.424,
+          "abs": 19.265,
+          "dur": 7.019,
           "text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash."
         }
       ]
@@ -213,16 +213,16 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 27.38,
-      "duration": 5.613,
-      "end": 32.993,
+      "start": 26.634,
+      "duration": 5.336,
+      "end": 31.97,
       "lines": [
         {
           "id": "L06",
           "audio": "audio/vo/L06.wav",
           "at": 0.25,
-          "abs": 27.63,
-          "dur": 5.013,
+          "abs": 26.884,
+          "dur": 4.736,
           "text": "Each member sees the fees up front, then approves the schedule once, on PayPal."
         }
       ]
@@ -248,17 +248,17 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 32.993,
-      "duration": 8.714,
-      "end": 41.707,
+      "start": 31.97,
+      "duration": 6.367,
+      "end": 38.337,
       "lines": [
         {
           "id": "M01",
           "audio": "audio/vo/M01.wav",
           "at": 0.25,
-          "abs": 33.243,
-          "dur": 8.064,
-          "text": "Each member holds a signed mandate for their own agent. It's our own AP2-style design, with a server-attested signature."
+          "abs": 32.22,
+          "dur": 5.717,
+          "text": "Each member also signs a mandate for their own agent: AP2-style, and server-attested."
         }
       ]
     },
@@ -283,17 +283,17 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 41.707,
-      "duration": 9.432,
-      "end": 51.139,
+      "start": 38.337,
+      "duration": 7.149,
+      "end": 45.486,
       "lines": [
         {
           "id": "L07",
           "audio": "audio/vo/L07.wav",
           "at": 0.25,
-          "abs": 41.957,
-          "dur": 8.832,
-          "text": "Three days out, the forecast flags Ravi: late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi."
+          "abs": 38.587,
+          "dur": 6.549,
+          "text": "Three days out, the forecast flags Ravi: late twice, and paid three weeks early. He gets a nudge in Hindi."
         }
       ]
     },
@@ -318,17 +318,17 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 51.139,
-      "duration": 11.317,
-      "end": 62.456,
+      "start": 45.486,
+      "duration": 9.503,
+      "end": 54.989,
       "lines": [
         {
           "id": "L08",
           "audio": "audio/vo/L08.wav",
           "at": 0.25,
-          "abs": 51.389,
-          "dur": 10.667,
-          "text": "Round three runs on its own. Five charges complete, confirmed through the PayPal Agent Toolkit. Ravi's charge is declined, labelled sandbox-injected."
+          "abs": 45.736,
+          "dur": 8.853,
+          "text": "Round three runs itself. Five charges clear, confirmed by the PayPal Agent Toolkit. Ravi's is declined, sandbox-injected."
         }
       ]
     },
@@ -362,32 +362,32 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 62.456,
-      "duration": 9.513,
-      "end": 71.969,
+      "start": 54.989,
+      "duration": 9.322,
+      "end": 64.311,
       "lines": [
         {
           "id": "L09",
           "audio": "audio/vo/L09.wav",
           "at": 0.2,
-          "abs": 62.656,
-          "dur": 1.237,
+          "abs": 55.189,
+          "dur": 1.131,
           "text": "Ravi replies."
         },
         {
           "id": "H01",
           "audio": "audio/vo/H01.wav",
-          "at": 1.637,
-          "abs": 64.093,
+          "at": 1.531,
+          "abs": 56.52,
           "dur": 3.984,
           "text": "शुक्रवार को सैलरी आएगी, तब भर दूंगा।"
         },
         {
           "id": "L10",
           "audio": "audio/vo/L10.wav",
-          "at": 5.821,
-          "abs": 68.277,
-          "dur": 3.392,
+          "at": 5.715,
+          "abs": 60.704,
+          "dur": 3.307,
           "text": "Salary comes Friday. That becomes a promise with a date."
         }
       ]
@@ -413,17 +413,52 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 71.969,
-      "duration": 10.179,
-      "end": 82.148,
+      "start": 64.311,
+      "duration": 10.115,
+      "end": 74.426,
       "lines": [
         {
           "id": "L11",
           "audio": "audio/vo/L11.wav",
           "at": 0.25,
-          "abs": 72.219,
-          "dur": 9.579,
-          "text": "The agent proposes only what the charter allows: the buffer covers Ravi now, he repays by PayPal invoice, and swaps turns with Tomas."
+          "abs": 64.561,
+          "dur": 9.515,
+          "text": "Replayed from a real Gemini run, the agent proposes only what the charter allows: the buffer now, an invoice later, and a turn swap with Tomas."
+        }
+      ]
+    },
+    {
+      "id": "s09b-injection",
+      "kind": "capture",
+      "section": "product",
+      "narration_line_ids": [
+        "I01"
+      ],
+      "timing": {
+        "lead": 0.25,
+        "tail": 0.4
+      },
+      "captions": [
+        {
+          "line": "I01"
+        }
+      ],
+      "overlays": [],
+      "transition": {
+        "kind": "fade",
+        "sec": 0.4
+      },
+      "start": 74.426,
+      "duration": 7.797,
+      "end": 82.223,
+      "lines": [
+        {
+          "id": "I01",
+          "audio": "audio/vo/I01.wav",
+          "at": 0.25,
+          "abs": 74.676,
+          "dur": 7.147,
+          "text": "We planted an order in Ravi's reply: invoice five thousand. The model ignored it, and the policy would refuse it."
         }
       ]
     },
@@ -448,17 +483,52 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 82.148,
-      "duration": 11.68,
-      "end": 93.828,
+      "start": 82.223,
+      "duration": 7.989,
+      "end": 90.212,
       "lines": [
         {
           "id": "L12",
           "audio": "audio/vo/L12.wav",
           "at": 0.25,
-          "abs": 82.398,
-          "dur": 11.03,
-          "text": "The members' agents answer inside their mandates. Tomas's accepts an earlier turn; Ravi's asks him first. Five say yes, four are needed, and Priya taps once."
+          "abs": 82.473,
+          "dur": 7.339,
+          "text": "The members' agents answer inside their mandates. Ravi's asks him first. Four yeses are needed, and Priya taps once."
+        }
+      ]
+    },
+    {
+      "id": "s10b-own-assistant",
+      "kind": "slide",
+      "section": "product",
+      "narration_line_ids": [
+        "X01"
+      ],
+      "timing": {
+        "lead": 0.25,
+        "tail": 0.4
+      },
+      "captions": [
+        {
+          "line": "X01"
+        }
+      ],
+      "overlays": [],
+      "transition": {
+        "kind": "slide",
+        "sec": 0.4
+      },
+      "start": 90.212,
+      "duration": 9.653,
+      "end": 99.865,
+      "lines": [
+        {
+          "id": "X01",
+          "audio": "audio/vo/X01.wav",
+          "at": 0.25,
+          "abs": 90.462,
+          "dur": 9.003,
+          "text": "Ravi's own AI assistant can answer over MCP: one token, one question, fifteen minutes. Used for Tomas, it's refused."
         }
       ]
     },
@@ -483,17 +553,52 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 93.828,
-      "duration": 5.386,
-      "end": 99.214,
+      "start": 99.865,
+      "duration": 5.066,
+      "end": 104.931,
       "lines": [
         {
           "id": "L13",
           "audio": "audio/vo/L13.wav",
           "at": 0.25,
-          "abs": 94.078,
-          "dur": 4.736,
+          "abs": 100.115,
+          "dur": 4.416,
           "text": "The agent reschedules the board, and sends Ravi an invoice with a QR code."
+        }
+      ]
+    },
+    {
+      "id": "s11b-passbooks",
+      "kind": "slide",
+      "section": "product",
+      "narration_line_ids": [
+        "B01"
+      ],
+      "timing": {
+        "lead": 0.25,
+        "tail": 0.4
+      },
+      "captions": [
+        {
+          "line": "B01"
+        }
+      ],
+      "overlays": [],
+      "transition": {
+        "kind": "fade",
+        "sec": 0.4
+      },
+      "start": 104.931,
+      "duration": 6.943,
+      "end": 111.874,
+      "lines": [
+        {
+          "id": "B01",
+          "audio": "audio/vo/B01.wav",
+          "at": 0.25,
+          "abs": 105.181,
+          "dur": 6.293,
+          "text": "Every member sees the same truth on their phone: their payments, their turn, and a receipt for each charge."
         }
       ]
     },
@@ -518,16 +623,16 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 99.214,
-      "duration": 6.929,
-      "end": 106.143,
+      "start": 111.874,
+      "duration": 6.609,
+      "end": 118.483,
       "lines": [
         {
           "id": "L14",
           "audio": "audio/vo/L14.wav",
           "at": 0.25,
-          "abs": 99.464,
-          "dur": 6.379,
+          "abs": 112.124,
+          "dur": 6.059,
           "text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs."
         }
       ]
@@ -540,7 +645,7 @@
       "timing": {
         "lead": 0.0,
         "tail": 0.0,
-        "min": 3.4
+        "min": 3.0
       },
       "captions": [],
       "overlays": [],
@@ -548,9 +653,9 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 106.143,
-      "duration": 3.4,
-      "end": 109.543,
+      "start": 118.483,
+      "duration": 3.0,
+      "end": 121.483,
       "lines": []
     },
     {
@@ -562,7 +667,7 @@
       ],
       "timing": {
         "lead": 0.3,
-        "tail": 1.0
+        "tail": 0.5
       },
       "captions": [
         {
@@ -574,17 +679,17 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 109.543,
-      "duration": 8.233,
-      "end": 117.776,
+      "start": 121.483,
+      "duration": 6.709,
+      "end": 128.192,
       "lines": [
         {
           "id": "R01",
           "audio": "audio/vo/R01.wav",
           "at": 0.3,
-          "abs": 109.843,
-          "dur": 6.933,
-          "text": "A two hundred thirty dollar charge, over the two hundred dollar mandate, is refused before PayPal is called."
+          "abs": 121.783,
+          "dur": 5.909,
+          "text": "A two hundred thirty dollar charge, over Ravi's mandate, is refused before PayPal is called."
         }
       ]
     },
@@ -609,16 +714,16 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 117.776,
-      "duration": 5.251,
-      "end": 123.027,
+      "start": 128.192,
+      "duration": 4.974,
+      "end": 133.166,
       "lines": [
         {
           "id": "L15",
           "audio": "audio/vo/L15.wav",
           "at": 0.25,
-          "abs": 118.026,
-          "dur": 4.501,
+          "abs": 128.442,
+          "dur": 4.224,
           "text": "Round four is clean: six charges, one payout, and Priya typed nothing."
         }
       ]
@@ -642,25 +747,25 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 123.027,
-      "duration": 18.045,
-      "end": 141.072,
+      "start": 133.166,
+      "duration": 14.781,
+      "end": 147.947,
       "lines": [
         {
           "id": "A1",
           "audio": "audio/vo/A1.wav",
           "at": 0.25,
-          "abs": 123.277,
-          "dur": 6.72,
+          "abs": 133.416,
+          "dur": 6.272,
           "text": "The model proposes, a policy engine decides, and people and member agents act inside signed mandates."
         },
         {
           "id": "A2",
           "audio": "audio/vo/A2.wav",
-          "at": 7.17,
-          "abs": 130.197,
-          "dur": 10.475,
-          "text": "Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP. A free model can drive it; this take ran in rules mode."
+          "at": 6.722,
+          "abs": 139.888,
+          "dur": 7.659,
+          "text": "Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP, on a free Gemini model."
         }
       ]
     },
@@ -683,24 +788,24 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 141.072,
-      "duration": 11.815,
-      "end": 152.887,
+      "start": 147.947,
+      "duration": 11.068,
+      "end": 159.015,
       "lines": [
         {
           "id": "L19",
           "audio": "audio/vo/L19.wav",
           "at": 0.25,
-          "abs": 141.322,
-          "dur": 7.936,
-          "text": "In a hundred rules-mode runs, ninety-five percent of proposals were charter-legal, and zero illegal actions executed."
+          "abs": 148.197,
+          "dur": 7.253,
+          "text": "On held-out cases, Gemini picked the preferred remedy sixteen times out of sixteen. No illegal action executed."
         },
         {
           "id": "L20",
           "audio": "audio/vo/L20.wav",
-          "at": 8.436,
-          "abs": 149.508,
-          "dur": 3.029,
+          "at": 7.753,
+          "abs": 155.7,
+          "dur": 2.965,
           "text": "And the full story ran live on the PayPal sandbox."
         }
       ]
@@ -724,25 +829,25 @@
         "kind": "fade",
         "sec": 0.4
       },
-      "start": 152.887,
-      "duration": 14.802,
-      "end": 167.689,
+      "start": 159.015,
+      "duration": 13.607,
+      "end": 172.622,
       "lines": [
         {
           "id": "L21",
           "audio": "audio/vo/L21.wav",
           "at": 0.25,
-          "abs": 153.137,
-          "dur": 5.547,
+          "abs": 159.265,
+          "dur": 5.376,
           "text": "PayPal's money pooling collects for one group purchase. Turnkeeper is the pool that rotates."
         },
         {
           "id": "L22",
           "audio": "audio/vo/L22.wav",
-          "at": 6.047,
-          "abs": 158.934,
-          "dur": 8.405,
-          "text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2 support."
+          "at": 5.876,
+          "abs": 164.891,
+          "dur": 7.381,
+          "text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2."
         }
       ]
     },
@@ -755,7 +860,7 @@
       ],
       "timing": {
         "lead": 0.4,
-        "tail": 2.7
+        "tail": 2.1
       },
       "captions": [
         {
@@ -767,21 +872,21 @@
         "kind": "none",
         "sec": 0
       },
-      "start": 167.689,
-      "duration": 5.063,
-      "end": 172.752,
+      "start": 172.622,
+      "duration": 4.292,
+      "end": 176.914,
       "lines": [
         {
           "id": "L23",
           "audio": "audio/vo/L23.wav",
           "at": 0.4,
-          "abs": 168.089,
-          "dur": 1.963,
+          "abs": 173.022,
+          "dur": 1.792,
           "text": "Turnkeeper. Your circle, kept."
         }
       ]
     }
   ],
-  "total_sec": 172.752,
-  "total_mmss": "2:52.75"
+  "total_sec": 176.914,
+  "total_mmss": "2:56.91"
 }

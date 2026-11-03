@@ -3,55 +3,55 @@
   "id": "C01",
   "voice": "af_heart",
   "text": "Ravi's payment just failed. Priya, the organizer, didn't chase him. Here's what her treasurer did next.",
-  "speed": 0.94
+  "speed": 1.0
  },
  {
   "id": "P01",
   "voice": "af_heart",
   "text": "Priya, a composite organizer, is her circle's bank, collector, and insurer.",
-  "speed": 0.98
+  "speed": 1.0
  },
  {
   "id": "P02",
   "voice": "af_heart",
   "text": "Nineteen million US households are underbanked. In Sub-Saharan Africa, over a quarter of adults save in clubs.",
-  "speed": 1
+  "speed": 1.0
  },
  {
   "id": "L05",
   "voice": "af_heart",
   "text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "L06",
   "voice": "af_heart",
   "text": "Each member sees the fees up front, then approves the schedule once, on PayPal.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "M01",
   "voice": "af_heart",
-  "text": "Each member holds a signed mandate for their own agent. It's our own AP2-style design, with a server-attested signature.",
-  "speed": 0.92
+  "text": "Each member also signs a mandate for their own agent: AP2-style, and server-attested.",
+  "speed": 1.0
  },
  {
   "id": "L07",
   "voice": "af_heart",
-  "text": "Three days out, the forecast flags Ravi: late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi.",
-  "speed": 0.92
+  "text": "Three days out, the forecast flags Ravi: late twice, and paid three weeks early. He gets a nudge in Hindi.",
+  "speed": 1.0
  },
  {
   "id": "L08",
   "voice": "af_heart",
-  "text": "Round three runs on its own. Five charges complete, confirmed through the PayPal Agent Toolkit. Ravi's charge is declined, labelled sandbox-injected.",
-  "speed": 0.92
+  "text": "Round three runs itself. Five charges clear, confirmed by the PayPal Agent Toolkit. Ravi's is declined, sandbox-injected.",
+  "speed": 1.0
  },
  {
   "id": "L09",
   "voice": "af_heart",
   "text": "Ravi replies.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "H01",
@@ -63,84 +63,102 @@
   "id": "L10",
   "voice": "af_heart",
   "text": "Salary comes Friday. That becomes a promise with a date.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "L11",
   "voice": "af_heart",
-  "text": "The agent proposes only what the charter allows: the buffer covers Ravi now, he repays by PayPal invoice, and swaps turns with Tomas.",
-  "speed": 0.92
+  "text": "Replayed from a real Gemini run, the agent proposes only what the charter allows: the buffer now, an invoice later, and a turn swap with Tomas.",
+  "speed": 1.0
+ },
+ {
+  "id": "I01",
+  "voice": "af_heart",
+  "text": "We planted an order in Ravi's reply: invoice five thousand. The model ignored it, and the policy would refuse it.",
+  "speed": 1.0
  },
  {
   "id": "L12",
   "voice": "af_heart",
-  "text": "The members' agents answer inside their mandates. Tomas's accepts an earlier turn; Ravi's asks him first. Five say yes, four are needed, and Priya taps once.",
-  "speed": 0.92
+  "text": "The members' agents answer inside their mandates. Ravi's asks him first. Four yeses are needed, and Priya taps once.",
+  "speed": 1.0
+ },
+ {
+  "id": "X01",
+  "voice": "af_heart",
+  "text": "Ravi's own AI assistant can answer over MCP: one token, one question, fifteen minutes. Used for Tomas, it's refused.",
+  "speed": 1.0
  },
  {
   "id": "L13",
   "voice": "af_heart",
   "text": "The agent reschedules the board, and sends Ravi an invoice with a QR code.",
-  "speed": 0.92
+  "speed": 1.0
+ },
+ {
+  "id": "B01",
+  "voice": "af_heart",
+  "text": "Every member sees the same truth on their phone: their payments, their turn, and a receipt for each charge.",
+  "speed": 1.0
  },
  {
   "id": "L14",
   "voice": "af_heart",
   "text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "R01",
   "voice": "af_heart",
-  "text": "A two hundred thirty dollar charge, over the two hundred dollar mandate, is refused before PayPal is called.",
-  "speed": 0.92
+  "text": "A two hundred thirty dollar charge, over Ravi's mandate, is refused before PayPal is called.",
+  "speed": 1.0
  },
  {
   "id": "L15",
   "voice": "af_heart",
   "text": "Round four is clean: six charges, one payout, and Priya typed nothing.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "A1",
   "voice": "af_heart",
   "text": "The model proposes, a policy engine decides, and people and member agents act inside signed mandates.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "A2",
   "voice": "af_heart",
-  "text": "Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP. A free model can drive it; this take ran in rules mode.",
-  "speed": 0.92
+  "text": "Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP, on a free Gemini model.",
+  "speed": 1.0
  },
  {
   "id": "L19",
   "voice": "af_heart",
-  "text": "In a hundred rules-mode runs, ninety-five percent of proposals were charter-legal, and zero illegal actions executed.",
-  "speed": 0.92
+  "text": "On held-out cases, Gemini picked the preferred remedy sixteen times out of sixteen. No illegal action executed.",
+  "speed": 1.0
  },
  {
   "id": "L20",
   "voice": "af_heart",
   "text": "And the full story ran live on the PayPal sandbox.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "L21",
   "voice": "af_heart",
   "text": "PayPal's money pooling collects for one group purchase. Turnkeeper is the pool that rotates.",
-  "speed": 0.92
+  "speed": 1.0
  },
  {
   "id": "L22",
   "voice": "af_heart",
-  "text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2 support.",
-  "speed": 0.92
+  "text": "It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2.",
+  "speed": 1.0
  },
  {
   "id": "L23",
   "voice": "af_heart",
   "text": "Turnkeeper. Your circle, kept.",
-  "speed": 0.88
+  "speed": 1.0
  }
 ]

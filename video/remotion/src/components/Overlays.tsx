@@ -23,7 +23,7 @@ export const SandboxBadge: React.FC<{modes?: boolean}> = ({modes}) => {
           letterSpacing: 0.2,
         }}
       >
-        <span style={{color: brand.accent}}>●</span>&nbsp; {modes ? 'PayPal sandbox live · rules mode · no real money' : 'Sandbox demo · no real money'}
+        <span style={{color: brand.accent}}>●</span>&nbsp; {modes ? 'PayPal sandbox live · no real money' : 'Sandbox demo · no real money'}
       </div>
     </div>
   );

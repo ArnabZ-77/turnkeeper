@@ -1,0 +1,80 @@
+[
+ {
+  "id": "C01",
+  "voice": "af_heart",
+  "text": "Ravi's payment just failed. Priya, the organizer, didn't chase him. Here's what her treasurer did next.",
+  "speed": 1.0
+ },
+ {
+  "id": "L05",
+  "voice": "af_heart",
+  "text": "Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash.",
+  "speed": 1.0
+ },
+ {
+  "id": "L06",
+  "voice": "af_heart",
+  "text": "Each member sees the fees up front, then approves the schedule once, on PayPal.",
+  "speed": 1.0
+ },
+ {
+  "id": "L07",
+  "voice": "af_heart",
+  "text": "Three days out, the forecast flags Ravi: late twice, and paid three weeks early. He gets a nudge in Hindi.",
+  "speed": 1.0
+ },
+ {
+  "id": "L09",
+  "voice": "af_heart",
+  "text": "Ravi replies.",
+  "speed": 1.0
+ },
+ {
+  "id": "L10",
+  "voice": "af_heart",
+  "text": "Salary comes Friday. That becomes a promise with a date.",
+  "speed": 1.0
+ },
+ {
+  "id": "L12",
+  "voice": "af_heart",
+  "text": "The members' agents answer inside their mandates. Ravi's asks him first. Four yeses are needed, and Priya taps once.",
+  "speed": 1.0
+ },
+ {
+  "id": "L13",
+  "voice": "af_heart",
+  "text": "The agent reschedules the board, and sends Ravi an invoice with a QR code.",
+  "speed": 1.0
+ },
+ {
+  "id": "L14",
+  "voice": "af_heart",
+  "text": "The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs.",
+  "speed": 1.0
+ },
+ {
+  "id": "R01",
+  "voice": "af_heart",
+  "text": "A two hundred thirty dollar charge, over Ravi's mandate, is refused before PayPal is called.",
+  "speed": 1.0
+ },
+ {
+  "id": "L15",
+  "voice": "af_heart",
+  "text": "Round four is clean: six charges, one payout, and Priya typed nothing.",
+  "speed": 1.0
+ },
+ {
+  "id": "L20",
+  "voice": "af_heart",
+  "text": "And the full story ran live on the PayPal sandbox.",
+  "speed": 1.0
+ },
+ {
+  "id": "L23",
+  "voice": "af_heart",
+  "text": "Turnkeeper. Your circle, kept.",
+  "speed": 1.0
+ }
+]

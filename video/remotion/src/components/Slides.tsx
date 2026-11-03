@@ -240,7 +240,7 @@ export const BuildSlide: React.FC<{sc: SbScene}> = ({sc}) => {
     {k: 'Balances', w: 'Balances'},
   ];
   const tMcp = wordAt(sc, 'A2', 'MCP');
-  const tRules = wordAt(sc, 'A2', 'rules');
+  const tRules = tMcp + 0.6; // the chip lands while the voice is still on the AI layer
   return (
     <AbsoluteFill>
       <Backdrop />
@@ -265,10 +265,10 @@ export const BuildSlide: React.FC<{sc: SbScene}> = ({sc}) => {
         <div style={{fontSize: 30, fontWeight: 800, color: brand.blueSoft, marginRight: 8}}>AI layer</div>
         <div style={{fontSize: 28, fontWeight: 600, padding: '8px 22px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.25)'}}>MCP server behind the tools</div>
         <div style={{fontSize: 28, fontWeight: 600, padding: '8px 22px', borderRadius: 999, background: 'rgba(0,112,224,0.22)', border: `1.5px solid ${brand.blueSoft}`}}>Free model, optional</div>
-        <div style={{fontSize: 28, fontWeight: 800, padding: '8px 22px', borderRadius: 999, background: brand.accent, color: brand.navy, opacity: useReveal(tRules - 0.2, 18)}}>This take: rules mode</div>
+        <div style={{fontSize: 28, fontWeight: 800, padding: '8px 22px', borderRadius: 999, background: brand.accent, color: brand.navy, opacity: useReveal(tRules - 0.2, 18)}}>Gemini takes recorded 3 Nov · replayed with no key</div>
       </Rise>
       <Rise t0={tRules + 0.4} style={{position: 'absolute', left: 120, right: 120, top: 824, fontFamily: brand.font, fontSize: 26, color: brand.mute, lineHeight: 1.35}}>
-        One frozen charter (SHA-256) drives consent, remedies and the payout mandate. Real webhook delivery is not tested yet.
+        One frozen charter (SHA-256) drives consent, remedies and the payout mandate. Real PayPal webhooks verified on the hosted demo.
       </Rise>
     </AbsoluteFill>
   );
@@ -319,14 +319,14 @@ export const EvidenceSlide: React.FC<{sc: SbScene; rec?: {amount: string}}> = ({
       <Backdrop />
       <H1 size={62} top={70}>Evidence</H1>
       <div style={{position: 'absolute', inset: 0, opacity: 1 - swap, translate: `${-swap * 120}px 0`}}>
-        <Rise t0={0.1} style={{position: 'absolute', left: 120, top: 190, fontFamily: brand.font, fontSize: 38, fontWeight: 600, color: brand.blueSoft}}>Remedy eval · rules mode · 100 runs · synthetic scenarios</Rise>
+        <Rise t0={0.1} style={{position: 'absolute', left: 120, top: 190, fontFamily: brand.font, fontSize: 38, fontWeight: 600, color: brand.blueSoft}}>Remedy eval · live Gemini (flash-lite) · held-out, 8 scenarios × 2 runs</Rise>
         <div style={{position: 'absolute', left: 120, right: 120, top: 290, display: 'flex', gap: 26}}>
-          <BigStat t0={0.2} big={<CountUp t0={0.2} to={0.95} suffix="" decimals={2} dur={0.8} />} text="charter-legal before the policy check" />
+          <BigStat t0={0.2} big="16 / 16" text="picked the charter's preferred remedy" />
           <BigStat t0={0.4} big="0" text="illegal actions executed" hi />
-          <BigStat t0={0.6} big="1.0" text="commitment (date and amount) exact match" />
+          <BigStat t0={0.6} big="15 / 16" text="commitment (date and amount) exact match" />
         </div>
         <Rise t0={1.2} style={{position: 'absolute', left: 120, right: 120, top: 640, fontFamily: brand.font, fontSize: 32, lineHeight: 1.35, color: brand.mute}}>
-          The one miss is blocked by the gates and goes to the organizer. Source: eval/RESULTS.md
+          Small n: 16 runs, one model, one day; the held-out set never shaped the prompt. Source: eval/RESULTS.md
         </Rise>
       </div>
       <div style={{position: 'absolute', inset: 0, opacity: swap, translate: `${(1 - swap) * 120}px 0`}}>

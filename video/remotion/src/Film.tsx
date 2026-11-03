@@ -8,6 +8,7 @@ import {BuildSlide, EvidenceSlide, OutroSlide, PriorArtSlide, ProblemSlide} from
 import {fontsReady} from './fonts';
 import {SceneCtx} from './scene-context';
 import {captured, storyboard, type SbScene} from './film-data';
+import {AssistantTerminal, PassbookTriptych} from './V3Scenes';
 
 export const TOTAL_FRAMES = Math.ceil(storyboard.total_sec * FPS);
 const frameOf = (s: number) => Math.round(s * FPS);
@@ -29,6 +30,10 @@ const Body: React.FC<{sc: SbScene; totalFrames: number}> = ({sc, totalFrames}) =
       return <PhoneCapture sc={sc} totalFrames={totalFrames} />;
     case 's12b-paypal-proof':
       return <ProofScene sc={sc} />;
+    case 's10b-own-assistant':
+      return <AssistantTerminal sc={sc} />;
+    case 's11b-passbooks':
+      return <PassbookTriptych sc={sc} />;
     case 's14-build':
       return <BuildSlide sc={sc} />;
     case 's17-evidence':
@@ -63,8 +68,8 @@ const SceneWrap: React.FC<{sc: SbScene; i: number}> = ({sc, i}) => {
   );
 };
 
-const PRODUCT = new Set(['s00-cold-open', 's04-compile', 's05b-mandates', 's06-forecast', 's07-round3', 's08-ravi-reply', 's09-remedies', 's10-agents', 's11-execute', 's12-payout', 's12b-paypal-proof', 's13a-refusal', 's13-clean-round']);
-const SLIDES = new Set(['s02-priya-stats', 's14-build', 's17-evidence', 's18-prior-art-honesty', 's19-outro']);
+const PRODUCT = new Set(['s00-cold-open', 's04-compile', 's05b-mandates', 's06-forecast', 's07-round3', 's08-ravi-reply', 's09-remedies', 's09b-injection', 's10-agents', 's11-execute', 's12-payout', 's12b-paypal-proof', 's13a-refusal', 's13-clean-round']);
+const SLIDES = new Set(['s10b-own-assistant', 's11b-passbooks', 's02-priya-stats', 's14-build', 's17-evidence', 's18-prior-art-honesty', 's19-outro']);
 
 /** Fixed safe corners: lockup top left, status pill top right, both in the strip above the capture window. */
 const Badges: React.FC = () => {

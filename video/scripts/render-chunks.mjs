@@ -38,5 +38,5 @@ if (!fs.existsSync(aud)) {
 }
 const list = fs.readdirSync(outDir).filter((x) => /^c_\d+\.mp4$/.test(x)).sort().map((x) => `file '${path.join(outDir, x).split(path.sep).join('/')}'`).join('\n');
 fs.writeFileSync(path.join(outDir, 'list.txt'), list);
-const r = spawnSync('ffmpeg', ['-hide_banner', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(outDir, 'list.txt'), '-i', aud, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-movflags', '+faststart', path.resolve('out/turnkeeper_v2.mp4')], {stdio: 'inherit'});
+const r = spawnSync('ffmpeg', ['-hide_banner', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(outDir, 'list.txt'), '-i', aud, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-movflags', '+faststart', path.resolve('out/turnkeeper_v3.mp4')], {stdio: 'inherit'});
 process.exit(r.status ?? 1);

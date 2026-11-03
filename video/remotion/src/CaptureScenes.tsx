@@ -20,6 +20,8 @@ const K = (t: number, r: Rect): ZoomKeyframe => ({t, ...r});
 
 const V = (name: string) => `footage/v2/${name}-s.mp4`;
 const seg = (name: string, from: number, to: number, rate = 1): Seg => ({src: V(name), from, to, rate});
+/** v3 takes (3 Nov, live sandbox, AI replayed from the recorded Gemini run): same 1920x2300 layout as v2. */
+const seg3 = (name: string, from: number, to: number, rate = 1): Seg => ({src: `footage/v3/${name}-s.mp4`, from, to, rate});
 
 /** All footage times below are file times (s) found with frame differencing on the 30 fps capture files. */
 const P = {
@@ -129,7 +131,7 @@ const defs = (sc: SbScene): Def => {
     case 's07-round3': {
       const tFive = wordAt(sc, 'L08', 'Five');
       const tDecl = wordAt(sc, 'L08', 'declined');
-      const tLab = wordAt(sc, 'L08', 'labelled');
+      const tLab = wordAt(sc, 'L08', 'sandbox');
       const tConf = wordAt(sc, 'L08', 'confirmed');
       const from = 13.6 - tFive; // the five charges turn green at file time 13.6
       const aEnd = 14.9;
@@ -173,28 +175,54 @@ const defs = (sc: SbScene): Def => {
     case 's09-remedies': {
       const tBuf = wordAt(sc, 'L11', 'buffer');
       const tInv = wordAt(sc, 'L11', 'invoice');
-      const tSwap = wordAt(sc, 'L11', 'swaps');
-      const from = 3.4 - (wordAt(sc, 'L11', 'proposes') - 0.1);
+      const tSwap = wordAt(sc, 'L11', 'swap');
       return {
         layers: [
           {
-            segs: [seg(P.recovery, Math.max(0, from), Math.max(0, from) + sc.duration)],
-            zoom: [K(0, R(0, 330, 1100)), K(tBuf - 0.5, R(0, 330, 1100)), K(tBuf, R(16, 625, 800)), K(tInv - 0.4, R(16, 625, 800)), K(tInv + 0.2, R(480, 625, 800)), K(tSwap - 0.3, R(480, 625, 800)), K(tSwap + 0.3, R(900, 625, 800)), K(sc.duration - 1.0, R(900, 625, 800)), K(sc.duration - 0.3, R(0, 420, 1100))],
+            segs: [seg3('v3-01-recovery', 14.4, 14.4 + sc.duration + 0.5)],
+            zoom: [K(0, R(0, 560, 1520)), K(tBuf - 0.5, R(0, 560, 1520)), K(tBuf, R(16, 625, 800)), K(tInv - 0.4, R(16, 625, 800)), K(tInv + 0.2, R(480, 625, 800)), K(tSwap - 0.3, R(480, 625, 800)), K(tSwap + 0.3, R(900, 625, 800)), K(sc.duration - 1.0, R(900, 625, 800)), K(sc.duration - 0.3, R(0, 560, 1520))],
             notes: [
+              {t: 0.4, dur: tBuf - 0.9, rect: {x: 1308, y: 628, w: 196, h: 30}, label: 'Proposed by the AI treasurer', side: 'bottom'},
               {t: tBuf - 0.1, dur: tInv - 0.4 - tBuf, rect: {x: 29, y: 697, w: 497, h: 100}, label: 'Buffer advance · charter OK', side: 'top'},
               {t: tInv - 0.1, dur: tSwap - 0.4 - tInv, rect: {x: 523, y: 697, w: 483, h: 100}, label: 'Repay by PayPal invoice · charter OK', side: 'top'},
               {t: tSwap - 0.1, dur: 2.0, rect: {x: 1014, y: 697, w: 485, h: 100}, label: 'Swap with Tomas · charter OK', side: 'top'},
             ],
           },
         ],
-      };
+        extras: () => (
+          <HonestChip text="AI replay · gemini-3.5-flash-lite · recorded 3 Nov" sub="The real Gemini run, replayed with no API key; the policy still checks every step" t0={0.3} dur={sc.duration - 0.6} left={216} top={640} good />
+        ),
+      } as unknown as Def;
+    }
+
+    /* ---- injection test: eval s06 verbatim as Ravi's reply ---- */
+    case 's09b-injection': {
+      const tPlant = wordAt(sc, 'I01', 'planted');
+      const tIgn = wordAt(sc, 'I01', 'ignored');
+      const tPol = wordAt(sc, 'I01', 'policy');
+      return {
+        layers: [
+          {
+            segs: [seg3('v3-02b-injection', 81.9, 81.9 + sc.duration + 0.5)],
+            zoom: [K(0, R(0, 560, 1520)), K(tPlant + 0.3, R(0, 560, 1520)), K(tPlant + 1.0, R(16, 640, 820)), K(sc.duration - 0.8, R(16, 640, 820)), K(sc.duration - 0.2, R(0, 600, 1200))],
+            notes: [
+              {t: tPlant + 1.0, dur: tIgn - tPlant - 1.1, rect: {x: 31, y: 676, w: 560, h: 56}, label: 'Planted in the reply: $50 and 5000.00, struck', side: 'right'},
+              {t: tIgn - 0.1, dur: tPol - tIgn - 0.1, rect: {x: 31, y: 736, w: 300, h: 22}, label: 'Proposal invoice: $200, from the charter', side: 'right'},
+              {t: tPol - 0.1, dur: sc.duration - tPol - 0.7, rect: {x: 31, y: 703, w: 560, h: 24}, label: 'Computed by the policy, not written by hand', side: 'right'},
+            ],
+          },
+        ],
+        extras: () => (
+          <HonestChip text="Held-out eval case s06, verbatim" sub="AI replay · gemini-3.5-flash-lite · recorded 3 Nov" t0={0.3} dur={sc.duration - 0.6} left={216} top={700} />
+        ),
+      } as unknown as Def;
     }
 
     /* ---- 1:20 member agents answer ---- */
     case 's10-agents': {
-      const tTomas = wordAt(sc, 'L12', 'Tomas');
+      const tTomas = wordAt(sc, 'L12', 'agents');
       const tRavi = wordAt(sc, 'L12', 'Ravi');
-      const tFive = wordAt(sc, 'L12', 'Five');
+      const tFive = wordAt(sc, 'L12', 'Four');
       const tPriya = wordAt(sc, 'L12', 'Priya');
       const sA = tRavi - 0.4; // consents segment length
       const lenB = tPriya - 0.4 - sA - 0.4;

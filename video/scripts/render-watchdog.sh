@@ -2,7 +2,7 @@
 # restart render-chunks.mjs whenever it stalls (no new file in out/chunks for 9 min) or exits non-zero before finishing
 cd "$(dirname "$0")/.."
 source scripts/env-x64.sh >/dev/null
-while [ ! -f out/turnkeeper_v2.mp4 ]; do
+while [ ! -f out/turnkeeper_v3.mp4 ]; do
   node scripts/render-chunks.mjs 300 2 > out/render_chunks_w.log 2>&1 &
   PID=$!
   LAST=$(date +%s)

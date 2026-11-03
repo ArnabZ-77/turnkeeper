@@ -1,0 +1,323 @@
+{
+  "baseUrl": "http://localhost:8050",
+  "viewport": {
+    "width": 1920,
+    "height": 2300
+  },
+  "deviceScaleFactor": 2,
+  "fps": 30,
+  "typeDelay": 40,
+  "hoverMs": 450,
+  "actionTitles": false,
+  "scenes": [
+    {
+      "id": "v3-00-setup",
+      "tailMs": 300,
+      "steps": [
+        {
+          "goto": "/?member_agents=1"
+        },
+        {
+          "waitForText": "Next: Reset demo",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Reset demo"
+          },
+          "label": "story:reset"
+        },
+        {
+          "waitForText": "Next: Advance to T-3 (forecast)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Advance to T-3 (forecast)"
+          },
+          "label": "story:t3"
+        },
+        {
+          "waitForText": "Next: Run Round 3 (Ravi declines)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Run Round 3 (Ravi declines)"
+          },
+          "label": "story:round3"
+        },
+        {
+          "waitForText": "Next: Reply as Ravi (Hindi)",
+          "timeout": 240000
+        },
+        {
+          "pause": 800
+        }
+      ]
+    },
+    {
+      "id": "v3-01-recovery",
+      "tailMs": 600,
+      "steps": [
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Reply as Ravi (Hindi)"
+          },
+          "label": "story:reply"
+        },
+        {
+          "waitForText": "Next: Start recovery",
+          "timeout": 30000
+        },
+        {
+          "pause": 1500
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Start recovery"
+          },
+          "label": "story:recovery"
+        },
+        {
+          "waitForText": "Next: Member agents answer consents (inside their mandates)",
+          "timeout": 300000
+        },
+        {
+          "zoomTarget": {
+            "selector": "section[aria-label='Agent trace']",
+            "as": "agent-trace"
+          }
+        },
+        {
+          "zoomTarget": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Agent trace']",
+            "as": "agent-trace"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "pause": 4000
+        }
+      ]
+    },
+    {
+      "id": "v3-02-injection",
+      "tailMs": 600,
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitForText": "Restart",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Restart"
+          },
+          "label": "story:restart-default"
+        },
+        {
+          "waitForText": "Next: Advance to T-3 (forecast)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Advance to T-3 (forecast)"
+          },
+          "label": "story:t3"
+        },
+        {
+          "waitForText": "Next: Run Round 3 (Ravi declines)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Run Round 3 (Ravi declines)"
+          },
+          "label": "story:round3"
+        },
+        {
+          "waitForText": "Injection test (eval s06)",
+          "timeout": 240000
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Injection test (eval s06)"
+          },
+          "label": "story:injection"
+        },
+        {
+          "waitForText": "Next: Start recovery",
+          "timeout": 30000
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Start recovery"
+          },
+          "label": "story:recovery"
+        },
+        {
+          "waitForSelector": "[data-testid='injection-check']",
+          "timeout": 300000
+        },
+        {
+          "zoomTarget": {
+            "selector": "[data-testid='injection-check']",
+            "as": "injection"
+          }
+        },
+        {
+          "zoomTarget": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Agent trace']",
+            "as": "agent-trace"
+          }
+        },
+        {
+          "pause": 4500
+        }
+      ]
+    },
+    {
+      "id": "v3-02b-injection",
+      "tailMs": 600,
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitForText": "Next: Reset demo",
+          "timeout": 30000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Reset demo"
+          },
+          "label": "story:reset"
+        },
+        {
+          "waitForText": "Next: Advance to T-3 (forecast)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Advance to T-3 (forecast)"
+          },
+          "label": "story:t3"
+        },
+        {
+          "waitForText": "Next: Run Round 3 (Ravi declines)",
+          "timeout": 60000
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Run Round 3 (Ravi declines)"
+          },
+          "label": "story:round3"
+        },
+        {
+          "waitForText": "Injection test (eval s06)",
+          "timeout": 240000
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Injection test (eval s06)"
+          },
+          "label": "story:injection"
+        },
+        {
+          "waitForText": "Next: Start recovery",
+          "timeout": 30000
+        },
+        {
+          "pause": 1200
+        },
+        {
+          "click": {
+            "role": "button",
+            "name": "Next: Start recovery"
+          },
+          "label": "story:recovery"
+        },
+        {
+          "waitForSelector": "[data-testid='injection-check']",
+          "timeout": 300000
+        },
+        {
+          "zoomTarget": {
+            "selector": "[data-testid='injection-check']",
+            "as": "injection"
+          }
+        },
+        {
+          "zoomTarget": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Recovery']",
+            "as": "recovery"
+          }
+        },
+        {
+          "snapshot": {
+            "selector": "section[aria-label='Agent trace']",
+            "as": "agent-trace"
+          }
+        },
+        {
+          "pause": 4500
+        }
+      ]
+    }
+  ]
+}
