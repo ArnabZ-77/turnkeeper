@@ -1,6 +1,5 @@
-import { StrictMode, useEffect, useState } from "react";
+import { lazy, StrictMode, Suspense, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
 import { CompilePage } from "./pages/CompilePage";
 import { JoinPage } from "./pages/JoinPage";
 import { PassbookPage } from "./pages/PassbookPage";
@@ -17,6 +16,10 @@ import { applyTheme, readPreference, resolveTheme } from "./theme/useTheme";
 const pref = readPreference();
 applyTheme(resolveTheme(pref), pref);
 
+// The board (and, through it, the Bryntum scheduler chunk) loads only on the board route, so the
+// member pages (/m, /join, /compile) stay light on a phone.
+const App = lazy(() => import("./App"));
+
 /** Pick the page from the URL: `/` board, `/compile` charter compiler, `/join/{invite}` member join. */
 function Root() {
   const [route, setRoute] = useState(() => parseRoute(window.location.pathname, window.location.search));
@@ -32,7 +35,11 @@ function Root() {
   if (route.page === "join") return <JoinPage key={route.invite} invite={route.invite} status={route.status} />;
   if (route.page === "compile") return <CompilePage />;
   if (route.page === "passbook") return <PassbookPage />;
-  return <App />;
+  return (
+    <Suspense fallback={<p className="tk-route-loading">Loading the board…</p>}>
+      <App />
+    </Suspense>
+  );
 }
 
 const container = document.getElementById("root");

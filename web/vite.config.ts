@@ -20,8 +20,15 @@ export default defineConfig({
     chunkSizeWarningLimit: 6000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          bryntum: ["@bryntum/scheduler", "@bryntum/scheduler-react"],
+        // Only the scheduler's JS goes in the bryntum chunk. The two small Stockholm theme files are
+        // imported `?inline` by theme/useTheme.ts on every page; if they landed in this chunk, every
+        // route (the member passbook too) would preload 3.8 MB of scheduler it never runs.
+        // React gets its own chunk for the same reason: Rollup otherwise pulls a manual chunk's
+        // dependencies (bryntum-react depends on react) into it, and the entry would import React from there.
+        manualChunks(id) {
+          if (id.includes("/node_modules/@bryntum/") && !/\.css(\?|$)/.test(id)) return "bryntum";
+          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
+          return undefined;
         },
       },
     },

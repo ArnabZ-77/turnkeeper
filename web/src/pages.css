@@ -875,6 +875,11 @@ textarea:focus-visible,
   text-align: center;
   padding: var(--tk-space-5) 0;
 }
+.tk-route-loading {
+  text-align: center;
+  padding: var(--tk-space-6) var(--tk-space-4);
+  color: var(--tk-text-muted);
+}
 .tk-join-card {
   display: flex;
   flex-direction: column;
