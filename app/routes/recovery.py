@@ -155,7 +155,9 @@ async def get_invoice_qr(circle_id: str, sess: CurrentSession) -> Response:
         raise HTTPException(status_code=404, detail="no invoice QR code")
     head, data = row.invoice_qr.split(",", 1)
     media = head[5:].split(";")[0] if head.startswith("data:") else "image/png"
-    return Response(content=base64.b64decode(data), media_type=media or "image/png")
+    if media != "image/png":  # never serve a stored type that a browser could treat as a document
+        raise HTTPException(status_code=404, detail="no invoice QR code")
+    return Response(content=base64.b64decode(data), media_type="image/png")
 
 
 # --- Judge Mode -------------------------------------------------------------------------------------

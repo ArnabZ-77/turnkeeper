@@ -516,6 +516,22 @@ def _choices(set_id: str, kind: str) -> dict[str, str]:
     return {v.member or "": v.choice or "pending" for v in _vote_rows(set_id, kind)}
 
 
+def _sources(circle_id: str, set_id: str, kind: str) -> dict[str, str]:
+    """Who recorded each answered choice (agent | member | judge); pending rows have none.
+
+    Only with the ``member_mandates`` flag on (the badges are a member-agents feature): flag off, the
+    recovery block stays exactly as it was."""
+    from app.engine import member_mandates
+
+    if not member_mandates.enabled(circle_id):
+        return {}
+    return {
+        v.member or "": v.source
+        for v in _vote_rows(set_id, kind)
+        if v.source and (v.choice or "pending") != "pending"
+    }
+
+
 def vote_status(circle_id: str, set_id: str) -> dict[str, Any]:
     row = get_set(circle_id, set_id)
     charter = state.load_charter(circle_id)
@@ -529,6 +545,8 @@ def vote_status(circle_id: str, set_id: str) -> dict[str, Any]:
     given = [h for h in needed if consents.get(h) == "yes"]
     refused = [h for h in needed if consents.get(h) == "no"]
     approval = _choices(set_id, "approval").get(ORGANIZER, "pending")
+    vote_src = _sources(circle_id, set_id, "vote")
+    consent_src = {h: s for h, s in _sources(circle_id, set_id, "consent").items() if h in needed}
     passed = yes >= k
     rejected = no > n - k or bool(refused)
     blockers: list[str] = []
@@ -553,9 +571,17 @@ def vote_status(circle_id: str, set_id: str) -> dict[str, Any]:
             "passed": passed,
             "rejected": rejected,
             "closes_at": iso(row.vote_closes_at),
-            "voters": [{"member": h, "choice": c} for h, c in votes.items()],
+            "voters": [
+                {"member": h, "choice": c, **({"source": vote_src[h]} if h in vote_src else {})}
+                for h, c in votes.items()
+            ],
         },
-        "consents": {"needed": needed, "given": given, "refused": refused},
+        "consents": {
+            "needed": needed,
+            "given": given,
+            "refused": refused,
+            **({"sources": consent_src} if consent_src else {}),
+        },
         "approval": {
             "by": ORGANIZER,
             "status": "approved"

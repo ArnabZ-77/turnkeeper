@@ -1,0 +1,25 @@
+# Keep secrets, local data, history and heavy folders out of every build context.
+.env
+.env.*
+!.env.example
+.git
+.github
+.venv
+.pytest_cache
+.ruff_cache
+**/__pycache__
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+data
+video
+web/node_modules
+web/dist
+app/static
+docs
+tests
+eval
+scratch
+*.pem
+*.key

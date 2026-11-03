@@ -342,9 +342,10 @@ def start_session(client: TestClient) -> dict:
     r = client.get("/api/session")
     assert r.status_code == 200, r.text
     sess = r.json()
-    assert set(sess) == {"sid", "run_id", "circle_id", "live_ai", "paypal_live", "frozen", "vault_seeded"}
+    assert set(sess) == {"run_id", "circle_id", "live_ai", "paypal_live", "frozen", "vault_seeded"}
     assert sess["live_ai"] is False and sess["frozen"] is False
-    assert client.cookies.get("tk_sid") == sess["sid"]
+    sess["sid"] = client.cookies.get("tk_sid")  # the id is the HttpOnly cookie only, never in the body
+    assert sess["sid"]
     vault_members(sess["circle_id"])
     return sess
 

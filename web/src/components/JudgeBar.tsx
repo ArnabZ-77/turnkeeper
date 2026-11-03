@@ -86,7 +86,7 @@ export function JudgeBar(p: JudgeBarProps) {
     <section className="tk-judge-bar" aria-label="Judge mode advanced controls">
       <div className="tk-judge-row">
         <span className="tk-judge-label">Setup</span>
-        <button type="button" className="tk-btn" disabled={disabled} onClick={p.onReset} title="New run id, fresh clone of the fixture circle">
+        <button type="button" className="tk-btn" disabled={disabled} aria-label="Reset the demo" onClick={p.onReset} title="New run id, fresh clone of the fixture circle">
           Reset
         </button>
         <button
@@ -94,6 +94,7 @@ export function JudgeBar(p: JudgeBarProps) {
           className="tk-btn tk-btn-danger"
           aria-pressed={ravi}
           disabled={disabled}
+          aria-label="Step 1: Ravi declines"
           onClick={() => p.onToggleRavi(!ravi)}
           title="Inject INSTRUMENT_DECLINED on Ravi's next charge (PayPal-Mock-Response header)"
         >
@@ -104,6 +105,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-primary"
             disabled={disabled}
+            aria-label={`Step 2: Run round ${DEMO_ROUND}`}
             onClick={() => p.onRunRound(DEMO_ROUND)}
             title="Collect round 3: five vaulted charges plus the Ravi scenario"
           >
@@ -114,6 +116,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-primary"
             disabled={disabled}
+            aria-label={`Step 2: ${SIMULATE_DECLINE_LABEL}`}
             onClick={p.onSimulateDecline}
             title={`${paypalLive ? "Members not vaulted (TK_SEED_VAULT_IDS)" : PAYPAL_NOT_CONFIGURED}: settles round 3 with labelled REPLAY- captures and Ravi's charge declined (simulated, no PayPal call), so the recovery path can be walked`}
           >
@@ -126,6 +129,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn"
           disabled={disabled}
+          aria-label="Step 3: Reply as Ravi"
           onClick={p.onReplyAsRavi}
           title="Ravi answers in Hindi: “शुक्रवार को सैलरी आएगी, तब भर दूंगा” (Salary comes on Friday, I will pay then)"
         >
@@ -135,6 +139,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn"
           disabled={disabled || recovery.start !== null}
+          aria-label="Step 4: Start recovery"
           onClick={p.onStartRecovery}
           title={tip(recovery.start, "The treasurer reads the reply, records the commitment and proposes charter-legal remedies")}
         >
@@ -144,6 +149,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn"
           disabled={disabled || recovery.consent !== null}
+          aria-label="Step 5: Consent of the affected members"
           onClick={p.onConsent}
           title={tip(recovery.consent, "Ravi and his swap partner consent to the turn swap")}
         >
@@ -153,6 +159,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn"
           disabled={disabled || recovery.vote !== null}
+          aria-label="Step 6: Vote as members"
           onClick={p.onVote}
           title={tip(recovery.vote, "Members vote yes until the charter's quorum is reached")}
         >
@@ -162,6 +169,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn tk-btn-primary"
           disabled={disabled || recovery.approve !== null}
+          aria-label="Step 7: Approve as Priya"
           onClick={p.onApprove}
           title={tip(recovery.approve, "Priya's one tap: execution runs through the policy engine (409 lists what is missing)")}
         >
@@ -171,6 +179,7 @@ export function JudgeBar(p: JudgeBarProps) {
           type="button"
           className="tk-btn"
           disabled={disabled || recovery.markPaid !== null}
+          aria-label="Step 8: Mark the invoice paid (simulated)"
           onClick={p.onMarkPaid}
           title={tip(recovery.markPaid, "Simulates INVOICING.INVOICE.PAID for Ravi's invoice (labelled simulated)")}
         >
@@ -178,7 +187,7 @@ export function JudgeBar(p: JudgeBarProps) {
         </button>
       </div>
       <div className="tk-judge-row tk-judge-row-2">
-        <button type="button" className="tk-btn tk-btn-sm" disabled={disabled} onClick={() => p.onAdvance(ADVANCE_DAYS)} title="Advance the virtual clock">
+        <button type="button" className="tk-btn tk-btn-sm" disabled={disabled} aria-label={`Advance the virtual clock by ${ADVANCE_DAYS} days`} onClick={() => p.onAdvance(ADVANCE_DAYS)} title="Advance the virtual clock">
           <IconClock /> Advance {ADVANCE_DAYS} days
         </button>
         <button
@@ -186,6 +195,7 @@ export function JudgeBar(p: JudgeBarProps) {
           className="tk-btn tk-btn-sm tk-btn-warn"
           aria-pressed={unclaimed}
           disabled={disabled}
+          aria-label="Next payout unclaimed"
           onClick={() => p.onUnclaimed(!unclaimed)}
           title="Route the next payout to an unregistered receiver so it comes back UNCLAIMED"
         >
@@ -197,6 +207,7 @@ export function JudgeBar(p: JudgeBarProps) {
               type="button"
               className="tk-btn tk-btn-sm"
               disabled={disabled || !paypalLive}
+              aria-label={`Collect round ${nextRound}`}
               onClick={() => p.onCollect(nextRound)}
               title={tip(paypalTip, "POST /rounds/{n}/collect")}
             >
@@ -206,6 +217,7 @@ export function JudgeBar(p: JudgeBarProps) {
               type="button"
               className="tk-btn tk-btn-sm"
               disabled={disabled || !paypalLive}
+              aria-label={`Pay round ${nextRound}`}
               onClick={() => p.onPayout(nextRound)}
               title={tip(paypalTip, "POST /rounds/{n}/payout")}
             >
@@ -218,6 +230,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-sm"
             disabled={disabled}
+            aria-label="Run the shortfall forecast"
             onClick={p.onRunForecast}
             title="Re-run the T-3 shortfall forecast for the next open round (rules score; the wording may use one model call)"
           >
@@ -244,6 +257,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-sm"
             disabled={busy}
+            aria-label="Try a real PayPal approval"
             onClick={p.onJudgeCircle}
             title="Creates this session's $5, 2-member circle and opens judge.member's invite: a real PayPal sandbox approval (log in with the published judge.member sandbox account)"
           >
@@ -256,6 +270,7 @@ export function JudgeBar(p: JudgeBarProps) {
             className="tk-btn tk-btn-sm"
             aria-pressed={Boolean(p.mandatesOn)}
             disabled={disabled}
+            aria-label="Member mandates"
             onClick={() => p.onToggleMandates?.(!p.mandatesOn)}
             title="Member mandates: each member holds a signed mandate and their agent answers inside it (default off)"
           >
@@ -267,6 +282,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-sm"
             disabled={disabled || Boolean(p.runAgentsBlocked)}
+            aria-label="Run member agents"
             onClick={p.onRunAgents}
             title={p.runAgentsBlocked ?? "Every pending member agent answers inside its mandate; an ask goes to the member's inbox"}
           >
@@ -278,6 +294,7 @@ export function JudgeBar(p: JudgeBarProps) {
             type="button"
             className="tk-btn tk-btn-sm tk-btn-danger"
             disabled={disabled}
+            aria-label="Try a $230 charge"
             onClick={p.onTryOvercharge}
             title="Asks the policy engine to authorize a $230 charge, over the member's per-round mandate limit. It is denied before PayPal is called."
           >

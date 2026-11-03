@@ -41,7 +41,6 @@ def session_shape(sess: Session) -> dict[str, Any]:
         frozen = bool(settings.freeze)
     vault_seeded = circle_vault_seeded(sess.circle_id)
     return {
-        "sid": sess.sid,
         "run_id": sess.run_id,
         "circle_id": sess.circle_id,
         "live_ai": settings.llm_configured,  # a model key is configured (runs may still fall back)

@@ -87,7 +87,7 @@ def test_judge_mode_story_end_to_end(client: TestClient, sandbox: SandboxMock, t
     # reset: a new circle and run id; give the new members test vault ids so the live-sandbox path runs
     out = next_step(client, "reset")
     sess = out["session"]
-    cid, sid = sess["circle_id"], sess["sid"]
+    cid, sid = sess["circle_id"], first["sid"]
     assert cid != first["circle_id"] and sess["run_id"] != first["run_id"]
     vault_members(cid)
     view = story(client)
@@ -217,7 +217,15 @@ def vault_api(sandbox: SandboxMock) -> dict[str, Any]:
     return calls
 
 
-def test_compile_freeze_join_flow(client: TestClient, vault_api: dict[str, Any]):
+def test_compile_freeze_join_flow(client: TestClient, vault_api: dict[str, Any], monkeypatch):
+    # The demo charter starts 2026-11-01. Pin "today" before it so the edited charter keeps its start date; on
+    # the real clock, from that day on, the freeze moves a past start to next month and the hash differs
+    # (the product is right, the test used to rot with the calendar).
+    from datetime import UTC, datetime
+
+    from app.routes import compile as compile_route
+
+    monkeypatch.setattr(compile_route, "utcnow", lambda: datetime(2026, 10, 1, 9, 0, tzinfo=UTC))
     sess = start_session(client)
     demo = client.get("/api/circles/compile/demo?lang=hi").json()
     assert demo["lang"] == "hi" and demo["text"]

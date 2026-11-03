@@ -327,7 +327,44 @@ export function agentRows(
       detail: `${base.detail} (${KIND_WORD[d.kind]}${late || ""}: waiting for ${name})`,
     });
   }
-  return rows;
+  return rows.concat(rowsFromRecovery(rows, rec, board));
+}
+
+/**
+ * Answers the server remembers (recovery view: votes.voters[].source, consents.sources) that this browser has no
+ * decision for, e.g. after a page reload: the badge survives, the agent's rule wording does not.
+ */
+function rowsFromRecovery(
+  have: AgentRow[],
+  rec: RecoveryInfo | null | undefined,
+  board: Pick<BoardModel, "members"> | null | undefined,
+): AgentRow[] {
+  const known = new Set(have.map((r) => r.key));
+  const out: AgentRow[] = [];
+  const add = (kind: AgentKind, member: string, choice: string, source: string | undefined) => {
+    if (!source || (choice !== "yes" && choice !== "no") || known.has(`${kind}:${member}`)) return;
+    const name = firstName(board, member);
+    const state: AgentRowState = source === "agent" ? "agent" : source === "judge" ? "judge" : "human";
+    const badge = state === "agent" ? "agent" : state === "judge" ? "human (judge click)" : "human";
+    const line = state === "agent" ? `${name}'s agent` : name;
+    out.push({
+      key: `${kind}:${member}`,
+      member,
+      name,
+      kind,
+      line,
+      choice,
+      state,
+      badge,
+      status: choice,
+      detail: `${KIND_WORD[kind]} recorded by ${state === "agent" ? "the member's agent" : "the member"}`,
+    });
+  };
+  for (const v of rec?.votes?.voters ?? []) add("vote", v.member, v.choice, v.source);
+  const c = rec?.consents;
+  for (const m of c?.given ?? []) add("consent", m, "yes", c?.sources?.[m]);
+  for (const m of c?.refused ?? []) add("consent", m, "no", c?.sources?.[m]);
+  return out;
 }
 
 /** Members whose agent asked and who have not answered: the rows that get Yes/No taps. */

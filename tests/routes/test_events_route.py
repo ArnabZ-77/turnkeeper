@@ -1,4 +1,4 @@
-"""GET /api/sessions/{sid}/events: text/event-stream carrying EventBus events.
+"""GET /api/events (session from the tk_sid cookie): text/event-stream carrying EventBus events.
 
 Starlette's TestClient buffers a response until the ASGI app returns, so an endless SSE stream cannot be
 read through it. The streaming test drives the ASGI app directly on the test loop with a bounded
@@ -13,8 +13,9 @@ from app.engine.sessions import create_session
 from app.routes.events import format_sse
 
 
-def test_unknown_session_is_404(client):
-    assert client.get("/api/sessions/nope/events").status_code == 404
+def test_stream_needs_the_session_cookie(client):
+    assert client.get("/api/events").status_code == 401
+    assert client.get("/api/events", cookies={"tk_sid": "nope"}).status_code == 401
 
 
 def test_format_sse_maps_heartbeats_to_comments():
@@ -32,11 +33,15 @@ async def test_stream_yields_a_published_event(app):
         "http_version": "1.1",
         "method": "GET",
         "scheme": "http",
-        "path": f"/api/sessions/{sid}/events",
-        "raw_path": f"/api/sessions/{sid}/events".encode(),
+        "path": "/api/events",
+        "raw_path": b"/api/events",
         "query_string": b"",
         "root_path": "",
-        "headers": [(b"host", b"testserver"), (b"accept", b"text/event-stream")],
+        "headers": [
+            (b"host", b"testserver"),
+            (b"accept", b"text/event-stream"),
+            (b"cookie", f"tk_sid={sid}".encode()),
+        ],
         "client": ("127.0.0.1", 12345),
         "server": ("testserver", 80),
     }
@@ -74,7 +79,7 @@ async def test_stream_yields_a_published_event(app):
     assert headers["content-type"].startswith("text/event-stream")
     frames = [line for line in b"".join(chunks).decode().splitlines() if line.startswith("data:")]
     payloads = [json.loads(line[5:].strip()) for line in frames]
-    assert payloads[0]["type"] == "hello" and payloads[0]["sid"] == sid
+    assert payloads[0]["type"] == "hello" and "sid" not in payloads[0]  # the id never goes in a frame
     toasts = [p for p in payloads if p["type"] == "toast"]
     assert toasts == [{"type": "toast", "level": "success", "text": "sse works", "ts": toasts[0]["ts"]}]
     assert get_event_bus().subscriber_count(sid) == 0  # the generator was closed on disconnect

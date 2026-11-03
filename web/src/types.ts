@@ -2,7 +2,7 @@
  * Wire types for the Turnkeeper UI.
  *
  * These mirror docs/CONTRACTS.md: the BoardModel served by `GET /api/circles/{id}` and the SSE
- * payloads from `GET /api/sessions/{sid}/events`. Money is always a `"200.00"` string on the wire;
+ * payloads from `GET /api/events`. Money is always a `"200.00"` string on the wire;
  * the UI formats it and never does arithmetic on it.
  */
 
@@ -164,7 +164,6 @@ export interface BoardModel {
 }
 
 export interface SessionInfo {
-  sid: string;
   run_id: string;
   circle_id: string;
   live_ai: boolean;
@@ -217,13 +216,16 @@ export interface VotesInfo {
   passed: boolean;
   closes_at: string | null;
   rejected?: boolean;
-  voters?: { member: string; choice: string }[];
+  /** `source` (agent | member | judge) is sent with the member-agents flag on, for answered rows only. */
+  voters?: { member: string; choice: string; source?: string }[];
 }
 
 export interface ConsentsInfo {
   needed: string[];
   given: string[];
   refused: string[];
+  /** Who recorded each answered consent (agent | member | judge); member-agents flag only. */
+  sources?: Record<string, string>;
 }
 
 export interface ApprovalInfo {

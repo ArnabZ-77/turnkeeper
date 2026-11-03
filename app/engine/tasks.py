@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Any
 
 from app.db import session_scope
-from app.engine.common import iso, utcnow
+from app.engine.common import iso, safe_error_text, utcnow
 from app.engine.events import Publish, get_event_bus
 from app.models import AgentTrace
 
@@ -187,7 +187,7 @@ async def _run(rec: TaskRecord, run_id: str, publish: Publish, fallback_engine: 
     except Exception as e:  # noqa: BLE001 - surfaced to the UI, never lost
         log.exception("task %s failed", rec.task_id)
         rec.ok = False
-        rec.error = f"{type(e).__name__}: {e}"
+        rec.error = safe_error_text(e)
         await publish({"type": "toast", "level": "error", "text": f"{rec.kind} failed: {type(e).__name__}"})
         await publish({"type": "trace", "kind": "system", "text": rec.error[:400]})
     finally:

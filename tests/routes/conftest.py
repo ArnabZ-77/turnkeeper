@@ -22,6 +22,7 @@ def clean_app(monkeypatch):
     monkeypatch.setenv("TURNKEEPER_FREEZE", "0")
     monkeypatch.setenv("PAYPAL_WEBHOOK_ID", "WH-TEST")
     monkeypatch.setenv("TK_MAX_ACTIVE_SESSIONS", "6")
+    monkeypatch.setenv("TK_SESSION_CREATES_PER_IP_HOUR", "1000")  # most tests open many sessions from one IP
     get_settings.cache_clear()
     reset_db()
     reset_event_bus()
@@ -30,6 +31,11 @@ def clean_app(monkeypatch):
     from app.routes import join as join_routes
 
     join_routes.SETUP_LIMITER.reset()
+    from app.engine import sessions as _sessions
+    from app.routes import webhooks as webhook_routes
+
+    _sessions.session_limiter().reset()
+    webhook_routes.WEBHOOK_LIMITER.reset()
     yield
     get_settings.cache_clear()
 
@@ -70,7 +76,8 @@ def session(client) -> dict:
     """GET /api/session once: the client now carries the tk_sid cookie; returns the session shape."""
     r = client.get("/api/session")
     assert r.status_code == 200, r.text
-    return r.json()
+    # The body no longer carries the id (it is the HttpOnly cookie); tests read the event bus by it.
+    return {**r.json(), "sid": client.cookies.get("tk_sid")}
 
 
 @pytest.fixture

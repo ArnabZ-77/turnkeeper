@@ -755,7 +755,9 @@ def escape_rules_text(text: str) -> str:
 
 def user_prompt(text: str, lang: str) -> str:
     schema = json.dumps(draft_json_schema(), sort_keys=True, separators=(",", ":"))
-    safe = escape_rules_text(text)
+    from app.engine.privacy import mask_pii  # contact details never go to a third-party model
+
+    safe = escape_rules_text(mask_pii(text))
     return (
         f"Rules language hint: {lang}.\n"
         f"<rules_text>\n{safe}\n</rules_text>\n\n"

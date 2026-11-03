@@ -190,5 +190,7 @@ def latest_reply(circle_id: str, member: str) -> dict[str, Any] | None:
 
 def as_member_reply_block(msg: dict[str, Any]) -> str:
     """How a reply is shown to the model: a data block, never an instruction."""
-    text = str(msg.get("text") or "").replace("<", "‹").replace(">", "›")
+    from app.engine.privacy import mask_pii  # contact details never go to a third-party model
+
+    text = mask_pii(str(msg.get("text") or "")).replace("<", "‹").replace(">", "›")
     return f'<member_reply member="{msg.get("member")}" lang="{msg.get("lang")}">{text}</member_reply>'

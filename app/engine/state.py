@@ -288,7 +288,9 @@ UNTRUSTED_NOTE = (
 
 def untrusted_member_text(text: Any) -> dict[str, Any]:
     """Frame member free text as data (PLAN §5). Angle brackets are neutralised so a reply cannot close the tag."""
-    safe = str(text).replace("<", "\u2039").replace(">", "\u203a")
+    from app.engine.privacy import mask_pii  # contact details never go to a third-party model
+
+    safe = mask_pii(str(text)).replace("<", "\u2039").replace(">", "\u203a")
     return {"source": "member", "untrusted": True, "text": f"<{MEMBER_REPLY_TAG}>{safe}</{MEMBER_REPLY_TAG}>"}
 
 

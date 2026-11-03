@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     freeze: bool = Field(default=False, alias="TURNKEEPER_FREEZE")
     paypal_rate_per_min: int = Field(default=40, alias="TK_PAYPAL_RATE_PER_MIN")
     max_active_sessions: int = Field(default=6, alias="TK_MAX_ACTIVE_SESSIONS")
+    # New anonymous sessions one IP may open per hour. Kept below max_active_sessions so one address can never
+    # fill every live slot and lock real visitors out (they fall back to the read-only replay).
+    session_creates_per_ip_hour: int = Field(default=5, alias="TK_SESSION_CREATES_PER_IP_HOUR")
+    # Browser hardening: "enforce" | "report-only" | "off" for the Content-Security-Policy header.
+    csp_mode: str = Field(default="enforce", alias="TK_CSP_MODE")
 
     # Member mandates + member agents (docs/CONTRACTS.md "Member mandates"). Default OFF. TK_MEMBER_MANDATES turns the
     # feature on for every new circle (a circle can also switch it on alone with its ``member_mandates`` flag);
@@ -200,6 +205,16 @@ def get_settings() -> Settings:
 
 DEV_SECRET_DEFAULT = "dev-only-change-me"
 MIN_SECRET_LEN = 16
+MIN_MCP_TOKEN_LEN = 24
+# Set by the hosting platform (Render, Azure App Service, Cloud Run): a platform run is a deployment even when
+# PUBLIC_BASE_URL was left at its localhost default.
+_HOST_ENV_MARKERS = ("RENDER", "WEBSITE_SITE_NAME", "K_SERVICE")
+
+
+def on_hosting_platform() -> bool:
+    import os
+
+    return any(os.environ.get(name) for name in _HOST_ENV_MARKERS)
 
 
 def is_deployed(settings: Settings) -> bool:
@@ -219,6 +234,13 @@ def weak_secrets(settings: Settings) -> list[str]:
     return weak
 
 
+def mcp_token_is_short(settings: Settings) -> bool:
+    """A set MCP_DEMO_TOKEN shorter than MIN_MCP_TOKEN_LEN is guessable. Warned about, never fatal: refusing to
+    boot would take a running demo down over a token the operator may have chosen on purpose."""
+    token = (settings.mcp_demo_token or "").strip()
+    return bool(token) and len(token) < MIN_MCP_TOKEN_LEN
+
+
 def check_deploy_secrets(settings: Settings | None = None) -> list[str]:
     """Refuse to start a deployed (https) app with default/short signing secrets; warn locally.
 
@@ -228,10 +250,17 @@ def check_deploy_secrets(settings: Settings | None = None) -> list[str]:
 
     settings = settings or get_settings()
     weak = weak_secrets(settings)
-    if weak and is_deployed(settings):
+    if weak and (is_deployed(settings) or on_hosting_platform()):
         raise RuntimeError(
             f"refusing to start: {', '.join(weak)} must be set to a random value of at least "
-            f"{MIN_SECRET_LEN} characters when PUBLIC_BASE_URL is https"
+            f"{MIN_SECRET_LEN} characters (24 for MCP_DEMO_TOKEN) when PUBLIC_BASE_URL is https "
+            "or the app runs on a hosting platform"
+        )
+    if mcp_token_is_short(settings):
+        logging.getLogger("turnkeeper.config").warning(
+            'MCP_DEMO_TOKEN is shorter than %d characters; use a random token (python -c "import secrets; '
+            'print(secrets.token_urlsafe(32))")',
+            MIN_MCP_TOKEN_LEN,
         )
     if weak:
         logging.getLogger("turnkeeper.config").warning(

@@ -720,8 +720,27 @@ async def _send_payout(
     return {"batch_id": batch_id, "item_id": item_id, "status": status, "fee": fee}
 
 
+_PAY_LOCKS: dict[tuple[str, int], asyncio.Lock] = {}
+
+
 async def pay_round(circle_id: str, round_n: int, *, publish: Publish) -> dict:
-    """Pay the pot for a fully collected round: mandate, ledger, balances and policy gates, then Payouts."""
+    """Pay the pot for a fully collected round: mandate, ledger, balances and policy gates, then Payouts.
+
+    One payout attempt per (circle, round) runs at a time. Two webhooks for the last captures can arrive together;
+    without the lock both would pass the "no live payout yet" check and both write payout rows. The second caller
+    waits, then re-reads the round and is denied as "already paid".
+    """
+    key = (circle_id, round_n)
+    lock = _PAY_LOCKS.setdefault(key, asyncio.Lock())
+    try:
+        async with lock:
+            return await _pay_round_locked(circle_id, round_n, publish=publish)
+    finally:
+        if not lock.locked() and _PAY_LOCKS.get(key) is lock:
+            del _PAY_LOCKS[key]
+
+
+async def _pay_round_locked(circle_id: str, round_n: int, *, publish: Publish) -> dict:
     circle = state.load_circle(circle_id)
     charter = state.charter_of(circle)
     rnd = state.get_round(circle_id, round_n)

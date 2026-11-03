@@ -59,3 +59,35 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx vitest run
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # gitleaks scans the whole history
+
+      - name: Secret scan (gitleaks)
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks detect --source . --redact --no-banner
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Python dependency audit
+        continue-on-error: true # advisory: a new CVE in a transitive dependency should not block unrelated merges
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip install "paypal-agent-toolkit==1.11.0" --no-deps && pip install .
+          pip-audit --skip-editable
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Web dependency audit
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high

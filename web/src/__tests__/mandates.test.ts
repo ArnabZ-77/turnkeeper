@@ -252,6 +252,33 @@ describe("agentRows", () => {
     expect(pendingAsks([row])).toHaveLength(0);
   });
 
+  it("after a reload (no decisions) the server-kept sources still give the badges", () => {
+    const r = rec({
+      votes: {
+        yes: 2,
+        no: 0,
+        needed: 4,
+        total: 6,
+        passed: false,
+        closes_at: null,
+        voters: [
+          { member: "tomas", choice: "yes", source: "agent" },
+          { member: "ravi", choice: "pending" },
+        ],
+      },
+      consents: { needed: ["ravi", "tomas"], given: ["ravi", "tomas"], refused: [], sources: { tomas: "agent", ravi: "judge" } },
+    });
+    const rows = agentRows([], r, board);
+    const by = Object.fromEntries(rows.map((x) => [x.key, x]));
+    expect(Object.keys(by).sort()).toEqual(["consent:ravi", "consent:tomas", "vote:tomas"]);
+    expect(by["vote:tomas"]).toMatchObject({ state: "agent", badge: "agent", choice: "yes", line: "Tomas's agent" });
+    expect(by["consent:ravi"]).toMatchObject({ state: "judge", badge: "human (judge click)", choice: "yes" });
+  });
+
+  it("without sources (flag off) the recovery block adds no agent rows", () => {
+    expect(agentRows([], rec({ consents: { needed: ["ravi"], given: ["ravi"], refused: [] } }), board)).toEqual([]);
+  });
+
   it("a pending vote stays pending after quorum, and says so", () => {
     const pending = parseDecisions([dec({ member: "ravi", kind: "vote", choice: "ask", recorded: false, source: null })]);
     const [row] = agentRows(pending, rec({ votes: { yes: 4, no: 0, needed: 4, total: 6, passed: true, closes_at: null } }), board);

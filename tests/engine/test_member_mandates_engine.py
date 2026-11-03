@@ -445,3 +445,25 @@ async def test_circle_row_untouched_by_seeding(circle_id):
     member_mandates.enable(circle_id)
     with session_scope() as db:
         assert db.get(Circle, circle_id).charter_sha256 == before
+
+
+# --- sources survive a reload (recovery view) -----------------------------------------------------------------
+
+
+async def test_recovery_view_keeps_the_source_of_each_answer(voting, collector):
+    cid, sid = voting
+    await member_agent.run_member_agents(cid, sid, publish=collector)
+    await member_agent.run_member_agents(
+        cid, sid, answers={"ravi": "yes"}, answer_source="judge", publish=collector
+    )
+    st = recovery.vote_status(cid, sid)
+    voters = {v["member"]: v for v in st["votes"]["voters"]}
+    assert voters["asha"]["source"] == "agent"
+    assert st["consents"]["sources"] == {"tomas": "agent", "ravi": "judge"}
+    pending = [v for v in st["votes"]["voters"] if v["choice"] == "pending"]
+    assert all("source" not in v for v in pending)
+
+
+def test_recovery_view_has_no_sources_with_the_flag_off(circle_id):
+    # the flag-off shape is the pre-feature one (see tests/routes/test_member_mandates_regression.py)
+    assert recovery._sources(circle_id, "rs_none", "vote") == {}

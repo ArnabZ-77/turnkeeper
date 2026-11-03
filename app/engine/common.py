@@ -48,3 +48,16 @@ def money_str(x: Decimal | str | int | float | None) -> str:
 
 def today_of(dt: datetime) -> date:
     return as_utc(dt).date()
+
+
+_DOMAIN_ERRORS = (ValueError, KeyError, LookupError, PermissionError)
+GENERIC_ERROR_TEXT = "unexpected error (details are in the server log)"
+
+
+def safe_error_text(exc: BaseException) -> str:
+    """Error text that may reach a client. Domain errors (bad input, unknown id) keep their message; anything
+    else (database, HTTP client, import errors) can carry SQL, parameters or hostnames, so only the class name
+    and a fixed sentence leave the server."""
+    if isinstance(exc, _DOMAIN_ERRORS):
+        return f"{type(exc).__name__}: {exc}"
+    return f"{type(exc).__name__}: {GENERIC_ERROR_TEXT}"

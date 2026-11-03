@@ -21,6 +21,20 @@ os.environ["TK_LLM_BASE_URL"] = ""
 os.environ["TK_SEED_VAULT_IDS"] = ""
 # Local (http) base URL so a deployed .env never trips the https-only startup secrets check in tests.
 os.environ.setdefault("PUBLIC_BASE_URL", "http://localhost:8000")
+# Most tests open many sessions from the one TestClient address; the per-IP session budget has its own tests.
+os.environ["TK_SESSION_CREATES_PER_IP_HOUR"] = "1000"
+os.environ["TK_CSP_MODE"] = "enforce"
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limiters():
+    """In-memory per-IP budgets (sessions, webhooks) must not leak between tests."""
+    from app.engine import sessions
+    from app.routes import webhooks
+
+    sessions.session_limiter().reset()
+    webhooks.WEBHOOK_LIMITER.reset()
+    yield
 
 
 @pytest.fixture(autouse=True)

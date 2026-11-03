@@ -179,7 +179,7 @@ async def run_rules(
                 balance = await call("get_available_balance", {"circle_id": circle_id})
                 if balance.get("ok"):
                     summary_lines.append(
-                        f"Balance check: PayPal available {balance.get('paypal_available') or 'n/a'}, "
+                        f"Balance check: PayPal available {balance.get('paypal_available') or balance.get('paypal_balance_label') or 'n/a'}, "
                         f"circle available {balance.get('circle_available')} (source: {balance.get('source')})."
                     )
                 else:

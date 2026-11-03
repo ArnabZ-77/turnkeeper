@@ -120,7 +120,8 @@ def test_agent_failure_is_surfaced_not_lost(client, session, monkeypatch):
     monkeypatch.setattr(treasurer, "run_task", broken)
     r = client.post(f"/api/circles/{session['circle_id']}/rounds/3/collect")
     done = wait_for_task(client, r.json()["task_id"])
-    assert done["ok"] is False and done["error"] == "RuntimeError: boom"
+    assert done["ok"] is False and done["error"].startswith("RuntimeError")
+    assert "boom" not in done["error"]  # raw exception text stays in the server log
     recent = get_event_bus().recent(session["sid"])
     assert any(e["type"] == "toast" and e["level"] == "error" for e in recent)
     assert client.get("/api/tasks/nope").status_code == 404

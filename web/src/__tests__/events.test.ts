@@ -62,12 +62,11 @@ describe("openEventStream", () => {
     const events: TurnkeeperEvent[] = [];
     const states: string[] = [];
     const stream = openEventStream(
-      "sid1",
       { onEvent: (e) => events.push(e), onState: (s) => states.push(s) },
       { factory: (url) => { const s = new FakeSource(url); sources.push(s); return s; }, maxBackoffMs: 5000 },
     );
     expect(sources).toHaveLength(1);
-    expect(sources[0].url).toBe("/api/sessions/sid1/events");
+    expect(sources[0].url).toBe("/api/events"); // no session id in the URL: the cookie carries it
     sources[0].open();
     sources[0].message('{"type":"queue","ts":"t","position":1}');
     sources[0].named("toast", '{"level":"info","text":"hi"}');

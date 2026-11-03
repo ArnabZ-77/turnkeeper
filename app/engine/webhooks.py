@@ -27,6 +27,8 @@ from app.models import Contribution, LedgerRow, MemberRow, Round, WebhookEvent
 log = logging.getLogger("turnkeeper.engine.webhooks")
 
 PAYLOAD_LIMIT = 64_000
+UNVERIFIED_PAYLOAD_LIMIT = 2_000  # a forged body is kept only as a stub for the debug view
+MAX_STORED_EVENTS = 1_000  # newest rows kept; older ones are pruned on insert
 
 
 class _CIHeaders(dict):
@@ -63,11 +65,19 @@ async def _verify(headers: Mapping[str, str], body: bytes, webhook_id: str) -> b
 
 def _store(event_id: str, event_type: str, resource_id: str | None, verified: bool, body: bytes) -> bool:
     """Insert the WebhookEvent row; False when the event id was already stored (duplicate)."""
-    payload = body.decode("utf-8", "replace")[:PAYLOAD_LIMIT]
+    payload = body.decode("utf-8", "replace")[: PAYLOAD_LIMIT if verified else UNVERIFIED_PAYLOAD_LIMIT]
     try:
         with session_scope() as db:
-            existing = db.exec(select(WebhookEvent.id).where(WebhookEvent.event_id == event_id)).first()
+            existing = db.exec(select(WebhookEvent).where(WebhookEvent.event_id == event_id)).first()
             if existing is not None:
+                if verified and not existing.verified:
+                    # A forged copy arrived first (event ids are visible to anyone): PayPal's genuine, signed
+                    # delivery must still be processed, so it upgrades the stub instead of being dropped.
+                    existing.verified = True
+                    existing.payload = payload
+                    existing.received_at = utcnow()
+                    db.add(existing)
+                    return True
                 return False
             db.add(
                 WebhookEvent(
@@ -79,9 +89,24 @@ def _store(event_id: str, event_type: str, resource_id: str | None, verified: bo
                     payload=payload,
                 )
             )
+            db.flush()
+            _prune(db)
     except IntegrityError:
         return False
     return True
+
+
+def _prune(db: Any) -> None:
+    """Keep only the newest MAX_STORED_EVENTS rows so unauthenticated traffic cannot grow the table forever."""
+    stale = db.exec(
+        select(WebhookEvent.id)
+        .order_by(WebhookEvent.id.desc())  # type: ignore[attr-defined]
+        .offset(MAX_STORED_EVENTS)
+    ).all()
+    for row_id in stale:
+        row = db.get(WebhookEvent, row_id)
+        if row is not None:
+            db.delete(row)
 
 
 def _find_contribution_by_capture(capture_id: str) -> Contribution | None:

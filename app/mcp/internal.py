@@ -164,8 +164,14 @@ def failure_dict(exc: BaseException) -> dict[str, Any]:
             out["debug_id"] = debug_id
         return out
     if isinstance(exc, ModuleNotFoundError | ImportError):
-        return {"ok": False, "error": "ENGINE_UNAVAILABLE", "message": str(exc)}
-    return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+        log.warning("engine unavailable: %s", exc)
+        return {"ok": False, "error": "ENGINE_UNAVAILABLE", "message": "the engine is not available"}
+    from app.engine.common import GENERIC_ERROR_TEXT
+
+    if isinstance(exc, ValueError | KeyError | LookupError | PermissionError):
+        return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+    log.warning("tool failed: %s: %s", type(exc).__name__, exc)
+    return {"ok": False, "error": type(exc).__name__, "message": GENERIC_ERROR_TEXT}
 
 
 def ok_dict(result: Any, **extra: Any) -> dict[str, Any]:

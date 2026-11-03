@@ -83,6 +83,7 @@ TASK_TOOLS: dict[str, frozenset[str]] = {
     "recover": frozenset(RECOVER_TOOLS),
 }
 TOOL_NOT_ALLOWED = "tool not allowed for this task"
+CIRCLE_MISMATCH = "circle_id does not match this task"
 
 
 def allowed_tools(kind: str) -> frozenset[str]:
@@ -398,6 +399,10 @@ async def _live_loop(
                     t0 = time.perf_counter()
                     if call.name not in allowed:  # never executed, even if the model names a hidden tool
                         result_text = json.dumps({"ok": False, "error": TOOL_NOT_ALLOWED, "tool": call.name})
+                        is_error = True
+                    elif args.get("circle_id") not in (None, task.circle_id):
+                        # The model may only act on the circle this task belongs to, whatever injected text asks.
+                        result_text = json.dumps({"ok": False, "error": CIRCLE_MISMATCH, "tool": call.name})
                         is_error = True
                     else:
                         try:

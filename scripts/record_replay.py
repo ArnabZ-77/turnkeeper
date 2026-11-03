@@ -8,7 +8,7 @@ script refuses to run if anything still looks configured. A live-sandbox recordi
 the story once there) always takes precedence over this file.
 
 Usage (from any directory; run it outside the repo root so no local .env is picked up):
-    D:/Desktop/PayPal/turnkeeper/.venv/Scripts/python D:/Desktop/PayPal/turnkeeper/scripts/record_replay.py
+    .venv/Scripts/python scripts/record_replay.py
 """
 
 from __future__ import annotations

@@ -21,6 +21,7 @@ from app.db import session_scope
 from app.engine.common import utcnow
 from app.engine.events import Publish, get_event_bus
 from app.engine.fixture import clone_fixture
+from app.mcp.auth import RateLimiter, client_ip
 from app.models import Circle, Session
 
 log = logging.getLogger("turnkeeper.engine.sessions")
@@ -30,6 +31,19 @@ COOKIE_MAX_AGE = 7 * 24 * 3600
 IDLE_TTL = timedelta(minutes=20)
 _ALPHABET = string.ascii_lowercase + string.digits
 _BASE32_LOWER = "abcdefghijklmnopqrstuvwxyz234567"
+
+
+_SESSION_WINDOW_S = 3600.0
+_session_limiter: RateLimiter | None = None
+
+
+def session_limiter() -> RateLimiter:
+    """Per-IP budget for opening NEW sessions (one cookie-less GET makes one clone); lazily built."""
+    global _session_limiter
+    if _session_limiter is None:
+        _session_limiter = RateLimiter(limit=1, window=_SESSION_WINDOW_S)
+    _session_limiter.limit = max(1, get_settings().session_creates_per_ip_hour)
+    return _session_limiter
 
 
 class WaitlistFull(Exception):
@@ -152,7 +166,15 @@ def get_or_create_session(request: Request, response: Response) -> Session:
         existing.last_seen = now
         set_cookie(response, existing.sid, request)
         return existing
+    # A new visitor costs a database clone and one of the live slots: budget it per IP so a script cannot open
+    # slots until real visitors are locked out. Only successful creations count against the budget.
+    limiter = session_limiter()
+    ip = client_ip(request.scope)
+    blocked, _retry = limiter.is_limited(f"new-session|{ip}")
+    if blocked:
+        raise WaitlistFull(active_count(now), settings.max_active_sessions)
     sess = create_session()
+    limiter.check(f"new-session|{ip}")
     set_cookie(response, sess.sid, request)
     return sess
 

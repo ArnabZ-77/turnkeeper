@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.engine import sessions, state
 from app.engine.clock import advance_clock
-from app.engine.common import iso
+from app.engine.common import iso, safe_error_text
 from app.engine.events import get_event_bus
 from app.engine.sessions import require_session
 from app.models import Session
@@ -267,7 +267,7 @@ def _start_reroute(circle_id: str, round_n: int | None, sess: Session) -> dict[s
             )
         except Exception as e:  # noqa: BLE001 - surfaced to the UI
             log.exception("reroute task failed")
-            rec.ok, rec.error = False, f"{type(e).__name__}: {e}"
+            rec.ok, rec.error = False, safe_error_text(e)
         finally:
             from app.engine.common import utcnow
 

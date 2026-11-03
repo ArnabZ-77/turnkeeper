@@ -19,5 +19,8 @@ RUN pip install --upgrade pip \
  && pip install .
 COPY --from=web /web/dist ./app/static
 COPY scripts ./scripts
+# Run as an unprivileged user; /srv/data is the only writable path (set TK_DB_PATH=/tmp/... or mount a disk there).
+RUN useradd --system --uid 10001 --no-create-home turnkeeper  && mkdir -p /srv/data  && chown turnkeeper /srv/data
+USER turnkeeper
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -99,7 +99,10 @@ async def test_paypal_error_without_issues_gets_descriptive_label(fake_engine_fa
 async def test_unexpected_exception_never_reaches_the_model(fake_engine_factory):
     fake_engine_factory(pay_error=RuntimeError("db locked"))
     data = await call("create_pot_payout", circle_id=DEMO_CIRCLE, round_n=3)
-    assert data == {"ok": False, "error": "RuntimeError", "message": "db locked"}
+    from app.engine.common import GENERIC_ERROR_TEXT
+
+    assert data == {"ok": False, "error": "RuntimeError", "message": GENERIC_ERROR_TEXT}
+    assert "db locked" not in str(data)
 
 
 def test_failure_dict_matches_by_class_name_when_modules_are_missing(monkeypatch):

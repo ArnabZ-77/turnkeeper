@@ -186,7 +186,7 @@ export const api = {
     request("POST", `/api/circles/${enc(circleId)}/recovery/start`, body),
 };
 
-/** URL of the session's SSE stream. */
-export function eventsUrl(sid: string): string {
-  return `/api/sessions/${enc(sid)}/events`;
+/** URL of the session's SSE stream. The session comes from the HttpOnly cookie, never from the URL. */
+export function eventsUrl(): string {
+  return "/api/events";
 }

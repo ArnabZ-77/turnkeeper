@@ -179,8 +179,10 @@
 }
 /* Capped so the board keeps all six rows at 1080p; the rest scrolls inside the panel. */
 .tk-main > .tk-recovery {
-  max-height: 320px;
+  max-height: min(320px, 36vh);
   overflow: auto;
+  /* the judge footer sits below this column: never let the panel push it, scroll inside instead */
+  overscroll-behavior: contain;
 }
 .tk-recovery-commit {
   margin: 0 0 10px;

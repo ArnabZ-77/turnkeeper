@@ -15,17 +15,46 @@ from sqlmodel import select
 from app.config import get_settings
 from app.db import session_scope
 from app.engine.common import iso
-from app.engine.webhooks import handle_event
+from app.engine.webhooks import PAYLOAD_LIMIT, handle_event
+from app.mcp.auth import RateLimiter, client_ip
 from app.models import WebhookEvent
 
 log = logging.getLogger("turnkeeper.routes.webhooks")
 
 router = APIRouter(tags=["webhooks"])
 
+# The endpoint is public (PayPal posts to it) and every delivery can cost a verify-webhook-signature call from
+# the shared PayPal budget, so intake is bounded in size and in rate per source address.
+WEBHOOK_LIMITER = RateLimiter(limit=120, window=60.0)
+
+
+async def _read_capped(request: Request, limit: int) -> bytes | None:
+    """The request body, or None when it is larger than `limit` (never buffers more than limit + one chunk)."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        return None
+    chunks: list[bytes] = []
+    size = 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > limit:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 
 @router.post("/webhooks/paypal")
 async def paypal_webhook(request: Request) -> JSONResponse:
-    body = await request.body()
+    allowed, retry_after = WEBHOOK_LIMITER.check(f"webhook|{client_ip(request.scope)}")
+    if not allowed:
+        return JSONResponse(
+            {"ok": False, "error": "rate limited"},
+            status_code=429,
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+    body = await _read_capped(request, PAYLOAD_LIMIT)
+    if body is None:
+        return JSONResponse({"ok": False, "error": "payload too large"}, status_code=413)
     try:
         result = await handle_event(request.headers, body)
     except Exception as e:  # noqa: BLE001 - PayPal retries on non-2xx; a crash here must not loop forever

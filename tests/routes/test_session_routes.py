@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.engine.sessions import COOKIE_NAME
 
-SESSION_KEYS = {"sid", "run_id", "circle_id", "live_ai", "paypal_live", "frozen", "vault_seeded"}
+SESSION_KEYS = {"run_id", "circle_id", "live_ai", "paypal_live", "frozen", "vault_seeded"}
 
 
 def test_session_shape_and_cookie(client):
@@ -29,7 +29,8 @@ def test_two_cookies_two_circles_two_run_ids(app):
     with TestClient(app) as a, TestClient(app) as b:
         sa = a.get("/api/session").json()
         sb = b.get("/api/session").json()
-        assert sa["sid"] != sb["sid"]
+        assert "sid" not in sa and "sid" not in sb
+        assert a.cookies.get(COOKIE_NAME) != b.cookies.get(COOKIE_NAME)
         assert sa["circle_id"] != sb["circle_id"]
         assert sa["run_id"] != sb["run_id"]
         assert a.get(f"/api/circles/{sa['circle_id']}").json()["circle"]["run_id"] == sa["run_id"]
@@ -45,7 +46,7 @@ def test_reset_gives_new_clone_same_cookie(client, session):
     r = client.post("/api/session/reset")
     assert r.status_code == 200
     new = r.json()
-    assert set(new) == SESSION_KEYS and new["sid"] == session["sid"]
+    assert set(new) == SESSION_KEYS
     assert new["circle_id"] != session["circle_id"] and new["run_id"] != session["run_id"]
     from app.engine import state
 

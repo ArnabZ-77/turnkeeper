@@ -66,6 +66,8 @@ code,
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* a tall vote panel scrolls inside the column instead of running under the judge footer */
+  overflow: auto;
 }
 
 .tk-rail {

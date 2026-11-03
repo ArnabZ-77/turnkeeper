@@ -59,9 +59,20 @@ body {
 .tk-btn:focus-visible,
 .tk-chip:focus-visible,
 .tk-seg button:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: 2px solid var(--tk-accent);
   outline-offset: 2px;
+}
+/* A filled button's own colour would hide an accent ring: ring it in the page ink with a surface gap. */
+.tk-btn-primary:focus-visible,
+.tk-btn-danger:focus-visible {
+  outline-color: var(--tk-ink);
+  box-shadow: 0 0 0 2px var(--tk-surface);
 }
 
 .tk-visually-hidden {
@@ -971,4 +982,9 @@ summary:focus-visible {
   align-self: flex-start;
   margin-top: var(--tk-space-2);
   text-decoration: none;
+}
+
+.tk-privacy-note {
+  margin: 8px 0 4px;
+  line-height: 1.4;
 }

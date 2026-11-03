@@ -1,7 +1,7 @@
 /**
  * Page shell (docs/CONTRACTS.md B5).
  *
- * Load order: GET /api/session -> GET /api/circles/{id} -> EventSource /api/sessions/{sid}/events.
+ * Load order: GET /api/session -> GET /api/circles/{id} -> EventSource /api/events.
  * SSE events fold into the reducer in state.ts; a `board` event bumps `boardVersion`, which the
  * effect below turns into a refetch. Judge buttons call `/api/judge/*` and the round routes.
  */
@@ -71,7 +71,7 @@ function isSessionInfo(v: unknown): v is SessionInfo {
   return (
     typeof v === "object" &&
     v !== null &&
-    typeof (v as SessionInfo).sid === "string" &&
+    typeof (v as SessionInfo).run_id === "string" &&
     typeof (v as SessionInfo).circle_id === "string"
   );
 }
@@ -209,15 +209,15 @@ export default function App() {
   }, [movedSeq]);
 
   // 3. Live events for this session.
-  const sid = state.session?.sid ?? null;
+  const hasSession = state.session !== null;
   useEffect(() => {
-    if (!sid) return;
-    const stream = openEventStream(sid, {
+    if (!hasSession) return;
+    const stream = openEventStream({
       onEvent: (event) => dispatch({ type: "event", event }),
       onState: (connection) => dispatch({ type: "connection", state: connection }),
     });
     return () => stream.close();
-  }, [sid]);
+  }, [hasSession]);
 
   /** Follow a background task until it finishes; its `mode` is the truth about the run. */
   const watchTask = useCallback(

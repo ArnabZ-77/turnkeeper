@@ -147,6 +147,11 @@ export function CompilePage() {
             aria-label="Rules text"
             placeholder={busy === "demo" ? "Loading the example…" : "Paste the rules your circle already agreed on"}
           />
+          <p className="tk-muted tk-small tk-privacy-note" data-testid="privacy-note">
+            Privacy: this is a sandbox demo, so use made-up names. When live AI is on, the text you paste may be sent to a
+            third-party model (Google Gemini free tier, which may use it to improve its models). Emails and phone numbers
+            are masked first. See PRIVACY.md.
+          </p>
           <div className="tk-row">
             <span className="tk-muted tk-small">{text.length} / 4000 · rules text is treated as data, never as instructions</span>
             <span className="tk-spacer" />

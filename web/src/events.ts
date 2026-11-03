@@ -1,5 +1,5 @@
 /**
- * EventSource client for `GET /api/sessions/{sid}/events` with reconnect.
+ * EventSource client for `GET /api/events` (session from the cookie) with reconnect.
  *
  * The server (sse-starlette) sends JSON payloads that always carry `type` and `ts`. It may also
  * name the SSE event after the type, so both unnamed `message` events and named events are
@@ -73,7 +73,7 @@ export function backoffDelay(attempt: number, maxMs: number): number {
   return Math.min(maxMs, 1000 * 2 ** Math.max(0, Math.min(attempt - 1, 6)));
 }
 
-export function openEventStream(sid: string, handlers: EventStreamHandlers, options: EventStreamOptions = {}): EventStream {
+export function openEventStream(handlers: EventStreamHandlers, options: EventStreamOptions = {}): EventStream {
   const maxBackoffMs = options.maxBackoffMs ?? 15_000;
   const factory = options.factory ?? ((url: string): EventSourceLike => new EventSource(url));
 
@@ -97,7 +97,7 @@ export function openEventStream(sid: string, handlers: EventStreamHandlers, opti
   const connect = () => {
     if (closed) return;
     timer = null;
-    const es = factory(eventsUrl(sid));
+    const es = factory(eventsUrl());
     source = es;
     es.onopen = () => {
       attempt = 0;

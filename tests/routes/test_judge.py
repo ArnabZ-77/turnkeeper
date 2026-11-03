@@ -23,7 +23,7 @@ def test_reset_returns_a_new_session_shape(client, session):
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True and body["action"] == "reset"
-    assert body["session"]["circle_id"] != session["circle_id"] and body["session"]["sid"] == session["sid"]
+    assert body["session"]["circle_id"] != session["circle_id"] and "sid" not in body["session"]
     types = [e["type"] for e in get_event_bus().recent(session["sid"])]
     assert "toast" in types and types[-1] == "board"
 

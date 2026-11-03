@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import check_deploy_secrets, get_settings, is_deployed
+from app.security import SecurityHeadersMiddleware
 
 log = logging.getLogger("turnkeeper")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -49,6 +50,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Turnkeeper", version="0.1.0", lifespan=lifespan)
+app.add_middleware(
+    SecurityHeadersMiddleware
+)  # CSP, nosniff, frame-ancestors, Referrer-Policy, HSTS (app/security.py)
 
 
 def _vault_seeded() -> bool:
@@ -141,6 +145,9 @@ if os.path.isdir(STATIC_DIR):
 
     @app.get("/{full_path:path}")
     async def spa(full_path: str) -> FileResponse:
+        # Unknown API/webhook paths are real 404s, not the HTML shell.
+        if full_path.startswith(("api/", "webhooks/")) or full_path in ("api", "webhooks"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)  # type: ignore[return-value]
         # Only serve real files that resolve inside app/static; everything else gets the SPA shell.
         candidate = os.path.realpath(os.path.join(_STATIC_ROOT, full_path))
         inside = os.path.commonpath([_STATIC_ROOT, candidate]) == _STATIC_ROOT
