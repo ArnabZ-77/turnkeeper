@@ -52,9 +52,14 @@ the toolkit and REST.
 | `create_invoice` | [`app/engine/recovery.py`](../app/engine/recovery.py) `repay_by_invoice` | the short member repays the buffer advance |
 | `send_invoice` | `recovery.py` | sends that invoice |
 | `generate_invoice_qr_code` | `recovery.py` | QR code shown on the member's phone inbox |
+| `get_invoice` | [`app/engine/capabilities.py`](../app/engine/capabilities.py) `repayment` (public MCP `get_my_repayment`) | the member's own assistant reads the invoice status (live-sandbox invoices only) |
+| `send_invoice_reminder` | `capabilities.repayment`, answer-scoped token only | PayPal's own reminder, claimed once in the database before the send |
 
-**Honest count: 4 toolkit tools are on the demo path.** The adapter also enables `send_invoice_reminder`,
-`get_invoice`, `list_disputes` and `list_transactions`, but no code calls them yet. Vault, Orders create, Payouts,
+**Honest count: 4 toolkit tools are on the Judge Mode path**, and a fifth (`get_invoice`) runs when a member's
+assistant calls `get_my_repayment` on a live-sandbox invoice. `send_invoice_reminder` is wired, but only an
+answer-scoped member token may send it, and the current flow issues no such token once an invoice exists, so no
+call reaches it today (a read token reports the reminder as `due`). `list_disputes` and `list_transactions` are
+enabled and unused. Vault, Orders create, Payouts,
 Balances and Webhooks are direct REST: the Python toolkit has no Vault, Payouts or Webhooks tools, and the
 merchant-initiated charge needs `payment_source.paypal.vault_id`, the sandbox mock header and our request id.
 

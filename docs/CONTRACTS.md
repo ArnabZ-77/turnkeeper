@@ -1389,3 +1389,47 @@ pending unless a human `answers` entry exists (recorded with `answer_source`). `
 `test_member_agent_decide.py`, `tests/engine/test_member_mandates_engine.py`, `tests/routes/test_member_mandates_routes.py`,
 and the flag-off regression `tests/routes/test_member_mandates_regression.py` (golden `tests/routes/golden/
 default_story_flag_off.json`, generated from the pre-feature code).
+
+## Member capabilities, passbook and trace labels (builder, 2026-11-03/04, additive)
+
+### `app/domain/capability.py` (pure)
+Token `tkc1.<b64url(canonical claims)>.<b64url(HMAC-SHA256)>`; key = sha256("capability:" + mandate secret). Claims
+`Capability(circle_id, member, scope read|answer, set_id?, set_sha?, item consent|vote?, choices, iat, exp, nonce)`,
+frozen, `extra="forbid"`. `mint(...)` (answer needs item, set_id, set_sha; ttl capped at `MAX_TTL` = 1 day, answer
+`ANSWER_TTL` = 15 min). `verify(token, secret, now)` compares bytes (a non-ASCII signature is `CAPABILITY_INVALID`).
+Refusal codes: `CAPABILITY_INVALID`, `CAPABILITY_EXPIRED`, `CAPABILITY_SCOPE`, `CAPABILITY_USED`, `SET_SUPERSEDED`,
+`NOT_A_DEMO_CIRCLE`; `CapabilityError.as_dict()` = `{ok: false, error, message}`.
+
+### `app/engine/capabilities.py`
+- `mint_answer(circle_id, member)`: demo circle, member agents on, a `voting` set with a pending consent/vote for that
+  member; binds the set id and `set_digest(row.json)`. `mint_read(circle_id, member, ttl=1 day)`: demo circle only.
+- `request_view(token, member?)`: answer tokens see the full proposal; a read token sees `short_member: null`, remedies
+  without `member`/`swap_with`, amounts only where `mine` is true, unless the shortfall is the reader's own.
+- `answer(token, choice, rationale, member?)`: spends the nonce (`capability_uses` primary key) first, then records with
+  `source="member_mcp"`; the `member_agent.decide` floor turns a refused "yes" into "no". A `RecoveryError` while
+  recording deletes the use row and raises `SET_SUPERSEDED` ("the answer was not recorded").
+- `repayment(token, member?)`: `{invoice: {invoice_id, status, status_source ledger|toolkit get_invoice, amount,
+  due_date, qr_url, simulated, reminder null|due|sent|already sent}}`. Live-sandbox invoices only call `get_invoice`.
+  A read token never sends; an answer token claims `" · reminder sent"` on the remedy label with one conditional
+  UPDATE before `send_invoice_reminder` and removes it if the send fails.
+
+### Routes and public MCP
+- `POST /api/circles/{id}/member-agents/capability {member, scope=answer|read}` (session owner, member agents on;
+  409 with the refusal dict; taints a running story).
+- Public `/mcp`: `get_request(cap, member="")`, `answer_request(cap, choice, rationale="", member="")`,
+  `get_my_repayment(cap, member="")`; refusals come back as dicts, never exceptions.
+- Passbook (`TK_PASSBOOK`, 404 when off): `GET /api/passbook` and `GET /api/passbook/qr` with header
+  `X-Turnkeeper-Capability` (401 missing, 403 refused); `POST /api/passbook/links/{circle_id}` (session owner) ->
+  `{links: [{member, name, path: "/m#<read token>"}]}`.
+
+### `app/engine/passbook.py` `view(token)`
+`{ok, label, member, circle, payments[{round_n, status, gross, fee, net, capture_id, label, simulated, receipt[{step,
+label, value}]}], this_round{round_n, paid, total, covered_by_buffer, mine}, turn{..., expected_pot}, fees,
+if_someone_misses, repayment|null, expires_at}`. `simulated` = request id starts `REPLAY-` or the label says
+replay/simulated; such a receipt starts with step `replay`, has no `policy` step, and labels its ids as replay ids.
+`vault_approval` only when `join_status == "vaulted"` and the vault id is real. Another member is never named.
+
+### Trace events (additive fields)
+`trace` events from the AI loop may carry `model` (live and replay), `recorded` (replay only, `YYYY-MM-DD`, from the
+cache row's `ts`; shipped rows set it from the jsonl `recorded` key) and, on `tool_call`, `reason` (the model's text
+before the call, one line, at most 160 characters). The web renders all three as text.

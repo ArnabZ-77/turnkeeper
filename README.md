@@ -79,7 +79,7 @@ not do yet).
 
 | Criterion | Evidence | Where |
 |---|---|---|
-| Technological implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway (calls start in order inside a 40/min budget, up to 6 in flight, so a round's charges and toolkit confirmations overlap) with cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a read-only public MCP | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md) |
+| Technological implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway (calls start in order inside a 40/min budget, up to 6 in flight, so a round's charges and toolkit confirmations overlap) with cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a public MCP (read-only, plus one capability-scoped answer per member token) | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md) |
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
 | Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
 | Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
@@ -96,13 +96,16 @@ Full table with D1 sandbox results: [docs/api-table.md](docs/api-table.md).
 | Payouts v1 | batch create, batch and item status (polled every 5 s for up to 2 min after a payout), item cancel; re-route as batch `r{rev+1}` | [`app/paypal/payouts.py`](app/paypal/payouts.py), [`app/engine/rounds.py`](app/engine/rounds.py) |
 | Reporting | `GET /v1/reporting/balances` with freshness | [`app/paypal/balances.py`](app/paypal/balances.py) |
 | Webhooks | signature verification, event dedupe, reconciliation; registration script | [`app/paypal/webhooks.py`](app/paypal/webhooks.py), [`app/engine/webhooks.py`](app/engine/webhooks.py) |
-| Agent Toolkit | `get_order_details`, `create_invoice`, `send_invoice`, `generate_invoice_qr_code` | [`app/paypal/toolkit_adapter.py`](app/paypal/toolkit_adapter.py), [`app/engine/recovery.py`](app/engine/recovery.py) |
+| Agent Toolkit | `get_order_details`, `create_invoice`, `send_invoice`, `generate_invoice_qr_code`; `get_invoice` from the member MCP | [`app/paypal/toolkit_adapter.py`](app/paypal/toolkit_adapter.py), [`app/engine/recovery.py`](app/engine/recovery.py), [`app/engine/capabilities.py`](app/engine/capabilities.py) |
 
 ### Toolkit count (honest)
 
-**4 PayPal Agent Toolkit tools are on the demo path**: `get_order_details` (confirms every capture) and
-`create_invoice` → `send_invoice` → `generate_invoice_qr_code` (the short member's repayment). The adapter also
-enables `send_invoice_reminder`, `get_invoice`, `list_disputes` and `list_transactions`, but nothing calls them yet.
+**4 PayPal Agent Toolkit tools are on the Judge Mode path**: `get_order_details` (confirms every capture) and
+`create_invoice` → `send_invoice` → `generate_invoice_qr_code` (the short member's repayment). A fifth,
+`get_invoice`, runs when a member's own assistant calls `get_my_repayment` on a live-sandbox invoice (not on a
+simulated one). `send_invoice_reminder` is wired behind an answer-scoped member token, but the current flow issues
+no such token once an invoice exists, so nothing reaches it yet; `list_disputes` and `list_transactions` are enabled
+and unused.
 Vault, Orders create, Payouts, Balances and Webhooks are direct REST. Our adapter makes the toolkit share the app's
 cached OAuth token and adds a `PayPal-Request-Id` to its calls; the stock client does neither.
 
@@ -114,7 +117,11 @@ All model use goes through one provider layer, [`app/agent/llm.py`](app/agent/ll
   OpenAI-compatible server (Ollama, OpenRouter, ...). Anthropic is an optional paid switch.
 - **Replay cache.** Every model turn is keyed on the provider, model, prompt and a history normalized to logical
   handles, and stored in the `llm_cache` table. A recorded turn is replayed instead of spending quota; a run that
-  replays is labelled "AI replay". Recordings can be shipped with `scripts/export_llm_cache.py` (none ship yet).
+  replays is labelled "AI replay". 68 recorded `gemini-3.5-flash-lite` turns ship in
+  `app/fixtures/llm_cache.jsonl` (exported with `scripts/export_llm_cache.py`; takes log:
+  [docs/live-run/2026-11-03-takes.md](docs/live-run/2026-11-03-takes.md)). Each trace row says where it came from,
+  e.g. "AI replay · gemini-3.5-flash-lite · recorded 3 Nov", with the tool, the model's one-line reason (rendered as
+  text, never HTML) and the PayPal object the call produced (order, capture, invoice and QR, payout batch).
 - **Rules mode.** Any failure (no key, 429, refusal, bad JSON, a replay miss) falls back to a deterministic path,
   labelled "rules mode". Live AI **runs** are capped per visitor IP per hour (`TK_LIVE_LLM_PER_IP_HOUR`,
   default 10). The cap counts runs, not model calls: one treasurer task makes up to 26 model turns (25 tool
@@ -208,11 +215,17 @@ the circle, the member, the exact remedy set (by hash), the item (consent or vot
 
 - `get_request(cap)`: what the member is being asked;
 - `answer_request(cap, choice, rationale)`: records the one answer. The token is single-use (its nonce is a
-  database primary key, so this holds across restarts). The member's own mandate is a floor: a "yes" that
-  `member_agent.decide` would refuse is recorded as "no" and says so. The rationale is stored HTML-escaped and only
-  shown, never given to a model;
-- `get_my_repayment(cap)`: the member's PayPal invoice, read through the Agent Toolkit `get_invoice` when live, with
-  PayPal's own reminder (`send_invoice_reminder`) sent once if it is still unpaid after the promised date.
+  database primary key, so this holds across restarts; an answer that does not land, such as after the vote
+  closed, gives the token back). The member's own mandate is a floor: a "yes" that `member_agent.decide` would
+  refuse is recorded as "no" and says so. The rationale is kept for the audit row only (280 characters,
+  HTML-escaped), never given to a model;
+- `get_my_repayment(cap)`: the member's PayPal invoice, read through the Agent Toolkit `get_invoice` when live. If it
+  is still unpaid after the promised date it reports the reminder as **due**; sending PayPal's reminder needs an
+  answer-scoped token, which is not issued once an invoice exists, so no member token sends it today.
+
+The passbook's read token (below) also works with `get_request` and `get_my_repayment`. With it, `get_request`
+shows the open proposal without naming the short member or anyone else's amounts, unless the shortfall is the
+reader's own.
 
 Named refusals: `CAPABILITY_SCOPE` (another member, a read token answering, an answer not allowed),
 `CAPABILITY_USED`, `CAPABILITY_EXPIRED`, `CAPABILITY_INVALID`, `SET_SUPERSEDED`, `NOT_A_DEMO_CIRCLE`. There are
@@ -224,18 +237,21 @@ Each member's own read-only view at `/m#<capability>`. The token stays in the UR
 to a server, and goes to the API in a header. It is phone-width, defaults to the member's language (EN/हिं toggle),
 and is built only from stored rows:
 
-- my payments, each with its PayPal capture id;
+- my payments, each with its PayPal capture id. A row that no PayPal call made (the demo's seeded rounds, or a
+  simulated round) carries a **"replay, no PayPal call"** chip, and its receipt says so first;
 - this round, as counts only ("5 of 6 paid · 1 covered by the circle buffer"). **Dignity rule:** another member's
   shortfall is never named, and only the short member sees it was them;
 - my turn (and a swap that moved it), the expected pot, my fees;
 - what the frozen charter does if someone misses, with its hash;
 - for the member who owes it, the repayment invoice and its QR code.
 
-Every payment expands into a **receipt that is the chain of authority** behind it: Vault approval, charter hash,
-the fee shown before approval, the member's mandate (server-attested), the organizer's payout mandate, then either
-the policy check or, for a covered share, the remedy, its set hash and the organizer's approval, then the
-`PayPal-Request-Id` and the capture id. A link with no stored value is left out. The organizer gets one link per
-member under "Member passbooks" (with a WhatsApp "Send" that stores no number).
+Every payment expands into a **receipt that is the chain of authority** behind it: Vault approval (only when the
+member really vaulted), charter hash, the fee shown before approval, the member's mandate (server-attested), the
+organizer's payout mandate, then either the policy check or, for a covered share, the remedy, its set hash and the
+organizer's approval, then the `PayPal-Request-Id` and the capture id. A link with no stored value is left out; a
+replay row has no policy step and its ids are labelled replay ids. The organizer gets one link per member under
+"Member passbooks" (with a WhatsApp "Send" that stores no number; the link itself does pass through WhatsApp). The
+page does not download the board's Bryntum scheduler (about 3.8 MB): the board is code-split to its own route.
 
 ## What changed (Nov 2 polish pass)
 
@@ -353,7 +369,10 @@ every charge reads "No vault id on file", `/healthz` reports `"vault_seeded": fa
 ### Read-only MCP
 
 `/mcp` serves four read-only tools (`get_circle`, `get_round_matrix`, `get_charter`, `get_payout_status`) for demo
-circles only, with names reduced to first names and contact details masked. It needs
+circles only, with names reduced to first names and contact details masked. It also serves the three member
+capability tools (`get_request`, `answer_request`, `get_my_repayment`; see
+[A member's own assistant](#a-members-own-assistant-capability-scoped-mcp)); `answer_request` is the one write, and
+only for the token's own member. It needs
 `Authorization: Bearer <MCP_DEMO_TOKEN>` and allows 30 requests a minute. Money tools are never exposed.
 
 ### Deploying

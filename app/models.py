@@ -466,7 +466,8 @@ class MemberMandateRow(SQLModel, table=True):
 class CapabilityUse(SQLModel, table=True):
     """A member capability that was spent (app.domain.capability). The nonce is the primary key, so a second
     answer with the same token fails on insert, also after a restart. ``rationale`` is what the member's
-    assistant wrote, HTML-escaped; it is shown, never fed into a later prompt."""
+    assistant wrote (280 characters, then HTML-escaped), kept for the audit row; no page renders it today and it
+    is never fed into a later prompt."""
 
     __tablename__ = "capability_uses"
 
