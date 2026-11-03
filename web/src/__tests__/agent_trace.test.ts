@@ -31,6 +31,8 @@ describe("trace row labels", () => {
     expect(paypalObjects(capture)).toBe("order 5O190127 · capture 3C679366");
     expect(declineDebugId(capture)).toBeNull();
     expect(declineDebugId(JSON.stringify({ decline_code: "INSTRUMENT_DECLINED", debug_id: "f00d" }))).toBe("f00d");
+    expect(paypalObjects(JSON.stringify({ capture_id: "REPLAY-CAP-3-ASHA" }))).toBe("capture REPLAY-CAP-3-ASHA (replay, no PayPal call)");
+    expect(paypalObjects(JSON.stringify({ invoice_id: "SIM-INV-x-3-ravi", qr: true }))).toBe("invoice SIM-INV-x-3-ravi + QR (replay, no PayPal call)");
     expect(paypalObjects(JSON.stringify({ round_n: 3 }))).toBeNull();
     expect(paypalObjects("not json")).toBeNull();
   });

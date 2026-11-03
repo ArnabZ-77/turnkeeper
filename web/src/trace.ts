@@ -148,7 +148,11 @@ export function paypalObjects(text: string): string | null {
   const ids = new Map<string, string>();
   const qr = findIds(r, ids, 0);
   if (!ids.size) return null;
-  const parts = [...ids].map(([label, id]) => `${label} ${id}${label === "invoice" && qr ? " + QR" : ""}`);
+  // A replayed or simulated id (REPLAY-..., SIM-...) is never presented as a real PayPal object.
+  const fake = (id: string) => /^(REPLAY|SIM)-/.test(id);
+  const parts = [...ids].map(
+    ([label, id]) => `${label} ${id}${label === "invoice" && qr ? " + QR" : ""}${fake(id) ? " (replay, no PayPal call)" : ""}`,
+  );
   return parts.join(" · ");
 }
 
