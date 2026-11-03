@@ -151,7 +151,7 @@ describe("story failures", () => {
   it("explains an INSUFFICIENT_FUNDS payout and points at the replay, without claiming money moved", () => {
     const v = view(9);
     const help = failureHelp(v, { step: "pay_round3", text: "PayPal 422 INSUFFICIENT_FUNDS for the 1154.93 pot" });
-    expect(help?.text).toContain("No money moved");
+    expect(help?.text).toContain("The payout moved no money");
     expect(help?.text).not.toContain("was paid");
     expect(help?.replayUrl).toBe(v.replay_url || "/api/replay");
     expect(failureHelp({ ...v, replay_url: null }, { step: "pay_round3", text: "INSUFFICIENT_FUNDS" })?.replayUrl).toBe("/api/replay");

@@ -296,6 +296,7 @@ textarea:focus-visible,
   width: 14px;
   height: 14px;
   flex: none;
+  vertical-align: -2px;
 }
 .tk-story-error p {
   margin: 0;

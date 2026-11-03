@@ -240,7 +240,7 @@ export function failureHelp(view: StoryView | null, failure: StoryFailure): { te
   return {
     text:
       "The shared PayPal sandbox Business account that pays the pot is short of funds; this circle's own ledger is " +
-      "fine. No money moved and the step stays open. A retry works once the sandbox is topped up. Meanwhile the " +
+      "fine. The payout moved no money and the step stays open. A retry works once the sandbox is topped up. Meanwhile the " +
       "recorded replay shows a completed run, labelled live or simulated.",
     replayUrl: view?.replay_url || "/api/replay",
   };
