@@ -662,3 +662,44 @@ def test_allow_live_call_reads_the_setting(monkeypatch):
 def test_interfaces_are_importable_with_contract_names():
     assert issubclass(AnthropicProvider, LLMProvider) and issubclass(OpenAICompatProvider, LLMProvider)
     assert LLMTurn().stop == "end" and LLMTurn().tool_calls == []
+
+
+def test_cache_key_ignores_remedy_ids_in_prose_and_the_live_balance():
+    def history(set_id, balance, age):
+        note = f"PayPal balance {balance} USD (stale: last refreshed 2026-11-03T05:00:00Z UTC, {age} h old); context only"
+        result = {
+            "ok": True,
+            "note": note,
+            "paypal_balance": {"available": balance, "age_s": int(age * 3600)},
+        }
+        return [
+            {"role": "user", "text": f"Proposal {set_id} is waiting for votes"},
+            {
+                "role": "tool",
+                "results": [{"id": "c1", "name": "x", "content": json.dumps(result), "is_error": False}],
+            },
+        ]
+
+    base = dict(provider="gemini", model="m", system="sys", tools=[])
+    a = cache_key(**base, history=history("rs_ab12cd34", "12892.67", 4.4))
+    b = cache_key(**base, history=history("rs_00ff9e11", "5000.00", 2.5))
+    assert a == b
+    assert a != cache_key(**base, history=history("rs_ab12cd34 extra", "12892.67", 4.4))
+
+
+def test_cache_key_is_the_same_before_and_after_balances_was_fetched():
+    """Right after a restart Balances has not been fetched yet: the field is null, and the key must not change."""
+
+    def history(balance):
+        result = {"ok": True, "paypal_balance": balance, "circle_available": "962.65"}
+        return [
+            {
+                "role": "tool",
+                "results": [{"id": "c1", "name": "x", "content": json.dumps(result), "is_error": False}],
+            }
+        ]
+
+    base = dict(provider="gemini", model="m", system="sys", tools=[])
+    assert cache_key(**base, history=history(None)) == cache_key(
+        **base, history=history({"available": "1.00"})
+    )

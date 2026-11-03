@@ -147,6 +147,13 @@ async def get_recovery(circle_id: str, sess: CurrentSession) -> dict[str, Any]:
     return view
 
 
+@router.get("/api/circles/{circle_id}/recovery/injection-check")
+async def get_injection_check(circle_id: str, sess: CurrentSession) -> dict[str, Any]:
+    """Amounts the short member typed vs the proposal's amounts, with the computed policy verdict (read-only)."""
+    sessions.owns_circle(sess, circle_id)
+    return recovery.injection_check(circle_id)
+
+
 @router.get("/api/circles/{circle_id}/recovery/qr")
 async def get_invoice_qr(circle_id: str, sess: CurrentSession) -> Response:
     sessions.owns_circle(sess, circle_id)

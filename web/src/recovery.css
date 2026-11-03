@@ -184,6 +184,22 @@
   /* the judge footer sits below this column: never let the panel push it, scroll inside instead */
   overscroll-behavior: contain;
 }
+/* Injection test (eval s06): planted amounts struck through against the charter's. */
+.tk-injection {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.tk-injection-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.tk-injection-planted {
+  color: var(--tk-critical-ink);
+  text-decoration-thickness: 2px;
+}
+.tk-injection-used {
+  margin: 4px 0 0;
+}
 .tk-recovery-commit {
   margin: 0 0 10px;
   font-size: 13px;

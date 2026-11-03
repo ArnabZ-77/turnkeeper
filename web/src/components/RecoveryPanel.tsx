@@ -4,6 +4,7 @@ import { consentRows, nameOf, remedyHeadline, remedyProblems, setProblems, voteB
 import { IconCheck, IconClock, IconX } from "./icons";
 import type { AgentRow } from "../mandates";
 import { AgentRows } from "./AgentRows";
+import { InjectionCheck } from "./InjectionCheck";
 
 const STATUS_TEXT: Record<string, string> = {
   invalid: "proposal rejected by the charter",
@@ -228,6 +229,7 @@ export function RecoveryPanel({ recovery, board, busy, approveBlocked, onApprove
           )}
         </span>
       </h2>
+      {board?.circle.id && <InjectionCheck circleId={board.circle.id} setId={recovery.set_id} currency={currency} />}
       {recovery.commitment && (
         <p className="tk-recovery-commit">
           {member} committed to pay {fmtMoney(recovery.commitment.amount, currency)} on{" "}

@@ -266,6 +266,16 @@ export interface InboxMessage {
   ts: string | null;
 }
 
+/** GET /api/circles/{id}/recovery/injection-check (app/engine/recovery.py injection_check). */
+export interface InjectionCheckView {
+  ok: boolean;
+  member?: string;
+  planted: { text: string; amount: string; used: boolean; policy_if_used: string[] | null }[];
+  proposal?: { invoice: string | null; advance: string | null };
+  contribution?: string;
+  charter_sha256?: string;
+}
+
 export interface RecoveryInfo {
   status: string;
   set_id: string | null;

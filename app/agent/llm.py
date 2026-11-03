@@ -17,14 +17,17 @@ Free tiers may use prompts for training (Gemini): only synthetic demo data and l
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import hashlib
 import json
 import logging
+import os
 import re
 import threading
 import time
 from collections import deque
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -390,6 +393,39 @@ def _make_openai_client(*, api_key: str, base_url: str) -> Any:
     )
 
 
+_PACE_LOCK: asyncio.Lock | None = None
+_PACE_LAST = 0.0
+RECORD_429_RETRIES = 3
+
+
+async def _paced(call: Callable[[], Awaitable[Any]]) -> Any:
+    """Recording sessions only (``TK_LLM_MIN_INTERVAL`` > 0): space live calls and wait out a free-tier 429.
+
+    The demo default is 0: no spacing, and a 429 drops to rules mode at once (see ``_make_openai_client``).
+    """
+    import openai
+
+    global _PACE_LOCK, _PACE_LAST
+    gap = float(os.environ.get("TK_LLM_MIN_INTERVAL") or 0)
+    if gap <= 0:
+        return await call()
+    if _PACE_LOCK is None:
+        _PACE_LOCK = asyncio.Lock()
+    async with _PACE_LOCK:
+        for attempt in range(RECORD_429_RETRIES + 1):
+            wait = _PACE_LAST + gap - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            _PACE_LAST = time.monotonic()
+            try:
+                return await call()
+            except openai.RateLimitError:
+                if attempt == RECORD_429_RETRIES:
+                    raise
+                log.info("recording: 429, waiting %.0f s before retry %d", gap * 5, attempt + 1)
+                await asyncio.sleep(gap * 5)
+
+
 _TOOL_CALL_CORE_KEYS = {"id", "type", "function", "index"}
 
 
@@ -427,7 +463,7 @@ class OpenAICompatProvider(LLMProvider):
             kwargs["reasoning_effort"] = self.reasoning_effort
         where = f"{self.label} API error"
         try:
-            response = await self.client.chat.completions.create(**kwargs)
+            response = await _paced(lambda: self.client.chat.completions.create(**kwargs))
         except openai.RateLimitError as exc:
             raise LLMUnavailable("rate_limit", f"{where}: {type(exc).__name__}") from exc
         except openai.AuthenticationError as exc:
@@ -577,10 +613,16 @@ VOLATILE_KEYS = frozenset(
         "receiver", "payout_receiver", "sandbox_account",
         # Recovery ids are random per session (the model works with the logical "rs:<member>:r<n>" handle).
         "set_id", "remedy_set_id", "remedy_ids", "remedy_id", "invoice_id",
+        # The live PayPal balance and its age change every run; it is context only (the ledger is binding).
+        "paypal_balance", "paypal_balance_label", "paypal_available", "age_s",
     }
 )  # fmt: skip
+# Present or not depending on whether this process has fetched Balances yet (null right after a restart).
+ALWAYS_VOLATILE_KEYS = frozenset({"paypal_balance", "paypal_balance_label", "paypal_available", "age_s"})
 # Raw remedy set / remedy ids inside prose ("Proposal rs_ab12cd34 ...").
-_RECOVERY_ID_RE = re.compile(r"(rs|rm)_[0-9a-f]{8}")
+_RECOVERY_ID_RE = re.compile(r"\b(rs|rm)_[0-9a-f]{8}\b")
+# The balance note from get_available_balance ("PayPal balance 12892.67 USD (stale: ..., 4.4 h old); context only").
+_BALANCE_NOTE_RE = re.compile(r"PayPal balance [^;]*;")
 
 
 def _norm_str(s: str, circle_id: str) -> str:
@@ -594,7 +636,8 @@ def _norm_str(s: str, circle_id: str) -> str:
             return json.dumps(normalize(parsed, circle_id), sort_keys=True)
     if circle_id:
         s = s.replace(circle_id, CIRCLE_PLACEHOLDER)
-    s = _RECOVERY_ID_RE.sub(r"_{id}", s)
+    s = _RECOVERY_ID_RE.sub(r"\1_{id}", s)
+    s = _BALANCE_NOTE_RE.sub("PayPal balance {balance};", s)
     return _ISO_TS_RE.sub("{ts}", s)
 
 
@@ -604,7 +647,11 @@ def normalize(obj: Any, circle_id: str) -> Any:
         return _norm_str(obj, circle_id)
     if isinstance(obj, dict):
         return {
-            k: ("{v}" if k in VOLATILE_KEYS and v not in (None, "", [], {}) else normalize(v, circle_id))
+            k: (
+                "{v}"
+                if k in ALWAYS_VOLATILE_KEYS or (k in VOLATILE_KEYS and v not in (None, "", [], {}))
+                else normalize(v, circle_id)
+            )
             for k, v in obj.items()
         }
     if isinstance(obj, list | tuple):

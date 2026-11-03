@@ -414,6 +414,13 @@ export default function App() {
     },
     [run, afterStory],
   );
+  const onStoryInjection = useCallback(() => {
+    void run(
+      () => api.story.run("reply_as_ravi", undefined, "s06") as unknown as Promise<JudgeResult>,
+      afterStory,
+      (text) => dispatch({ type: "storyError", step: "reply_as_ravi", text }),
+    );
+  }, [run, afterStory]);
   const onStoryRestart = useCallback(() => {
     resettingRef.current = true;
     void run(
@@ -650,6 +657,7 @@ export default function App() {
           invoiceSimulated={invoiceSimulated}
           onNext={onStoryNext}
           onRestart={onStoryRestart}
+          onInjection={onStoryInjection}
         />
         <JudgeBar
           open={advancedOpen}

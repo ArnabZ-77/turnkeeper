@@ -13,6 +13,7 @@ import type {
   JoinCard,
   JudgeCircleResult,
   JudgeResult,
+  InjectionCheckView,
   RecoveryInfo,
   SessionInfo,
   StoryStepResult,
@@ -155,9 +156,15 @@ export const api = {
   /** Judge Mode story: one "Next step" button (builder E). */
   story: {
     get: (): Promise<StoryView> => request("GET", "/api/judge/story"),
-    /** `variant` ("member_agents") is only valid with the reset step; omitted, the default story runs. */
-    run: (step: string = "next", variant?: string): Promise<StoryStepResult> =>
-      request("POST", `/api/judge/story/${enc(step)}${variant ? `?variant=${enc(variant)}` : ""}`),
+    /** `variant` ("member_agents") is only valid with the reset step; omitted, the default story runs.
+     * `reply` ("s06") is only valid with the reply_as_ravi step: the held-out eval's injection reply. */
+    run: (step: string = "next", variant?: string, reply?: string): Promise<StoryStepResult> => {
+      const q = new URLSearchParams();
+      if (variant) q.set("variant", variant);
+      if (reply) q.set("reply", reply);
+      const qs = q.toString();
+      return request("POST", `/api/judge/story/${enc(step)}${qs ? `?${qs}` : ""}`);
+    },
   },
   /** Charter compiler (builder B). */
   compile: {
@@ -182,6 +189,9 @@ export const api = {
   },
   getTask: (taskId: string): Promise<TaskStatus> => request("GET", `/api/tasks/${enc(taskId)}`),
   getRecovery: (circleId: string): Promise<RecoveryInfo> => request("GET", `/api/circles/${enc(circleId)}/recovery`),
+  /** Amounts the short member typed vs the proposal's, with the server-computed policy verdict (read-only). */
+  injectionCheck: (circleId: string): Promise<InjectionCheckView> =>
+    request("GET", `/api/circles/${enc(circleId)}/recovery/injection-check`),
   startRecovery: (circleId: string, body: { round_n?: number; member?: string } = {}): Promise<TaskStarted> =>
     request("POST", `/api/circles/${enc(circleId)}/recovery/start`, body),
 };

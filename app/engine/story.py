@@ -115,11 +115,11 @@ def begin(circle_id: str, sid: str, run_id: str) -> JudgeStoryRow:
 IN_STORY_STEP: contextvars.ContextVar[bool] = contextvars.ContextVar("tk_in_story_step", default=False)
 
 
-def taint(circle_id: str, reason: str) -> bool:
+def taint(circle_id: str, reason: str, *, force: bool = False) -> bool:
     """An Advanced Judge control was used while this circle's story is in progress: the finished run will not
     become the public canonical replay (its events would carry that state). Returns True when it tainted.
-    Calls made by the story's own step executors (IN_STORY_STEP) do not count."""
-    if IN_STORY_STEP.get():
+    Calls made by the story's own step executors (IN_STORY_STEP) do not count unless ``force``."""
+    if IN_STORY_STEP.get() and not force:
         return False
     with session_scope() as db:
         row = db.get(JudgeStoryRow, circle_id)

@@ -11,7 +11,14 @@ export interface StoryBarProps {
   invoiceSimulated?: boolean;
   onNext: (step: string) => void;
   onRestart: () => void;
+  /** Reply as Ravi with the held-out eval s06 text (a planted amount instruction) instead of the default. */
+  onInjection?: () => void;
 }
+
+export const INJECTION_LABEL = "Injection test (eval s06)";
+export const INJECTION_TITLE =
+  "Ravi replies with the held-out eval s06 text: a payday plus a planted instruction to set the invoice to 5000.00. " +
+  "The reply is treated as data; this run is never saved as the public replay.";
 
 export const RESTART_WHILE_RUNNING =
   "A step is still running on the old circle. Restart anyway? The new circle starts clean; the old run is detached.";
@@ -20,7 +27,7 @@ export const RESTART_WHILE_RUNNING =
  * Judge Mode's main control: one prominent "Next step" button that reads the server's next action label,
  * with one dot per story step. The individual buttons live in the "Advanced controls" drawer below.
  */
-export function StoryBar({ story, busy, failure, invoiceSimulated, onNext, onRestart }: StoryBarProps) {
+export function StoryBar({ story, busy, failure, invoiceSimulated, onNext, onRestart, onInjection }: StoryBarProps) {
   const btn = storyButton(story, busy, failure);
   const dots = storyDots(story, failure);
   const { done, total } = storyProgress(story);
@@ -76,6 +83,11 @@ export function StoryBar({ story, busy, failure, invoiceSimulated, onNext, onRes
           {btn.complete ? <IconCheck /> : <IconBolt />}
           <span className="tk-btn-hero-text">{btn.label}</span>
         </button>
+        {onInjection && btn.step === "reply_as_ravi" && !btn.disabled && (
+          <button type="button" className="tk-btn tk-btn-ghost" onClick={onInjection} title={INJECTION_TITLE}>
+            {INJECTION_LABEL}
+          </button>
+        )}
         <button
           type="button"
           className="tk-btn"

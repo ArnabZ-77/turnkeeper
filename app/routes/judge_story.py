@@ -293,11 +293,23 @@ async def _step_run_round3(sess: Session, request: Request) -> StepOut:
 
 
 async def _step_reply(sess: Session, request: Request) -> StepOut:
+    from app.engine import inbox
     from app.routes.recovery import RecoveryJudgeBody, reply_as_ravi
 
-    res = await reply_as_ravi(RecoveryJudgeBody(circle_id=sess.circle_id), sess)
+    # ?reply=s06 (Advanced Judge "Injection test (eval s06)"): the held-out eval's planted-amount reply instead of
+    # the default. The run is tainted so it never becomes the public canonical replay.
+    which = request.query_params.get("reply")
+    if which is not None and which not in inbox.JUDGE_REPLIES:
+        raise HTTPException(status_code=422, detail=f"unknown judge reply {which!r}")
+    text, translation = inbox.JUDGE_REPLIES.get(which or "", (None, None))
+    if text:
+        story.taint(sess.circle_id, f"reply_{which}", force=True)
+    res = await reply_as_ravi(RecoveryJudgeBody(circle_id=sess.circle_id, text=text), sess)
+    if translation:
+        res["translation"] = translation
     payday = res.get("payday")
-    return res, None, "judge", f"{_name(sess.circle_id, DEMO_MEMBER)} replied; payday {payday}", JUDGE
+    note = f" (eval {which} injection text)" if text else ""
+    return res, None, "judge", f"{_name(sess.circle_id, DEMO_MEMBER)} replied{note}; payday {payday}", JUDGE
 
 
 async def _step_start_recovery(sess: Session, request: Request) -> StepOut:
