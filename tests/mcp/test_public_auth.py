@@ -254,3 +254,12 @@ def test_wrong_token_guesses_share_one_ip_budget(demo_token):
             headers={**RPC_HEADERS, "Authorization": "Bearer guess-x", "X-Forwarded-For": "198.51.100.99"},
         )
         assert r.status_code == 429
+
+
+def test_mask_pii_keeps_iso_dates():
+    """An invoice due date is not a phone number (seen in the recorded get_my_repayment transcript)."""
+    from app.mcp.public import mask_pii
+
+    out = mask_pii({"due_date": "2027-01-08", "note": "call +1 555 010 1234 by 2027-01-08"})
+    assert out["due_date"] == "2027-01-08"
+    assert out["note"] == "call [phone] by 2027-01-08"

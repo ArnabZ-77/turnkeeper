@@ -26,14 +26,25 @@ function Receipt({ steps }: { steps: PassbookView["payments"][number]["receipt"]
 }
 
 export function PassbookPage() {
-  const [token] = useState(() => tokenFromHash(window.location.hash));
+  const [token, setToken] = useState(() => tokenFromHash(window.location.hash));
   const [view, setView] = useState<PassbookView | null>(null);
   const [error, setError] = useState<"expired" | "off" | null>(token ? null : "expired");
   const [lang, setLang] = useState<Lang>("en");
   const [open, setOpen] = useState<number | null>(null);
   const [qr, setQr] = useState<string | null>(null);
 
+  // Opening another member's link in the same tab changes only the fragment: no reload, so follow it here.
   useEffect(() => {
+    const onHash = () => setToken(tokenFromHash(window.location.hash));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  useEffect(() => {
+    setView(null);
+    setQr(null);
+    setOpen(null);
+    setError(token ? null : "expired");
     if (!token) return;
     let live = true;
     api.passbook

@@ -54,6 +54,14 @@ _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _PHONE_RE = re.compile(r"(?<![\w.])\+?\d[\d\s().-]{7,}\d(?![\w.])")
 
 
+_ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _phone_or_date(m: re.Match[str]) -> str:
+    """An ISO date ("2027-01-08", an invoice due date) has 8 digits too; it is not a phone number."""
+    return m.group(0) if _ISO_DATE_RE.fullmatch(m.group(0)) else "[phone]"
+
+
 def mask_pii(value: Any) -> Any:
     """Recursively drop PII keys, reduce ``name`` fields to first names and scrub emails/phones in text."""
     if isinstance(value, dict):
@@ -70,7 +78,7 @@ def mask_pii(value: Any) -> Any:
         return [mask_pii(v) for v in value]
     if isinstance(value, str):
         scrubbed = _EMAIL_RE.sub("[email]", value)
-        return _PHONE_RE.sub("[phone]", scrubbed)
+        return _PHONE_RE.sub(_phone_or_date, scrubbed)
     return value
 
 
