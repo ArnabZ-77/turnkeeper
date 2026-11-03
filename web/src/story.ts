@@ -230,6 +230,22 @@ export function failureReason(raw: string): string {
   return text || "the server did not say why";
 }
 
+/**
+ * What a judge can do about a failure with a known cause. Today: a payout PayPal refused for INSUFFICIENT_FUNDS.
+ * That is the shared sandbox Business account running dry (it lags Balances), not this circle's ledger, and a retry
+ * only helps after a top-up, so point at the recorded replay of a completed run. Null for any other failure.
+ */
+export function failureHelp(view: StoryView | null, failure: StoryFailure): { text: string; replayUrl: string } | null {
+  if (!/INSUFFICIENT_FUNDS/i.test(failure.text)) return null;
+  return {
+    text:
+      "The shared PayPal sandbox Business account that pays the pot is short of funds; this circle's own ledger is " +
+      "fine. No money moved and the step stays open. A retry works once the sandbox is topped up. Meanwhile the " +
+      "recorded replay shows a completed run, labelled live or simulated.",
+    replayUrl: view?.replay_url || "/api/replay",
+  };
+}
+
 /** "Pay Round 3 failed: PayPal sandbox balance too low (INSUFFICIENT_FUNDS). Nothing was paid." */
 export function failureText(view: StoryView | null, failure: StoryFailure): string {
   const label = view?.steps.find((s) => s.step === failure.step)?.label ?? failure.step;

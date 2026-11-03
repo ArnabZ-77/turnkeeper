@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  failureHelp,
   failureText,
   lastStoryAi,
   markStoryStart,
@@ -145,6 +146,16 @@ describe("story failures", () => {
     expect(failureText(v, failure)).toBe(
       "Label run_round3 failed: PayPal sandbox balance too low (INSUFFICIENT_FUNDS). Nothing was paid.",
     );
+  });
+
+  it("explains an INSUFFICIENT_FUNDS payout and points at the replay, without claiming money moved", () => {
+    const v = view(9);
+    const help = failureHelp(v, { step: "pay_round3", text: "PayPal 422 INSUFFICIENT_FUNDS for the 1154.93 pot" });
+    expect(help?.text).toContain("No money moved");
+    expect(help?.text).not.toContain("was paid");
+    expect(help?.replayUrl).toBe(v.replay_url || "/api/replay");
+    expect(failureHelp({ ...v, replay_url: null }, { step: "pay_round3", text: "INSUFFICIENT_FUNDS" })?.replayUrl).toBe("/api/replay");
+    expect(failureHelp(v, { step: "pay_round3", text: "boom" })).toBeNull();
   });
 
   it("drops the failure once the step runs or moves on, and prefers the server's error", () => {

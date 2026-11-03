@@ -285,8 +285,9 @@ textarea:focus-visible,
   margin: 0;
   padding: var(--tk-space-1) var(--tk-space-3);
   display: flex;
-  align-items: center;
-  gap: var(--tk-space-2);
+  flex-direction: column; /* the failure line, then (for a known cause) what to do about it */
+  align-items: flex-start;
+  gap: var(--tk-space-1);
   color: var(--tk-critical-ink);
   font-weight: 600;
   min-height: 1.4em;
@@ -295,6 +296,13 @@ textarea:focus-visible,
   width: 14px;
   height: 14px;
   flex: none;
+}
+.tk-story-error p {
+  margin: 0;
+}
+.tk-story-help {
+  font-weight: 400;
+  color: var(--tk-ink);
 }
 .tk-btn-hero.tk-btn-retry {
   background: var(--tk-critical-ink);

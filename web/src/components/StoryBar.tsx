@@ -1,5 +1,5 @@
 import type { StoryView } from "../types";
-import { failureText, storyButton, storyDots, storyHowLabel, storyProgress, type StoryFailure } from "../story";
+import { failureHelp, failureText, storyButton, storyDots, storyHowLabel, storyProgress, type StoryFailure } from "../story";
 import { IconBolt, IconCheck, IconX } from "./icons";
 
 export interface StoryBarProps {
@@ -30,6 +30,7 @@ export const RESTART_WHILE_RUNNING =
 export function StoryBar({ story, busy, failure, invoiceSimulated, onNext, onRestart, onInjection }: StoryBarProps) {
   const btn = storyButton(story, busy, failure);
   const dots = storyDots(story, failure);
+  const help = failure ? failureHelp(story, failure) : null;
   const { done, total } = storyProgress(story);
   const simulated = story?.paypal === "simulated";
   const last = [...(story?.steps ?? [])].reverse().find((s) => s.status === "done");
@@ -104,9 +105,19 @@ export function StoryBar({ story, busy, failure, invoiceSimulated, onNext, onRes
         )}
       </div>
       {failure && story ? (
-        <p className="tk-callout tk-callout-critical tk-story-error" role="alert">
-          <IconX /> {failureText(story, failure)}
-        </p>
+        <div className="tk-callout tk-callout-critical tk-story-error" role="alert">
+          <p>
+            <IconX /> {failureText(story, failure)}
+          </p>
+          {help && (
+            <p className="tk-small tk-story-help">
+              {help.text}{" "}
+              <a href={help.replayUrl} target="_blank" rel="noreferrer">
+                Open the recorded replay (JSON)
+              </a>
+            </p>
+          )}
+        </div>
       ) : (
         <p className="tk-story-last tk-small tk-muted">
           {last ? (
