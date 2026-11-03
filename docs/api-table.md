@@ -26,7 +26,7 @@ twice. Each call is logged to the `paypal_calls` table.
 | 10 | Payouts v1 | `GET /v1/payments/payouts-item/{item_id}` | `get_payout_item` | `rounds.payout_status`, in-app receipt | PASS (d) |
 | 11 | Payouts v1 | `POST /v1/payments/payouts-item/{item_id}/cancel` | `cancel_payout_item` | `rounds.reroute_unclaimed` (tried exactly once) | **Fails in sandbox** (d): 400 `BATCH_NOT_COMPLETED` while PROCESSING, then 500 after SUCCESS. The app shows "Cancel not available in sandbox" and re-routes as a new batch `r{rev+1}` |
 | 12 | Reporting | `GET /v1/reporting/balances?currency_code=USD` | [`balances.py`](../app/paypal/balances.py) `get_balances`, `balance_context` | `rounds.available_balance`, `rounds.pay_round` | **Lags** (e): `last_refresh_time` ~2.5 h old. Shown as context ("last refreshed …"); a reading older than 15 min never blocks a payout; the per-circle ledger is the binding check |
-| 13 | Webhooks | `POST /v1/notifications/verify-webhook-signature` | [`webhooks.py`](../app/paypal/webhooks.py) `verify_signature` | [`app/engine/webhooks.py`](../app/engine/webhooks.py) `handle_event` | Not yet run against a public URL (f) |
+| 13 | Webhooks | `POST /v1/notifications/verify-webhook-signature` | [`webhooks.py`](../app/paypal/webhooks.py) `verify_signature` | [`app/engine/webhooks.py`](../app/engine/webhooks.py) `handle_event` | **PASS** 2026-10-26 on the Render host: real `PAYMENT.CAPTURE.COMPLETED`, `verified: true` (f) |
 | 14 | Webhooks | `POST /v1/notifications/webhooks`, `GET`, `DELETE` | `register_webhook` and friends | [`scripts/register_webhook.py`](../scripts/register_webhook.py) (operator script) | Not yet run (f) |
 
 Webhook events the reconciler handles ([`app/engine/webhooks.py`](../app/engine/webhooks.py)):

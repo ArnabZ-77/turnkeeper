@@ -9,3 +9,8 @@ audio
 public/footage/
 public/audio/
 out/
+footage-src/
+
+# local recording experiments (machine-specific paths)
+capture/v2/probe.mjs
+capture/v2/rec_test*.mjs

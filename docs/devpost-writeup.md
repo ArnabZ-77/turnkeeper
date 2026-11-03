@@ -242,7 +242,7 @@ Plugin · Playwright · Remotion · Kokoro TTS · edge-tts
 - **Render** hosts the live demo.
 
 <!--
-CLAIM SOURCES (checked 2026-11-02 against the repo at D:/Desktop/PayPal/turnkeeper)
+CLAIM SOURCES (checked 2026-11-02 against the repo)
 
 Logline / pitch / what it does
 - Collects, recovers, pays out; charter compile EN/HI; SHA-256 charter; billing plan: README.md "30-second summary"; app/domain/charter.py; app/domain/billing_plan.py
@@ -298,7 +298,7 @@ Accomplishments
 - 11/11 live story, payout 1,154.93, round 4 second payout, items SUCCESS fee 0.25: docs/live-run/2026-10-25-rerun.md run 1
 - Video take Story B live, payout read back SUCCESS: video/out/qa/f_090.png ("PayPal sandbox live" chip, agent votes), video/out/qa/f_108.png (receipt + GET /v1/payments/payouts read-back SUCCESS). Not written up in a docs/live-run file.
 - 0 illegal executed, 0.95 legal before policy: eval/RESULTS.md sections 1, 2, 2b
-- Real webhook verified: docs/d1-smoke.md row f (PASS 2026-10-26); docs/decisions.md 2026-10-26. NOTE: README.md, docs/limitations.md and docs/api-table.md still say real delivery is untested; those are stale.
+- Real webhook verified: docs/d1-smoke.md row f (PASS 2026-10-26); docs/decisions.md 2026-10-26.
 - 853 pytest + 121 vitest, mocked: README.md "Criteria → evidence" (Nov 2 version); `pytest --collect-only -q` = 853 on 2026-11-02 (another team was editing tests at the time, so re-check before submitting)
 
 Limitations

@@ -150,9 +150,9 @@ The gain is modest, and there are two caveats.
 **Decision:** build Member Agents first, add the trimmed MCP only if Oct 31 is clean, and freeze Nov 4.
 
 Files referenced:
-- D:/Desktop/PayPal/turnkeeper/app/domain/mandate.py
-- D:/Desktop/PayPal/turnkeeper/app/domain/policy.py
-- D:/Desktop/PayPal/turnkeeper/app/models.py
-- D:/Desktop/PayPal/turnkeeper/README.md
-- D:/Desktop/PayPal/turnkeeper/docs/prior-art.md
-- D:/Desktop/PayPal/research.md
+- app/domain/mandate.py
+- app/domain/policy.py
+- app/models.py
+- README.md
+- docs/prior-art.md
+- research notes (kept outside the repo)

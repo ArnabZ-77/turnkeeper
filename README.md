@@ -75,7 +75,7 @@ not do yet).
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
 | Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
 | Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
-| Testing and honesty | 660+ pytest tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
+| Testing and honesty | 853 pytest tests and 121 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
 
 ## PayPal APIs
 
@@ -191,6 +191,15 @@ Honest labels, shown wherever a mandate is shown:
 - **AP2-style Intent Mandate, our own implementation; PayPal AP2 APIs are not public, we do not claim AP2 support.**
 - **Server-attested HMAC signature, not a key held by the member.**
 
+## What changed (Nov 2 polish pass)
+
+Small, low-risk changes; the default story and the flag-off behaviour are unchanged (the flag-off golden test is the guard).
+
+- Member agents: the server now keeps who recorded each vote and consent (agent, member or judge) and returns it in the recovery view, so the agent/human badges survive a page reload. Only with the member-mandates flag on; the agent's rule wording is not kept, so a reloaded row shows the badge without it.
+- Agent run summary: the stale-balance line shows the Balances figure with its refresh time instead of "n/a" (context only; the ledger stays binding).
+- Tests: `test_compile_freeze_join_flow` depended on the calendar (the demo charter starts 2026-11-01, so from that day the freeze moves the start and the hash differs); it now pins the clock. `test_m1_flow` did not fail in 20+ repeat runs here, so it was not changed. `ruff check app tests scripts eval video/script` is clean.
+- UI: darker-theme text and focus contrast fixes, the vote panel scrolls inside its column instead of running under the judge footer, and the Judge bar buttons have aria-labels and visible focus rings. The theme still defaults to light (a deliberate choice for recordings); dark is the toggle, and the CSS also follows the OS setting when the preference is "system".
+
 ## Limitations and custody
 
 Full list: [docs/limitations.md](docs/limitations.md).
@@ -203,7 +212,20 @@ Full list: [docs/limitations.md](docs/limitations.md).
 - **The buffer is optional and disclosed.** It is organizer-funded, written in the charter, used only through a
   voted and approved remedy, and repaid by invoice.
 - PayPal wallet only (Venmo cut). The judge mini-circle can be approved on PayPal but is not charged or paid yet.
-  Real webhook delivery has not been tested yet.
+  Real webhook delivery is verified on the hosted demo (D1 f, 2026-10-26: a live `PAYMENT.CAPTURE.COMPLETED`
+  arrived with a valid PayPal signature); the free host keeps events in `/tmp`, so a restart clears them.
+
+## Privacy
+
+Turnkeeper is a hackathon demo on the PayPal sandbox. No real money moves and no real person's data is needed:
+please use made-up names, emails and phone numbers. What you type (charter rules, replies, member names) is kept in
+a temporary database for your session only and is never sold or shared. When live AI is on, the rules text or
+reply you type is sent to a third-party model provider (on the hosted demo, a free tier that may keep prompts);
+emails, phone numbers and long tokens are masked first (`app/engine/privacy.py`). With no AI key, or once the
+hourly per-visitor AI limit is reached, the app uses built-in rules and sends nothing. The hosted database lives
+in `/tmp` and is erased when the server restarts. PayPal sign-in happens on PayPal's own sandbox page; Turnkeeper
+never sees a password. The session cookie is HttpOnly and the session id never appears in a URL or response body.
+Security review and fixes: [docs/security-audit.md](docs/security-audit.md).
 
 ## D1 sandbox findings (2026-10-23)
 

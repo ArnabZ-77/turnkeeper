@@ -5,7 +5,7 @@ INFO:     Waiting for application startup.
 2026-10-24 01:38:03,485 INFO mcp.server.streamable_http_manager: StreamableHTTP session manager started
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8020 (Press CTRL+C to quit)
-2026-10-24 01:38:37,352 INFO turnkeeper.db: database ready at C:/Users/arnab/AppData/Local/Temp/claude/d--Desktop-PayPal/4c67f0e7-170f-41c5-9365-65014928eeab/scratchpad/live/run.db
+2026-10-24 01:38:37,352 INFO turnkeeper.db: database ready at <local scratch>/turnkeeper.db
 2026-10-24 01:38:37,443 INFO turnkeeper.engine.sessions: session created sid=SVX7GL... circle=ye3d10 run=5tworejn
 2026-10-24 01:38:37,503 INFO turnkeeper.engine.sessions: session reset sid=SVX7GL... circle=5wsg4b run=oqmxwklk
 INFO:     127.0.0.1:56106 - "POST /api/judge/story/reset HTTP/1.1" 200 OK
