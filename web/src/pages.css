@@ -1063,6 +1063,14 @@ textarea:focus-visible,
 .tk-pb-good {
   color: var(--tk-good-ink, inherit);
 }
+.tk-pb-replay {
+  grid-column: 2 / -1;
+  justify-self: start;
+}
+.tk-pb-replay-note {
+  margin: 4px 0;
+  color: var(--tk-warn-ink, inherit);
+}
 .tk-pb-bad {
   color: var(--tk-critical-ink);
 }

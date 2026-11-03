@@ -11,6 +11,10 @@ Each capture's receipt is the chain of authority behind it, in order, from store
 the charter hash, the fee shown at join, the member mandate (server-attested), the organizer's payout mandate,
 for a covered share the agent's rule, the remedy-set hash and the organizer's approval, then the
 ``PayPal-Request-Id`` and the capture id. A link that has no stored value is left out, never invented.
+
+Replay and simulated rows (the demo circle's seeded history, or a Judge Mode round with no live sandbox) say so
+first and drop the steps that would claim a PayPal call: no "policy check before PayPal was called", and their
+ids are labelled replay ids, not PayPal ones.
 """
 
 from __future__ import annotations
@@ -25,11 +29,19 @@ from app.db import session_scope
 from app.domain import capability as capm
 from app.domain.charter import charter_sha256, quorum_tuple
 from app.domain.fees import estimate_fee, net_of
-from app.engine import capabilities, member_mandates, recovery, state
+from app.engine import capabilities, join, member_mandates, recovery, state
 from app.engine.common import iso
 from app.models import Contribution, MandateRow, RemedySetRow, Round, Vote
 
 PAID = ("COMPLETED", "COVERED")
+REPLAY_PREFIX = "REPLAY-"  # request ids of fixture replay rows and simulated rows (REPLAY-SIM-...)
+REPLAY_WORDS = ("replay", "simulated")
+
+
+def is_simulated(c: Contribution) -> bool:
+    """True when no PayPal call made this row: a fixture replay row or a simulated capture/decline."""
+    label = (c.label or "").lower()
+    return (c.request_id or "").startswith(REPLAY_PREFIX) or any(w in label for w in REPLAY_WORDS)
 
 
 def enabled() -> bool:
@@ -107,7 +119,16 @@ def _receipt(
     mm_view: dict | None,
 ) -> list[dict[str, Any]]:
     chain: list[dict[str, Any]] = []
-    if mrow is not None and mrow.joined_at:
+    simulated = is_simulated(c)
+    if simulated:
+        chain.append(
+            {
+                "step": "replay",
+                "label": "Replay row: no PayPal call was made for this payment",
+                "value": c.label or None,
+            }
+        )
+    if mrow is not None and mrow.joined_at and mrow.join_status == join.VAULTED and join.is_vaulted(mrow):
         chain.append(
             {
                 "step": "vault_approval",
@@ -138,7 +159,7 @@ def _receipt(
         )
     if c.status == "COVERED":
         chain.extend(_covered_chain(circle_id, c.member_handle, c.round_n))
-    else:
+    elif not simulated:
         chain.append(
             {
                 "step": "policy",
@@ -147,9 +168,13 @@ def _receipt(
             }
         )
     if c.request_id:
-        chain.append({"step": "request_id", "label": "PayPal-Request-Id", "value": c.request_id})
+        # a covered share keeps the id of the charge that was declined; the cover itself is a ledger entry
+        what = "of the declined attempt" if c.status == "COVERED" else ""
+        label = f"Replay id {what} (no PayPal call)" if simulated else f"PayPal-Request-Id {what}"
+        chain.append({"step": "request_id", "label": " ".join(label.split()), "value": c.request_id})
     if c.capture_id:
-        chain.append({"step": "capture", "label": "PayPal capture", "value": c.capture_id})
+        label = "Replay capture id (no PayPal call)" if simulated else "PayPal capture"
+        chain.append({"step": "capture", "label": label, "value": c.capture_id})
     return chain
 
 
@@ -185,6 +210,7 @@ def view(token: str) -> dict[str, Any]:
             "net": c.net,
             "capture_id": c.capture_id,
             "label": c.label,
+            "simulated": is_simulated(c),
             "receipt": _receipt(circle.id, c, mrow, charter, sha, mandate, mm_view),
         }
         for c in mine

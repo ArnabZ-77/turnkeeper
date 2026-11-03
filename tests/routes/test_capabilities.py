@@ -109,6 +109,14 @@ def test_scope_checks():
     assert e.value.code == capm.CAPABILITY_SCOPE
 
 
+def test_non_ascii_signature_is_invalid_not_a_crash():
+    token, _ = capm.mint(circle_id="c1", member="ravi", scope="read", now=0, secret=SECRET)
+    head, body, _sig = token.split(".")
+    with pytest.raises(capm.CapabilityError) as e:  # compare_digest(str, str) raised TypeError here
+        capm.verify(f"{head}.{body}.\u00e9abc", secret=SECRET, now=1)
+    assert e.value.code == capm.CAPABILITY_INVALID
+
+
 # --- engine + routes --------------------------------------------------------------------------------------------
 
 
@@ -232,3 +240,50 @@ async def test_public_mcp_tools_return_refusals_not_exceptions(client, voting):
 def test_minting_mid_story_taints_the_recording(client, voting):
     _mint(client, voting, "tomas")
     assert story.load(voting).tainted
+
+
+async def test_read_token_never_names_the_short_member(client, voting):
+    import json
+
+    from fastmcp import Client
+
+    from app.mcp.public import paypal_ops_public
+
+    short = recovery.domain_set(recovery.latest_set(voting)).member
+    other = next(m for m in ("asha", "tomas", "dev") if m != short)
+    async with Client(paypal_ops_public) as mcp:
+        got = (
+            await mcp.call_tool(
+                "get_request", {"cap": _mint(client, voting, other, scope="read"), "member": ""}
+            )
+        ).structured_content
+        assert got["ok"] is True and got["request"]["short_member"] is None
+        assert short not in json.dumps(got).lower()  # neither the handle nor the first name
+        for r in got["request"]["remedies"]:
+            assert "member" not in r and "swap_with" not in r
+            assert "amount" not in r or r["mine"]  # other members' amounts stay with them
+        own = (
+            await mcp.call_tool(
+                "get_request", {"cap": _mint(client, voting, short, scope="read"), "member": ""}
+            )
+        ).structured_content
+        assert own["request"]["short_member"]  # the member's own shortfall is theirs to see
+
+
+async def test_an_answer_that_does_not_land_gives_the_token_back(client, voting, monkeypatch):
+    from app.db import session_scope
+
+    token = _mint(client, voting, "tomas")
+    nonce = capm.verify(token, secret=get_settings().mandate_hmac_secret, now=0).nonce
+
+    async def closed(*a, **k):
+        raise recovery.RecoveryError("the vote closed")
+
+    monkeypatch.setattr(recovery, "record_consent", closed)
+    with pytest.raises(capm.CapabilityError) as e:
+        await capabilities.answer(token, "yes")
+    assert e.value.code == capm.SET_SUPERSEDED and "not recorded" in e.value.message
+    with session_scope() as db:
+        assert db.get(CapabilityUse, nonce) is None  # no audit row for an answer that never landed
+    monkeypatch.undo()
+    assert (await capabilities.answer(token, "yes"))["recorded"] == "yes"

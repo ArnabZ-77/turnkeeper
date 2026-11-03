@@ -155,11 +155,13 @@ export function PassbookPage() {
                 <span className={p.status === "DECLINED" ? "tk-pb-bad" : "tk-pb-good"}>
                   {p.status !== "DECLINED" && <IconCheck />} {w.status[p.status] ?? p.status}
                 </span>
+                {p.simulated && <span className="tk-chip tk-chip-muted tk-pb-replay">{w.replay}</span>}
                 {p.capture_id && <code className="tk-pb-id">{p.capture_id}</code>}
               </button>
               {open === p.round_n && (
                 <div className="tk-pb-receipt">
                   <p className="tk-small tk-muted">{w.receipt}</p>
+                  {p.simulated && <p className="tk-small tk-pb-replay-note">{w.replayNote}</p>}
                   <Receipt steps={p.receipt} />
                 </div>
               )}

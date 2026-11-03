@@ -1,4 +1,6 @@
-"""paypal-ops PUBLIC: the read-only MCP surface judges can call over HTTP (behind ``app.mcp.auth``).
+"""paypal-ops PUBLIC: the MCP surface judges can call over HTTP (behind ``app.mcp.auth``). Read-only except
+what a member's own answer-scoped capability token does: ``answer_request`` records that member's one answer, and
+``get_my_repayment`` may send PayPal's reminder for their invoice once. Nothing moves money.
 
 Only demo circles (``Circle.is_fixture_clone``) are visible, and every response is PII-masked: names are
 reduced to first names, emails and phone numbers are removed, vault/customer/sandbox identifiers are
@@ -23,8 +25,9 @@ log = logging.getLogger("turnkeeper.mcp.public")
 
 SERVER_NAME = "paypal-ops-public"
 INSTRUCTIONS = (
-    "Read-only view of Turnkeeper demo circles on the PayPal sandbox. Personal data is masked. "
-    "No tool here moves money. A member's own assistant can also use a member capability token (tkc1...): "
+    "View of Turnkeeper demo circles on the PayPal sandbox, read-only except a member's own answer token "
+    "(answer_request; get_my_repayment may send PayPal's invoice reminder once). Personal data is "
+    "masked. No tool here moves money. A member's own assistant can also use a member capability token (tkc1...): "
     "get_request shows what the member is asked, answer_request records that member's one answer (the "
     "member's own mandate still applies), get_my_repayment shows their PayPal invoice."
 )
@@ -207,8 +210,8 @@ async def answer_request(cap: str, choice: str, rationale: str = "", member: str
 @paypal_ops_public.tool
 async def get_my_repayment(cap: str, member: str = "") -> dict:
     """The member's repayment invoice (amount, due date, status). When the sandbox is live the status is read
-    through the PayPal Agent Toolkit (get_invoice), and PayPal's reminder is sent once if the invoice is still
-    unpaid after the date the member promised."""
+    through the PayPal Agent Toolkit (get_invoice). If it is still unpaid after the date the member promised, an
+    answer-scoped token sends PayPal's reminder once (send_invoice_reminder); a read token only reports it as due."""
     from app.engine import capabilities
 
     return await _capability_call(lambda: capabilities.repayment(cap, member or None))

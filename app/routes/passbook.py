@@ -5,7 +5,8 @@ GET /api/passbook/qr    -> that member's own repayment QR code (PNG)
 POST /api/passbook/links/{circle_id} -> the organizer's per-member links (session owner only)
 
 The page is /m#<capability>: the token stays in the URL fragment, which browsers never send to a server, so it is
-never in an access log or a Referer header.
+never in Turnkeeper's own access logs or a Referer header. (A link sent through a messenger is, of course, seen by
+that messenger.)
 """
 
 from __future__ import annotations

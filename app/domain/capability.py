@@ -132,7 +132,10 @@ def verify(token: str, *, secret: str, now: int) -> Capability:
         payload = _unb64(parts[1])
     except (ValueError, TypeError):
         raise CapabilityError(CAPABILITY_INVALID, "malformed capability") from None
-    if not secret or not hmac.compare_digest(_sign(payload, secret), parts[2]):
+    # compare bytes: compare_digest on str raises TypeError for non-ASCII input (a crafted header would 500)
+    if not secret or not hmac.compare_digest(
+        _sign(payload, secret).encode(), parts[2].encode("utf-8", "replace")
+    ):
         raise CapabilityError(CAPABILITY_INVALID, "capability signature does not match")
     try:
         cap = Capability.model_validate(json.loads(payload))

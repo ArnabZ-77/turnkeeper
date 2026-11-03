@@ -287,6 +287,8 @@ export interface PassbookView {
     net: string | null;
     capture_id: string | null;
     label: string | null;
+    /** No PayPal call made this row (fixture replay or simulated round); the UI says so. */
+    simulated: boolean;
     receipt: ReceiptLink[];
   }[];
   this_round: { round_n: number; paid: number; total: number; covered_by_buffer: number; mine: string | null } | null;
