@@ -7,7 +7,8 @@ Start the server with a free key and recording on, against a fresh database, for
 
 then run ``.venv/Scripts/python -I scripts/record_ai_takes.py --base http://127.0.0.1:8010`` and export with
 ``scripts/export_llm_cache.py``. The takes: (a) Hindi charter compile, (b)+(c) the default Judge story (forecast
-nudge, Ravi's reply, the treasurer's tool calls), (d) Story B (member agents explain their decisions).
+nudge, Ravi's reply, the treasurer's tool calls), (d) Story B (member agents explain their decisions), and with
+``--reply s06 --skip compile,story_b`` (e) the eval s06 injection reply.
 Each step's AI label is printed; a line per take goes to stdout as JSON for docs/live-run/.
 """
 
@@ -32,7 +33,7 @@ def wait_idle(c: httpx.Client, timeout: float) -> dict:
         time.sleep(1.5)
 
 
-def run_story(c: httpx.Client, variant: str | None, timeout: float) -> list[dict]:
+def run_story(c: httpx.Client, variant: str | None, timeout: float, reply: str | None = None) -> list[dict]:
     params = {"variant": variant} if variant else None
     r = c.post("/api/judge/story/reset", params=params)
     r.raise_for_status()
@@ -43,7 +44,8 @@ def run_story(c: httpx.Client, variant: str | None, timeout: float) -> list[dict
             break
         nxt = view["next"]["step"]
         t0 = time.monotonic()
-        r = c.post("/api/judge/story/next")
+        params = {"reply": reply} if reply and nxt == "reply_as_ravi" else None
+        r = c.post("/api/judge/story/next", params=params)
         if r.status_code >= 400:
             row = {"variant": variant or "default", "step": nxt, "error": r.text[:300]}
             out.append(row)
@@ -52,7 +54,7 @@ def run_story(c: httpx.Client, variant: str | None, timeout: float) -> list[dict
         view = wait_idle(c, timeout)
         rec = next((s for s in view["steps"] if s["step"] == nxt), {})
         row = {
-            "variant": variant or "default",
+            "variant": (variant or "default") + (f"+{reply}" if reply else ""),
             "step": nxt,
             "secs": round(time.monotonic() - t0, 1),
             "ai": rec.get("ai"),
@@ -72,6 +74,9 @@ def main() -> int:
     ap.add_argument("--base", default="http://127.0.0.1:8010")
     ap.add_argument("--timeout", type=float, default=240.0)
     ap.add_argument("--skip", default="", help="comma list of takes to skip: compile,default,story_b")
+    ap.add_argument(
+        "--reply", default=None, help="judge reply for the default story, e.g. s06 (eval injection)"
+    )
     a = ap.parse_args()
     skip = set(filter(None, a.skip.split(",")))
     with httpx.Client(base_url=a.base, timeout=a.timeout) as c:
@@ -94,7 +99,7 @@ def main() -> int:
             )
         rows: list[dict] = []
         if "default" not in skip:
-            rows += run_story(c, None, a.timeout)
+            rows += run_story(c, None, a.timeout, a.reply)
         if "story_b" not in skip:
             rows += run_story(c, "member_agents", a.timeout)
     return 1 if any(r.get("error") for r in rows) else 0

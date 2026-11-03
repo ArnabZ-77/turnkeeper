@@ -116,7 +116,7 @@ async def _run_recover(cid: str, run_id: str, collector) -> tasks.TaskRecord:
 
 
 async def test_recover_run_recorded_in_one_session_replays_in_another(
-    monkeypatch, paypal, toolkit, collector
+    monkeypatch, paypal, toolkit, collector, tmp_path
 ):
     _llm_env(monkeypatch)
     cid_a, run_a = await _declined_clone(collector)
@@ -135,6 +135,11 @@ async def test_recover_run_recorded_in_one_session_replays_in_another(
     # Session B: no key at all. Every turn replays, including the ones after propose_remedies.
     monkeypatch.undo()
     _llm_env(monkeypatch)
+    from app.agent import llm
+
+    monkeypatch.setattr(
+        llm, "SHIPPED_CACHE_PATH", tmp_path / "none.jsonl"
+    )  # undo() dropped the conftest guard
     toolkit_b = FakeInvoiceToolkit()
     monkeypatch.setattr(recovery, "_toolkit", lambda: toolkit_b)
     events = type(collector)()

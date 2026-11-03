@@ -703,3 +703,14 @@ def test_cache_key_is_the_same_before_and_after_balances_was_fetched():
     assert cache_key(**base, history=history(None)) == cache_key(
         **base, history=history({"available": "1.00"})
     )
+
+
+def test_the_shipped_recordings_are_one_identity_and_clean():
+    """app/fixtures/llm_cache.jsonl: the recorded Gemini takes (docs/live-run/2026-11-03-takes.md)."""
+    from pathlib import Path
+
+    path = Path(llm.__file__).resolve().parent.parent / "fixtures" / "llm_cache.jsonl"
+    rows = llm.read_shipped_cache(path)
+    assert rows and llm.shipped_identity(path) == ("gemini", "gemini-3.5-flash-lite")
+    assert {(r["provider"], r["model"]) for r in rows} == {("gemini", "gemini-3.5-flash-lite")}
+    assert "@" not in path.read_text(encoding="utf-8")

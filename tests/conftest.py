@@ -38,6 +38,15 @@ def _fresh_rate_limiters():
 
 
 @pytest.fixture(autouse=True)
+def _no_shipped_recordings(monkeypatch, tmp_path):
+    """app/fixtures/llm_cache.jsonl (the recorded Gemini takes) must not decide replay identity or answers in
+    unit tests; the tests that ship recordings point SHIPPED_CACHE_PATH at their own file."""
+    from app.agent import llm
+
+    monkeypatch.setattr(llm, "SHIPPED_CACHE_PATH", tmp_path / "no-shipped-cache.jsonl")
+
+
+@pytest.fixture(autouse=True)
 def _no_payout_watchers(monkeypatch):
     """The bounded payout status poll (rounds.watch_payout) sleeps for real; tests that exercise it switch it on
     with short intervals. Everywhere else a PENDING payout stays as the payout call left it."""
