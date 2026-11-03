@@ -187,7 +187,11 @@ def test_export_load_and_keyless_identity(monkeypatch, clean_cache, tmp_path):
     with session_scope() as db:
         db.exec(delete(LlmCache))
     assert llm.load_shipped_cache(out) == 1 and llm.load_shipped_cache(out) == 0
-    assert TurnCache("replay").get("good").text == "Covered round 3."
+    replay = TurnCache("replay")
+    assert replay.get("good").text == "Covered round 3."
+    assert (
+        rows[0]["recorded"] and replay.last_recorded == rows[0]["recorded"]
+    )  # the day survives the round trip
 
     # No key: the replay identity follows the recording (gemini), not the groq default.
     monkeypatch.setattr(llm, "SHIPPED_CACHE_PATH", out)
@@ -202,6 +206,40 @@ def test_export_load_and_keyless_identity(monkeypatch, clean_cache, tmp_path):
     monkeypatch.setenv("TK_LLM_PROVIDER", "groq")
     get_settings.cache_clear()
     assert get_llm_provider(get_settings()).name == "groq"
+
+
+def test_a_shipped_row_keeps_the_day_it_was_recorded(clean_cache, tmp_path):
+    from sqlmodel import delete
+
+    from app.db import session_scope
+    from app.models import LlmCache
+
+    with session_scope() as db:
+        db.exec(delete(LlmCache))
+    turn = json.dumps({"provider": "gemini", "model": "g", "turn": {"text": "ok", "stop": "end"}})
+    out = tmp_path / "llm_cache.jsonl"
+    rows = [
+        {"key": "dated", "provider": "gemini", "model": "g", "json": turn, "recorded": "2026-10-30"},
+        {"key": "undated", "provider": "gemini", "model": "g", "json": turn},
+        {"key": "garbled", "provider": "gemini", "model": "g", "json": turn, "recorded": "3rd of Nov"},
+    ]
+    out.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    assert llm.load_shipped_cache(out) == 3
+    cache = TurnCache("replay")
+    cache.get("dated")
+    assert cache.last_recorded == "2026-10-30"
+    cache.get("garbled")  # an unreadable day falls back to the load time, never an error
+    assert cache.last_recorded and cache.last_recorded != "2026-10-30"
+
+
+def test_tool_call_reason_is_one_plain_line():
+    from app.agent.treasurer import REASON_CHARS, _reason
+
+    assert _reason(None) is None and _reason("   ") is None
+    assert (
+        _reason("Ravi said payday is Friday.\n\nRecording it.") == "Ravi said payday is Friday. Recording it."
+    )
+    assert len(_reason("x" * 500)) == REASON_CHARS
 
 
 def test_missing_shipped_file_changes_nothing(tmp_path):

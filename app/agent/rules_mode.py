@@ -34,6 +34,9 @@ class Tracer:
     def __init__(self, publish: Publish | None, mode: str) -> None:
         self.publish = publish
         self.mode = mode
+        # Set by the AI loop: the model, and for a replayed turn the date it was recorded (trace row labels).
+        self.model: str | None = None
+        self.recorded: str | None = None
         self.events: list[dict[str, Any]] = []
 
     async def emit(self, kind: str, text: str, **extra: Any) -> dict[str, Any]:
@@ -43,6 +46,8 @@ class Tracer:
             "kind": kind,
             "text": text,
             "mode": self.mode,
+            **({"model": self.model} if self.model else {}),
+            **({"recorded": self.recorded} if self.recorded and self.mode == "replay" else {}),
             **extra,
         }
         self.events.append(event)

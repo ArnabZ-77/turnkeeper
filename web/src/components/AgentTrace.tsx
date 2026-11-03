@@ -3,7 +3,7 @@ import type { TraceEntry } from "../state";
 import { fmtTime } from "../format";
 import type { RunMode } from "../types";
 import { MODE_HELP, modeBadge, modeChip } from "../recovery";
-import { resultSummary } from "../trace";
+import { declineDebugId, modeLabel, paypalObjects, resultSummary, TOOL_WHY } from "../trace";
 
 export interface AgentTraceProps {
   entries: TraceEntry[];
@@ -76,19 +76,30 @@ ${MODE_HELP}`}>
         {entries.length === 0 && <li className="tk-trace-empty">No agent activity yet. Run a round from the judge bar.</li>}
         {entries.map((e) => {
           const summary = e.kind === "tool_result" ? resultSummary(e.text, e.tool) : null;
+          const objects = e.kind === "tool_result" ? paypalObjects(e.text) : null;
+          const debugId = e.kind === "tool_result" ? declineDebugId(e.text) : null;
+          const reason = e.kind === "tool_call" && e.tool ? (e.reason ?? TOOL_WHY[e.tool] ?? null) : null;
+          const badge = modeBadge(e.mode);
           return (
           <li key={e.id} className={`tk-trace-item tk-trace-${e.kind}`}>
             <span className="tk-trace-kind">
               {KIND_LABEL[e.kind] ?? e.kind}
-              {modeBadge(e.mode) && (
-                <span className={`tk-mode-badge tk-mode-${e.mode}`} title={modeChip(e.mode)?.tip}>
-                  {modeBadge(e.mode)}
+              {badge && (
+                <span
+                  className={`tk-mode-badge tk-mode-${e.mode}`}
+                  title={modeLabel(modeChip(e.mode)?.label ?? badge, e.mode, e.model, e.recorded) + "\n" + (modeChip(e.mode)?.tip ?? "")}
+                >
+                  {badge}
                 </span>
               )}
             </span>
             <span className="tk-trace-body">
+              {e.model && (e.mode === "replay" || e.mode === "live") && (
+                <span className="tk-trace-model">{modeLabel(modeChip(e.mode)?.label ?? e.mode, e.mode, e.model, e.recorded)}</span>
+              )}
               {e.kind === "tool_call" && e.tool && <span className="tk-trace-tool">{e.tool}</span>}
               {e.kind === "tool_call" && e.tool && argsText(e.args) ? ` ${argsText(e.args)}` : ""}
+              {reason && <span className="tk-trace-reason">{reason}</span>}
               {e.kind === "tool_call" && e.tool && e.text ? "\n" : ""}
               {summary ? (
                 <>
@@ -101,6 +112,8 @@ ${MODE_HELP}`}>
               ) : (
                 e.text
               )}
+              {objects && <span className="tk-trace-paypal">PayPal: {objects}</span>}
+              {debugId && <span className="tk-trace-paypal">paypal-debug-id {debugId}</span>}
               <span className="tk-trace-meta">
                 {fmtTime(e.ts)}
                 {typeof e.ms === "number" ? ` · ${e.ms} ms` : ""}

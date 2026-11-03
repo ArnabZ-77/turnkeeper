@@ -535,6 +535,23 @@ button.tk-chip {
   color: var(--tk-muted);
   font-size: 11px;
 }
+/* "AI replay · gemini-3.5-flash-lite · recorded 3 Nov": which model made this line, and when it was recorded */
+.tk-trace-model {
+  display: block;
+  color: var(--tk-muted);
+  font-size: 11px;
+}
+.tk-trace-reason {
+  display: block;
+  color: var(--tk-ink-2);
+  font-style: italic;
+}
+.tk-trace-paypal {
+  display: block;
+  font-family: var(--tk-mono);
+  font-size: 12px;
+  color: var(--tk-good-ink, inherit);
+}
 .tk-trace-raw {
   margin-top: 2px;
 }

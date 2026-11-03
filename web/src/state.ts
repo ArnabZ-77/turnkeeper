@@ -39,6 +39,9 @@ export interface TraceEntry {
   /** live | replay | rules | engine, when the server says how this line was produced. */
   mode?: RunMode;
   source?: string;
+  model?: string;
+  recorded?: string;
+  reason?: string;
 }
 
 export interface Toast {
@@ -199,6 +202,9 @@ export function applyEvent(state: UiState, ev: TurnkeeperEvent): UiState {
         ms: ev.ms,
         mode: normalizeMode(ev.mode) ?? undefined,
         source: typeof ev.source === "string" ? ev.source : undefined,
+        model: typeof ev.model === "string" ? ev.model.slice(0, 64) : undefined,
+        recorded: typeof ev.recorded === "string" ? ev.recorded.slice(0, 10) : undefined,
+        reason: typeof ev.reason === "string" ? ev.reason.slice(0, 200) : undefined,
       };
       const trace = [...state.trace, entry];
       return {

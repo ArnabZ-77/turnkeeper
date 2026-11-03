@@ -251,6 +251,7 @@ async def run_task(
     cache = TurnCache(settings.llm_cache)
     max_tokens = settings.llm_max_tokens_setting or (MAX_TOKENS if provider.name == "anthropic" else 4096)
     tracer = Tracer(publish, "live")
+    tracer.model = provider.model
     try:
         return await _live_loop(
             task,
@@ -325,6 +326,7 @@ async def _live_loop(
                     circle_id=task.circle_id,
                 )
                 turn = cache.get(key, circle_id=task.circle_id)
+                tracer.recorded = cache.last_recorded if turn is not None else None
                 if turn is not None:
                     await announce("replay", len(tools))
                 else:
@@ -387,6 +389,7 @@ async def _live_loop(
                     )
 
                 results: list[ToolResult] = []
+                reason = _reason(turn.text)
                 for call in turn.tool_calls:
                     args = dict(call.arguments or {})
                     tool_calls += 1
@@ -395,6 +398,7 @@ async def _live_loop(
                         f"{call.name}({json.dumps(args, sort_keys=True, default=str)})",
                         tool=call.name,
                         args=args,
+                        **({"reason": reason} if reason else {}),
                     )
                     t0 = time.perf_counter()
                     if call.name not in allowed:  # never executed, even if the model names a hidden tool
@@ -433,6 +437,15 @@ async def _live_loop(
     return AgentRunResult(
         ok=True, mode=_run_mode(sources), summary=summary, tool_calls=tool_calls, trace=tracer.events
     )
+
+
+REASON_CHARS = 160
+
+
+def _reason(text: str | None) -> str | None:
+    """The model's own words before its tool calls, as one plain-text line (the trace renders it as text)."""
+    line = " ".join((text or "").split())
+    return truncate(line, REASON_CHARS) if line else None
 
 
 def _scrub_args(name: str, args: dict[str, Any] | None, volatile: dict[str, str]) -> dict[str, Any]:

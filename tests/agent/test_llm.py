@@ -2,6 +2,7 @@
 live-call limiter. Fake clients only; nothing here touches the network."""
 
 import json
+from datetime import UTC, datetime
 
 import httpx
 import openai
@@ -554,6 +555,11 @@ async def test_record_then_replay_without_any_provider_call(
     ]  # tools still run
     assert all(e["mode"] == "replay" for e in second.trace)
     assert replay_events.events[0]["text"].startswith("Replay mode: recorded Groq openai/gpt-oss-120b")
+    # Each replayed row names the model and the day its turn was recorded (the trace label reads
+    # "AI replay \u00b7 openai/gpt-oss-120b \u00b7 recorded 3 Nov"); the live run's rows carry no recorded day.
+    today = datetime.now(UTC).date().isoformat()
+    assert all(e["model"] == "openai/gpt-oss-120b" and e["recorded"] == today for e in second.trace)
+    assert all("recorded" not in e for e in first.trace)
 
     # A live provider in auto mode also replays instead of calling out.
     fake_engine_factory()
@@ -713,4 +719,5 @@ def test_the_shipped_recordings_are_one_identity_and_clean():
     rows = llm.read_shipped_cache(path)
     assert rows and llm.shipped_identity(path) == ("gemini", "gemini-3.5-flash-lite")
     assert {(r["provider"], r["model"]) for r in rows} == {("gemini", "gemini-3.5-flash-lite")}
+    assert {r.get("recorded") for r in rows} == {"2026-11-03"}  # the takes log's day; the trace shows it
     assert "@" not in path.read_text(encoding="utf-8")

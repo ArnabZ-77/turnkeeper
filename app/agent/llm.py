@@ -29,6 +29,7 @@ import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -759,6 +760,7 @@ class TurnCache:
 
     def __init__(self, mode: str) -> None:
         self.mode = mode
+        self.last_recorded: str | None = None  # date (YYYY-MM-DD) the last turn ``get`` returned was recorded
 
     @property
     def can_replay(self) -> bool:
@@ -782,11 +784,13 @@ class TurnCache:
                     select(LlmCache).where(LlmCache.key == key).order_by(LlmCache.id.desc())
                 ).first()
                 data = json.loads(row.json) if row is not None else None
+                recorded = row.ts.date().isoformat() if row is not None and row.ts else None
         except Exception as exc:
             log.info("llm cache read failed: %s", exc)
             return None
         if not data or "turn" not in data:
             return None
+        self.last_recorded = recorded
         turn = LLMTurn.model_validate(_swap_circle(data["turn"], CIRCLE_PLACEHOLDER, circle_id))
         turn.raw_assistant = None
         return turn
@@ -844,7 +848,8 @@ _shipped_memo: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
 
 def read_shipped_cache(path: Path | str | None = None) -> list[dict[str, Any]]:
-    """Rows of the shipped recording file: ``{"key", "provider", "model", "json"}`` (bad lines skipped)."""
+    """Rows of the shipped recording file: ``{"key", "provider", "model", "json"}`` and optionally ``recorded``
+    (the UTC date the turn was recorded, YYYY-MM-DD). Bad lines are skipped."""
     p = Path(path) if path is not None else SHIPPED_CACHE_PATH
     try:
         mtime = p.stat().st_mtime
@@ -901,13 +906,22 @@ def load_shipped_cache(path: Path | str | None = None) -> int:
             for row in rows:
                 if row["key"] in have:
                     continue
-                db.add(LlmCache(key=row["key"], json=row["json"], circle_id=None))
+                db.add(LlmCache(key=row["key"], json=row["json"], circle_id=None, **_recorded_ts(row)))
                 have.add(row["key"])
                 inserted += 1
     except Exception as exc:  # the demo must boot without its recordings
         log.warning("loading shipped llm cache failed: %s", exc)
         return 0
     return inserted
+
+
+def _recorded_ts(row: dict[str, Any]) -> dict[str, Any]:
+    """``ts`` for a shipped row: the day it was recorded (so a replayed trace can say so), else load time."""
+    try:
+        day = date.fromisoformat(str(row.get("recorded") or ""))
+    except ValueError:
+        return {}
+    return {"ts": datetime(day.year, day.month, day.day, tzinfo=UTC)}
 
 
 def replay_identity(settings: Settings) -> tuple[str, str] | None:

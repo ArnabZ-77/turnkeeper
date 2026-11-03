@@ -79,6 +79,8 @@ def collect_rows() -> tuple[list[dict], list[dict]]:
                 "provider": data.get("provider") or "",
                 "model": data.get("model") or "",
                 "json": row.json,
+                # the day it was recorded: a replayed trace row says "recorded 3 Nov"
+                "recorded": row.ts.date().isoformat() if row.ts else "",
             }
         )
     keep.sort(key=lambda r: r["key"])

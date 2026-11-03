@@ -381,6 +381,12 @@ export interface TraceEvent extends EventBase {
   /** How this line was produced: live model, replayed recording, rules mode, or the engine directly. */
   mode?: RunMode | string;
   source?: string;
+  /** The model behind an AI line (live or replay). */
+  model?: string;
+  /** Replay only: the UTC date (YYYY-MM-DD) the replayed turn was recorded. */
+  recorded?: string;
+  /** tool_call only: the model's own words before the call, one line of plain text. */
+  reason?: string;
 }
 
 export interface PayoutEvent extends EventBase {
