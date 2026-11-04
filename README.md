@@ -147,7 +147,7 @@ TK_LLM_CACHE=auto             # auto | record | replay | off
 
 ## Eval
 
-From [eval/RESULTS.md](eval/RESULTS.md) (rules mode; a live-model run is budgeted separately and not yet recorded):
+From [eval/RESULTS.md](eval/RESULTS.md). Rules mode below; the live Gemini run (prompt v2, held-out 8 scenarios × 2) picked the preferred remedy 16/16 with 0 illegal actions executed (section 2 of the results):
 
 | Remedy proposals, 20 scenarios × 5 runs | rules |
 |---|---|

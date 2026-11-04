@@ -1,7 +1,7 @@
 # Judge guide
 
 Turnkeeper is an AI treasurer for rotating savings circles, running on the **PayPal sandbox** (no real money). This
-page shows how to see the whole thing in a few minutes. Video: `<YouTube URL>` (2:52).
+page shows how to see the whole thing in a few minutes. Video: `<YouTube URL>` (2:57).
 
 ## Try it in 60 seconds
 
@@ -92,7 +92,7 @@ mandate still applies, and no tool there moves money.
   completed run as JSON. On a freshly restarted host that is the shipped recording, which is labelled
   `paypal_mode: simulated`.
 - **Step 10 fails with "PayPal sandbox balance too low … Nothing was paid."** Back-to-back live runs can drain the
-  sandbox Business account. Nothing was paid. Watch the payout in the video at 1:39 instead.
+  sandbox Business account. Nothing was paid. Watch the payout in the video at 1:52 instead.
 - **Something looks stuck.** Press **Restart**. It always gives you a new circle and run id.
 
 ## Run it locally (no keys)

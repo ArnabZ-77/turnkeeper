@@ -13,22 +13,22 @@ An AI treasurer for rotating savings circles. Members approve once on PayPal; it
 
 - **Live demo:** https://turnkeeper-s8xv.onrender.com (no login; press the Judge Mode button. The free host can take about a minute to wake.)
 - **Code:** https://github.com/ArnabZ-77/turnkeeper (MIT)
-- **Video (2:52):** `<YouTube URL>`
+- **Video (2:57):** `<YouTube URL>`
 - **One-page judge guide:** [docs/judge-guide.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/judge-guide.md)
 
 Everything runs on the **PayPal sandbox**. No real money moves.
 
 ## Criteria → where to see it
 
-Video times are from the final cut (2:52.8).
+Video times are from the final cut (2:57.0).
 
 | Criterion | What to look at | Video | Repo |
 |---|---|---|---|
-| **Technological Implementation** | Six PayPal products on the money path: Vault v3, Orders v2, Payouts, Invoicing and order checks through the PayPal Agent Toolkit, Webhooks, Balances. One FIFO gateway with a cached OAuth token and an idempotent `PayPal-Request-Id`. A deterministic policy engine that every money action must pass. An 18-tool internal MCP server the treasurer agent works through. | 0:51 live round 3 · 1:39 payout · 1:46 payout read back from PayPal's API · 2:03 architecture | [api-table.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/api-table.md) · [gateway.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/paypal/gateway.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) · [live run log](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/live-run/2026-10-25-rerun.md) |
-| **Design** | One frozen charter drives consent, remedies and the payout mandate. Members see fees before they approve. A Bryntum rotation board that the agent redraws. One tap for the organizer, and no clicks at all on a clean round. | 0:19 charter · 0:27 member join on a phone · 1:34 board reschedule · 1:58 clean round 4 | [web/src/board/](https://github.com/ArnabZ-77/turnkeeper/tree/main/web/src/board) · [charter.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/charter.py) |
-| **Potential Impact** | A specific job: the organizer who is the circle's bank, debt collector and insurer. Sourced figures only. Fees disclosed, buffer optional, no credit claims. | 0:07 the problem · 2:33 what we do not claim | [sources.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/sources.md) · [prior-art.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/prior-art.md) · [limitations.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/limitations.md) |
-| **Innovation** | Member Agents: every member holds a signed mandate, their agent answers yes, no or "ask me" inside it, and a charge outside any member's mandate is refused before PayPal is called. Agents govern a shared pool, each bounded by its own member. | 0:33 member mandates · 1:22 agents vote, one asks its human · 1:50 the $230 charge is refused | [member_agent.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/engine/member_agent.py) · [member_mandate.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/member_mandate.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) |
-| **Presentation** | One persona and one story from start to finish: a decline, a reply in Hindi, a vote, a payout, then a clean round. Every simulated or rule-based step is labelled on screen. Judge Mode runs the same story in 11 clicks. | whole video · 2:21 evidence | [README](https://github.com/ArnabZ-77/turnkeeper#readme) · [judge-guide.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/judge-guide.md) · [eval/RESULTS.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/eval/RESULTS.md) |
+| **Technological Implementation** | Six PayPal products on the money path: Vault v3, Orders v2, Payouts, Invoicing and order checks through the PayPal Agent Toolkit, Webhooks, Balances. One FIFO gateway with a cached OAuth token and an idempotent `PayPal-Request-Id`. A deterministic policy engine that every money action must pass. An 18-tool internal MCP server the treasurer agent works through. | 0:46 live round 3 · 1:52 payout · 1:59 payout read back from PayPal's API · 2:13 architecture | [api-table.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/api-table.md) · [gateway.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/paypal/gateway.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) · [live run log](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/live-run/2026-10-25-rerun.md) |
+| **Design** | One frozen charter drives consent, remedies and the payout mandate. Members see fees before they approve. A Bryntum rotation board that the agent redraws. One tap for the organizer, and no clicks at all on a clean round. | 0:19 charter · 0:27 member join on a phone · 1:40 board reschedule · 1:45 every member's passbook · 2:08 clean round 4 | [web/src/board/](https://github.com/ArnabZ-77/turnkeeper/tree/main/web/src/board) · [charter.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/charter.py) |
+| **Potential Impact** | A specific job: the organizer who is the circle's bank, debt collector and insurer. Sourced figures only. Fees disclosed, buffer optional, no credit claims. | 0:07 the problem · 2:39 what we do not claim | [sources.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/sources.md) · [prior-art.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/prior-art.md) · [limitations.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/limitations.md) |
+| **Innovation** | Member Agents: every member holds a signed mandate, their agent answers yes, no or "ask me" inside it, and a charge outside any member's mandate is refused before PayPal is called. Agents govern a shared pool, each bounded by its own member. | 0:32 member mandates · 1:15 injection test (eval s06) · 1:22 agents vote, one asks its human · 1:30 Ravi's own assistant over MCP · 2:02 the $230 charge is refused | [member_agent.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/engine/member_agent.py) · [member_mandate.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/member_mandate.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) |
+| **Presentation** | One persona and one story from start to finish: a decline, a reply in Hindi, a vote, a payout, then a clean round. Every simulated or rule-based step is labelled on screen. Judge Mode runs the same story in 11 clicks. | whole video · 2:28 evidence | [README](https://github.com/ArnabZ-77/turnkeeper#readme) · [judge-guide.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/judge-guide.md) · [eval/RESULTS.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/eval/RESULTS.md) |
 
 ## PayPal APIs used
 
@@ -154,7 +154,7 @@ here runs both ways: the treasurer is bounded by every member's own mandate, and
   turn is replayed instead of spending quota, and the screen says "AI replay".
 - **Rules fallback:** any failure (no key, a 429, a refusal, bad JSON, a timeout over 20 s) falls back to a
   deterministic path labelled "rules mode". The hosted demo caps live AI runs per visitor per hour.
-- **Honest note:** the video take ran in rules mode, and says so on screen.
+- **Honest note:** the video's recovery, injection test and member-agent scenes replay the recorded Gemini run and are labelled "AI replay"; the compile, payout and Round 4 footage is an earlier rules-mode take, and the app's own chip says so.
 
 **At build time:**
 
@@ -285,7 +285,7 @@ Criteria / API tables
 - Toolkit: 4 tools on demo path; adapter shares token and adds request id: docs/api-table.md; app/paypal/toolkit_adapter.py; docs/d1-smoke.md row g
 - Refuses non-sandbox PAYPAL_ENV: docs/limitations.md "Scope"; docs/api-table.md intro
 - Webhook events reconciled: docs/api-table.md "Webhook events the reconciler handles"
-- Video timestamps: video/script/storyboard.json scene start times (total_sec 172.752; ffprobe of video/out/turnkeeper_v2_master.mp4 = 172.8 s)
+- Video timestamps: video/script/storyboard.json scene start times (total_sec 176.914; ffprobe of video/out/turnkeeper_v3_master.mp4 = 177.0 s)
 
 Inspiration
 - 11M stokvel members (NASASA 2025), 28% SSA savings club 2024 (Findex 2025), 19M US underbanked households 2023 (FDIC), PayPal Money Pools 2021 / Nov 2024: docs/sources.md "Figures cleared"
@@ -297,7 +297,7 @@ How we built it / AI tools
 - Per-circle net ledger: docs/limitations.md "Custody"; app/domain/ledger.py
 - Provider layer, Gemini/Groq/OpenAI-compatible, Anthropic optional, replay cache, rules fallback, per-IP cap: README.md "AI layer"; app/agent/llm.py; app/config.py live_llm_per_ip_hour
 - 20 s app timeout falls back to rules: eval/RESULTS.md section 2 caveats
-- Video take in rules mode: video/script/storyboard.json line A2; video/out/qa/f_090.png chip "rules mode"
+- Video AI labels: video/remotion/src/CaptureScenes.tsx s09/s09b chips; footage video/public/footage/v3 (capture logs show AI REPLAY); docs/live-run/2026-11-03-takes.md
 - Claude Code + CONTRACTS.md; APIMatic plugin for Vault and Payouts client: README.md "AI tools used"; docs/decisions.md 2026-10-21
 - Kokoro + edge-tts narration, Playwright, Remotion: video/README.md; video/script/storyboard.json audio block
 - Render free plan, Docker: docs/decisions.md 2026-10-26; Dockerfile; render.yaml

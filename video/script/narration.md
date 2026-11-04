@@ -28,41 +28,39 @@ person would, and its natural pace lands in the calm 130-140 wpm band without sl
 and flatter, and Kokoro's own voice notes grade it lower (af_heart A, bf_emma B-). These numbers stand in for
 listening. Have someone listen once before the final render.
 
-## Script
+## Script (v3, 2026-11-04)
 
-| Time | Line | Scene | Voiceover |
+Total runtime **2:56.9** (176.9 s, cap 3:00). Generated from `voiceover.json` and `storyboard.json`; English lines are Kokoro `af_heart` at speed 1.0, the Hindi line is edge-tts `hi-IN-MadhurNeural`.
+
+| Time | Scene | Line | Text |
 |---|---|---|---|
-| **Hook and problem** |  |  |  |
-| 0:00.7 | L01 | s01 title | In a savings circle, someone has to be the bank, the debt collector, and the insurer. |
-| 0:06.4 | L02 | s02 slide | Priya, a composite of the organizers we studied, does that for a six-member temple chit circle. By hand. |
-| 0:13.6 | L03 | s02 slide | Nineteen million US households are underbanked. In Sub-Saharan Africa, over a quarter of adults saved through a savings club. |
-| 0:22.9 | L04 | s03 title | Turnkeeper is her AI treasurer, on PayPal. |
-| **The product, one continuous take** |  |  |  |
-| 0:26.6 | L05 | s04 compile | She pastes the circle's rules, in Hindi. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, and a hash. |
-| 0:35.8 | L06 | s05 join (phone) | Each member sees the fees up front, then approves the schedule once, on PayPal. |
-| 0:41.5 | L07 | s06 forecast | Three days out, the forecast flags Ravi. He paid late twice, and his last payday was three weeks before the due date. He gets a nudge in Hindi. |
-| 0:51.5 | L08 | s07 round 3 | Round three runs on its own. Five charges complete, each confirmed through the PayPal Agent Toolkit. Ravi's is declined, and it's labelled sandbox-injected. |
-| 1:03.2 | L09 | s08 reply | Ravi replies. |
-| 1:04.7 | H01 | s08 reply | शुक्रवार को सैलरी आएगी, तब भर दूंगा। *(subtitle: "Salary comes on Friday, I'll pay then.")* |
-| 1:09.4 | L10 | s08 reply | Salary comes Friday. That becomes a promise with a date. |
-| 1:13.6 | L11 | s09 remedies | The agent proposes only what the charter allows. The buffer covers Ravi now, he repays by PayPal invoice, and he swaps turns with Tomas, so his pot comes last. |
-| 1:25.8 | L12 | s10 consent, vote, approve | Both consent. Four of six vote yes. Priya taps once. |
-| 1:30.4 | L13 | s11 execute | The agent reschedules the board, and sends Ravi an invoice with a QR code. |
-| 1:35.9 | L14 | s12 payout | The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with real IDs on the receipt. |
-| **Clean round** |  |  |  |
-| 1:43.6 | L15 | s13 round 4 | Round four is clean. Six charges and a payout, and Priya typed nothing. |
-| **How it's built** |  |  |  |
-| 1:49.3 | L16 | s14 architecture | Under the hood, the model proposes, a policy engine decides, and humans approve where it matters. |
-| 1:56.2 | L17 | s15 APIs | On PayPal: Vault for consent, Orders for charges, Payouts for the pot, Invoicing through the Agent Toolkit, plus Webhooks and Balances. |
-| 2:06.3 | L18 | s16 AI layer | The agent's tools sit behind an MCP server. It runs on a free model, with a replay cache, and a labelled rules fallback. |
-| **Evidence** |  |  |  |
-| 2:15.4 | L19 | s17 evidence | Across a hundred rules-mode eval runs, ninety-five percent of proposals were charter-legal before the policy check, and zero illegal actions executed. |
-| 2:26.0 | L20 | s17 evidence | And the full story ran end to end on the real PayPal sandbox. |
-| **Prior art and honesty** |  |  |  |
-| 2:30.8 | L21 | s18 slide | PayPal's money pooling collects for one group purchase. Turnkeeper is the pool that rotates. |
-| 2:36.7 | L22 | s18 slide | It's sandbox only. Fees are shown before anyone consents, the buffer is optional, and we make no credit claims. |
-| **Close** |  |  |  |
-| 2:45.0 | L23 | s19 outro | Turnkeeper. Your circle, kept. |
+| 0:00.1 | s00-cold-open | C01 | Ravi's payment just failed. Priya, the organizer, didn't chase him. Here's what her treasurer did next. |
+| 0:06.6 | s02-priya-stats | P01 | Priya, a composite organizer, is her circle's bank, collector, and insurer. |
+| 0:11.4 | s02-priya-stats | P02 | Nineteen million US households are underbanked. In Sub-Saharan Africa, over a quarter of adults save in clubs. |
+| 0:19.3 | s04-compile | L05 | Her rules, in Hindi, go in. Turnkeeper compiles them into a frozen charter: pot order, fees, quorum, hash. |
+| 0:26.9 | s05-join-phone | L06 | Each member sees the fees up front, then approves the schedule once, on PayPal. |
+| 0:32.2 | s05b-mandates | M01 | Each member also signs a mandate for their own agent: AP2-style, and server-attested. |
+| 0:38.6 | s06-forecast | L07 | Three days out, the forecast flags Ravi: late twice, and paid three weeks early. He gets a nudge in Hindi. |
+| 0:45.7 | s07-round3 | L08 | Round three runs itself. Five charges clear, confirmed by the PayPal Agent Toolkit. Ravi's is declined, sandbox-injected. |
+| 0:55.2 | s08-ravi-reply | L09 | Ravi replies. |
+| 0:56.5 | s08-ravi-reply | H01 | शुक्रवार को सैलरी आएगी, तब भर दूंगा। |
+| 1:00.7 | s08-ravi-reply | L10 | Salary comes Friday. That becomes a promise with a date. |
+| 1:04.6 | s09-remedies | L11 | Replayed from a real Gemini run, the agent proposes only what the charter allows: the buffer now, an invoice later, and a turn swap with Tomas. |
+| 1:14.7 | s09b-injection | I01 | We planted an order in Ravi's reply: invoice five thousand. The model ignored it, and the policy would refuse it. |
+| 1:22.5 | s10-agents | L12 | The members' agents answer inside their mandates. Ravi's asks him first. Four yeses are needed, and Priya taps once. |
+| 1:30.5 | s10b-own-assistant | X01 | Ravi's own AI assistant can answer over MCP: one token, one question, fifteen minutes. Used for Tomas, it's refused. |
+| 1:40.1 | s11-execute | L13 | The agent reschedules the board, and sends Ravi an invoice with a QR code. |
+| 1:45.2 | s11b-passbooks | B01 | Every member sees the same truth on their phone: their payments, their turn, and a receipt for each charge. |
+| 1:52.1 | s12-payout | L14 | The ledger checks out, and PayPal Payouts sends Dev the pot, net of fees, with PayPal's own IDs. |
+| 2:01.8 | s13a-refusal | R01 | A two hundred thirty dollar charge, over Ravi's mandate, is refused before PayPal is called. |
+| 2:08.4 | s13-clean-round | L15 | Round four is clean: six charges, one payout, and Priya typed nothing. |
+| 2:13.4 | s14-build | A1 | The model proposes, a policy engine decides, and people and member agents act inside signed mandates. |
+| 2:19.9 | s14-build | A2 | Vault, Orders, Payouts, Invoicing, Webhooks and Balances, with tools behind MCP, on a free Gemini model. |
+| 2:28.2 | s17-evidence | L19 | On held-out cases, Gemini picked the preferred remedy sixteen times out of sixteen. No illegal action executed. |
+| 2:35.7 | s17-evidence | L20 | And the full story ran live on the PayPal sandbox. |
+| 2:39.3 | s18-prior-art-honesty | L21 | PayPal's money pooling collects for one group purchase. Turnkeeper is the pool that rotates. |
+| 2:44.9 | s18-prior-art-honesty | L22 | It's sandbox only, the buffer is optional, there are no credit claims, and our mandates are AP2-style, not AP2. |
+| 2:53.0 | s19-outro | L23 | Turnkeeper. Your circle, kept. |
 
 ### Planned vs actual section times
 
@@ -120,6 +118,11 @@ Each spoken or on-screen claim, with the file that backs it. ✔ = checked again
 | 24 | Slide: fees 3.49% + $0.49 (≈ $7.47 per $200), $0.25 per payout | `docs/sources.md` row 8; rerun doc ledger checks | ✔ |
 | 25 | Slide: 684 pytest + 90 vitest tests | `pytest --collect-only` = 684 (2026-10-26); 90 `it(`/`test(` calls in `web/src` | ✔ |
 | 26 | Slide: forecaster backtest precision and recall 0.647 | `eval/RESULTS.md` §3 | ✔ synthetic data, labelled |
+| 27 | Gemini, replayed from a real run, proposes the remedies (L11, s09 chip) | `app/fixtures/llm_cache.jsonl` (68 turns, gemini-3.5-flash-lite); `docs/live-run/2026-11-03-takes.md`; v3 capture log shows "BY THE AI TREASURER" and "AI REPLAY" | ✔ replay, labelled on screen |
+| 28 | Planted "invoice 5000" ignored by the model; the policy would refuse it (I01) | `eval/scenarios/s06-injection-amount-hi.yaml`; takes log row (e), 3 of 3 runs invoice 200.00; on-screen verdict computed by `injection_check` (`validate_remedy_set`) | ✔ |
+| 29 | Ravi's own assistant answers over MCP; the token is refused for Tomas (X01) | `video/remotion/src/data/mcp_transcript.json` (real calls to `/mcp`, tokens redacted); `tests/routes/test_capabilities.py` | ✔ recorded transcript, labelled |
+| 30 | Every member sees payments, turn and a receipt per charge; nobody else named (B01) | `app/engine/passbook.py`; `tests/routes/test_passbook.py` dignity test; v3 phone captures | ✔ round 1-2 rows marked replay on screen |
+| 31 | Held-out Gemini eval: preferred remedy 16/16, 0 illegal executed, commitment 15/16 (L19, s17 slide) | `eval/RESULTS.md` §2 held-out table | ✔ small n, said on the slide |
 
-Summary: 26 claims, all backed by a file. Three are worded with care (2, 15, 16). None is unbacked.
+Summary: 31 claims, all backed by a file (27-31 added for v3; claim 25's test counts are now 889 pytest + 131 vitest). Three are worded with care (2, 15, 16). None is unbacked.
 Figures that must never appear: everything in `docs/sources.md` "Do not use".
