@@ -719,5 +719,23 @@ def test_the_shipped_recordings_are_one_identity_and_clean():
     rows = llm.read_shipped_cache(path)
     assert rows and llm.shipped_identity(path) == ("gemini", "gemini-3.5-flash-lite")
     assert {(r["provider"], r["model"]) for r in rows} == {("gemini", "gemini-3.5-flash-lite")}
-    assert {r.get("recorded") for r in rows} == {"2026-11-03"}  # the takes log's day; the trace shows it
+    # the take days in docs/live-run/2026-11-03-takes.md (3 Nov: Round 3, recovery, Story B; 6 Nov: Round 4); the
+    # trace shows each row's own day
+    assert {r.get("recorded") for r in rows} <= {"2026-11-03", "2026-11-06"}
     assert "@" not in path.read_text(encoding="utf-8")
+
+
+def test_cache_key_ignores_the_gateway_queue_depth():
+    """Round 4's collect result carried queued_position 0 or 1 (a payout poll in flight): same recorded turn."""
+
+    def history(q):
+        result = {"ok": True, "queued_position": q, "results": []}
+        return [
+            {
+                "role": "tool",
+                "results": [{"id": "c1", "name": "x", "content": json.dumps(result), "is_error": False}],
+            }
+        ]
+
+    base = dict(provider="gemini", model="m", system="sys", tools=[])
+    assert cache_key(**base, history=history(0)) == cache_key(**base, history=history(1))

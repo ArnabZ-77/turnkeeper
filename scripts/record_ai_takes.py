@@ -25,7 +25,11 @@ import httpx
 def wait_idle(c: httpx.Client, timeout: float) -> dict:
     deadline = time.monotonic() + timeout
     while True:
-        view = c.get("/api/judge/story").json()
+        try:
+            view = c.get("/api/judge/story").json()
+        except httpx.TransportError:  # a kept-alive connection closed mid-poll: poll again
+            time.sleep(1.5)
+            continue
         if not view.get("running"):
             return view
         if time.monotonic() > deadline:

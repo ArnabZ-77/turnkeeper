@@ -83,7 +83,7 @@ not do yet).
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
 | Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
 | Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
-| Testing and honesty | 889 pytest tests and 131 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
+| Testing and honesty | 891 pytest tests and 131 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
 
 ## PayPal APIs
 

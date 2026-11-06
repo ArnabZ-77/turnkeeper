@@ -619,7 +619,10 @@ VOLATILE_KEYS = frozenset(
     }
 )  # fmt: skip
 # Present or not depending on whether this process has fetched Balances yet (null right after a restart).
-ALWAYS_VOLATILE_KEYS = frozenset({"paypal_balance", "paypal_balance_label", "paypal_available", "age_s"})
+# queued_position: the gateway's queue depth when a round was collected (0 or 1 depending on a payout poll in flight).
+ALWAYS_VOLATILE_KEYS = frozenset(
+    {"paypal_balance", "paypal_balance_label", "paypal_available", "age_s", "queued_position"}
+)
 # Raw remedy set / remedy ids inside prose ("Proposal rs_ab12cd34 ...").
 _RECOVERY_ID_RE = re.compile(r"\b(rs|rm)_[0-9a-f]{8}\b")
 # The balance note from get_available_balance ("PayPal balance 12892.67 USD (stale: ..., 4.4 h old); context only").
