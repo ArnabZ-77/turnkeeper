@@ -9,6 +9,7 @@ import {fontsReady} from './fonts';
 import {SceneCtx} from './scene-context';
 import {captured, storyboard, type SbScene} from './film-data';
 import {AssistantTerminal, PassbookTriptych} from './V3Scenes';
+import {CircleIntro, ColdOpen} from './Intro';
 
 export const TOTAL_FRAMES = Math.ceil(storyboard.total_sec * FPS);
 const frameOf = (s: number) => Math.round(s * FPS);
@@ -24,8 +25,10 @@ const tInFor = (sc: SbScene, i: number) => {
 
 const Body: React.FC<{sc: SbScene; totalFrames: number}> = ({sc, totalFrames}) => {
   switch (sc.id) {
+    case 's00-cold-open':
+      return <ColdOpen sc={sc} />;
     case 's02-priya-stats':
-      return <ProblemSlide sc={sc} />;
+      return <CircleIntro sc={sc} />;
     case 's05-join-phone':
       return <PhoneCapture sc={sc} totalFrames={totalFrames} />;
     case 's12b-paypal-proof':

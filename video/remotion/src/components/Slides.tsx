@@ -59,7 +59,7 @@ const Rise: React.FC<{t0: number; children: React.ReactNode; style?: React.CSSPr
   return <div style={{opacity: p, translate: `0 ${(1 - p) * 34}px`, ...style}}>{children}</div>;
 };
 
-const Icon: React.FC<{kind: 'bank' | 'ledger' | 'shield'; size?: number; color?: string}> = ({kind, size = 96, color = brand.accent}) => (
+export const Icon: React.FC<{kind: 'bank' | 'ledger' | 'shield'; size?: number; color?: string}> = ({kind, size = 96, color = brand.accent}) => (
   <svg width={size} height={size} viewBox="0 0 64 64" fill="none" stroke={color} strokeWidth={3.5} strokeLinejoin="round" strokeLinecap="round">
     {kind === 'bank' && (
       <>
