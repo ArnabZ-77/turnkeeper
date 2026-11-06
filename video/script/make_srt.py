@@ -8,7 +8,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sb = json.loads((HERE / "storyboard.json").read_text(encoding="utf-8"))
 cap = json.loads((HERE.parent / "remotion/src/data/captions.json").read_text(encoding="utf-8"))
-out = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent / "out" / "turnkeeper_v2.srt"
+out = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent / "out" / "turnkeeper_v3.srt"
 HI = {"H01": "Salary comes on Friday, I'll pay then."}
 
 
