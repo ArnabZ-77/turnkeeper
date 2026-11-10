@@ -4,7 +4,7 @@ You get one always-on Linux App Service (B1) running the `ghcr.io/arnabz-77/turn
 with a public `https://<app>.azurewebsites.net` URL for judges and PayPal webhooks, SQLite under `/home`
 (persistent), and every env var set as an App Setting. Planned lifetime: now until **2026-12-16**.
 
-Run everything in **PowerShell** from the repo root (`D:\Desktop\PayPal\turnkeeper`). No step here prints a
+Run everything in **PowerShell** from the repo root. No step here prints a
 secret value. Do not paste the output of `az webapp config appsettings list` anywhere: it contains values.
 
 Researched 2026-10-24. Sources are listed at the end.

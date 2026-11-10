@@ -11,7 +11,7 @@ The token logic is pure (``app.domain.capability``). This module adds what needs
   entity is never cut in half); it never reaches a prompt and no page renders it today;
 - a read token (the passbook link) sees the open proposal without the short member's name and without other
   members' handles or amounts, unless the shortfall is that member's own: the passbook's dignity rule holds on the
-  MCP too.
+  MCP too. When the short member is named, it is by first name only, as on the rest of the public surface.
 
 No money moves here. ``repayment`` reads the member's PayPal invoice (toolkit ``get_invoice`` when the sandbox is
 live) and sends PayPal's own reminder (toolkit ``send_invoice_reminder``) once, when the invoice is still unpaid
@@ -29,6 +29,7 @@ from typing import Any
 from sqlalchemy import or_, update
 from sqlalchemy.exc import IntegrityError
 
+from app.agent.handles import first_name
 from app.config import get_settings
 from app.db import session_scope
 from app.domain import capability as capm
@@ -165,7 +166,8 @@ def request_view(token: str, member: str | None = None) -> dict[str, Any]:
             "item": cap.item,
             "choices": list(cap.choices),
             "round_n": rs.round_n,
-            "short_member": names.get(rs.member, rs.member) if named else None,
+            # first name only, as everywhere on the public surface (mask_pii shortens only keys named "name")
+            "short_member": first_name(names.get(rs.member, rs.member)) if named else None,
             "remedies": remedies,
             "status": row.status,
             "charter_sha256": rs.charter_sha256,

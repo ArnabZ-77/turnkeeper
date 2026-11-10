@@ -1,7 +1,8 @@
 # Turnkeeper: Devpost project details
 
-> Paste everything below the line into Devpost's "Project details". Two blanks to fill before submitting: the
-> YouTube URL (search for `<YouTube URL>`) and nothing else. Every claim is backed by a file listed in the HTML
+> Paste everything below the line into Devpost's "Project details". One blank to fill before submitting: the
+> YouTube URL. Search for `<YouTube URL>` and replace it in all three places it appears: below, in
+> `docs/judge-guide.md` (line 4) and in the `README.md` header. Every claim is backed by a file listed in the HTML
 > comment at the end.
 
 **Elevator pitch (Devpost tagline, under 200 characters):**
@@ -24,10 +25,10 @@ Video times are from the final cut (2:57.0).
 
 | Criterion | What to look at | Video | Repo |
 |---|---|---|---|
-| **Technological Implementation** | Six PayPal products on the money path: Vault v3, Orders v2, Payouts, Invoicing and order checks through the PayPal Agent Toolkit, Webhooks, Balances. One FIFO gateway with a cached OAuth token and an idempotent `PayPal-Request-Id`. A deterministic policy engine that every money action must pass. An 18-tool internal MCP server the treasurer agent works through. | 0:46 live round 3 · 1:52 payout · 1:59 payout read back from PayPal's API · 2:13 architecture | [api-table.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/api-table.md) · [gateway.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/paypal/gateway.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) · [live run log](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/live-run/2026-10-25-rerun.md) |
-| **Design** | One frozen charter drives consent, remedies and the payout mandate. Members see fees before they approve. A Bryntum rotation board that the agent redraws. One tap for the organizer, and no clicks at all on a clean round. | 0:19 charter · 0:27 member join on a phone · 1:40 board reschedule · 1:45 every member's passbook · 2:08 clean round 4 | [web/src/board/](https://github.com/ArnabZ-77/turnkeeper/tree/main/web/src/board) · [charter.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/charter.py) |
-| **Potential Impact** | A specific job: the organizer who is the circle's bank, debt collector and insurer. Sourced figures only. Fees disclosed, buffer optional, no credit claims. | 0:07 the problem · 2:39 what we do not claim | [sources.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/sources.md) · [prior-art.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/prior-art.md) · [limitations.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/limitations.md) |
-| **Innovation** | Member Agents: every member holds a signed mandate, their agent answers yes, no or "ask me" inside it, and a charge outside any member's mandate is refused before PayPal is called. Agents govern a shared pool, each bounded by its own member. | 0:32 member mandates · 1:15 injection test (eval s06) · 1:22 agents vote, one asks its human · 1:30 Ravi's own assistant over MCP · 2:02 the $230 charge is refused | [member_agent.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/engine/member_agent.py) · [member_mandate.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/member_mandate.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) |
+| **Technological Implementation** | Six PayPal products on the money path: Vault v3, Orders v2, Payouts, Invoicing and order checks through the PayPal Agent Toolkit, Webhooks, Balances. One FIFO gateway with a cached OAuth token and an idempotent `PayPal-Request-Id`. A deterministic policy engine that every money action must pass. An 18-tool internal MCP server the treasurer agent works through. | 0:46 live round 3 · 1:52 payout · 1:59 payout read back from PayPal's API · 2:14 architecture | [api-table.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/api-table.md) · [gateway.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/paypal/gateway.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) · [live run log](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/live-run/2026-10-25-rerun.md) |
+| **Design** | One frozen charter drives consent, remedies and the payout mandate. Members see fees before they approve. A Bryntum rotation board that the agent redraws. One tap for the organizer, and no clicks at all on a clean round. | 0:20 charter · 0:27 member join on a phone · 1:40 board reschedule · 1:45 every member's passbook · 2:09 clean round 4 | [web/src/board/](https://github.com/ArnabZ-77/turnkeeper/tree/main/web/src/board) · [charter.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/charter.py) |
+| **Potential Impact** | A specific job: the organizer who is the circle's bank, debt collector and insurer. Sourced figures only. Fees disclosed, buffer optional, no credit claims. | 0:07 the problem · 2:40 what we do not claim | [sources.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/sources.md) · [prior-art.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/prior-art.md) · [limitations.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/limitations.md) |
+| **Innovation** | Member Agents: every member holds a signed mandate, their agent answers yes, no or "ask me" inside it, and a charge outside any member's mandate is refused before PayPal is called. Agents govern a shared pool, each bounded by its own member. | 0:32 member mandates · 1:15 injection test (eval s06) · 1:23 agents vote, one asks its human · 1:31 Ravi's own assistant over MCP · 2:02 the $230 charge is refused | [member_agent.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/engine/member_agent.py) · [member_mandate.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/member_mandate.py) · [policy.py](https://github.com/ArnabZ-77/turnkeeper/blob/main/app/domain/policy.py) |
 | **Presentation** | One persona and one story from start to finish: a decline, a reply in Hindi, a vote, a payout, then a clean round. Every simulated or rule-based step is labelled on screen. Judge Mode runs the same story in 11 clicks. | whole video · 2:28 evidence | [README](https://github.com/ArnabZ-77/turnkeeper#readme) · [judge-guide.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/judge-guide.md) · [eval/RESULTS.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/eval/RESULTS.md) |
 
 ## PayPal APIs used
@@ -106,8 +107,9 @@ The organizer pastes the circle's rules, in English or Hindi. Turnkeeper compile
     still bounded by the member's mandate. No tool there moves money.
 
 The model proposes, deterministic code decides, and people approve where it matters. With no AI key the demo replays
-68 recorded `gemini-3.5-flash-lite` turns (labelled "AI replay · recorded 3 Nov"); anything not recorded, such as
-Round 4, runs in a labelled rules mode.
+138 recorded `gemini-3.5-flash-lite` turns, labelled "AI replay": compile, forecast, Round 3, recovery, the s06
+injection reply and Story B's consents and votes (recorded 3 Nov), and the clean Round 4 (recorded 6 Nov). Only a
+situation that was never recorded runs in a labelled rules mode.
 
 ### Member Agents, and what we do and don't claim
 
@@ -130,10 +132,12 @@ here runs both ways: the treasurer is bounded by every member's own mandate, and
 ### Agent Skills: bring your own AI
 
 The repo ships two [Agent Skills](https://agentskills.io) and is a Claude Code plugin marketplace
-(`/plugin marketplace add ArnabZ-77/turnkeeper`). `turnkeeper-member-assistant` lets a member's own AI answer their
-circle's request with a single-use capability token (over MCP, or HTTP with the token alone), never touching money.
-`turnkeeper-judge-tour` lets a judge's agent run the live demo end to end and report, step by step, what ran live,
-what replayed and what was refused. Both are tested in CI against the real app.
+(`/plugin marketplace add ArnabZ-77/turnkeeper`; this command needs the public GitHub repo). Both skills work against
+the live demo. `turnkeeper-member-assistant` lets a member's own AI answer their circle's request with a single-use
+capability token (over MCP, or HTTP with the token alone), never touching money. `turnkeeper-judge-tour` lets a
+judge's agent run the live demo end to end and report, step by step, what ran live, what replayed and what was
+refused. CI checks both skills against the Agent Skills spec and runs the judge tour end to end against the app on a
+local port (PayPal simulated, AI in rules mode); the member HTTP endpoints have their own route tests.
 
 ## How we built it
 
@@ -143,8 +147,9 @@ what replayed and what was refused. Both are tested in CI against the real app.
 - **Policy engine** (`app/domain/policy.py`): every charge, retry, remedy and payout is authorized by deterministic
   code against the frozen charter and the mandates. Remedies are re-validated even when a model proposed them.
 - **Agent:** the treasurer works through an in-process MCP server with 18 tools, at most 25 tool calls per task and a
-  per-task allowlist; no agent task can execute remedies. A separate read-only public MCP server exposes four tools for
-  demo circles with names masked.
+  per-task allowlist; no agent task can execute remedies. A separate public MCP server for demo circles exposes seven
+  tools: four read-only circle views with names masked, and three member-capability tools, of which `answer_request`
+  (one consent or vote, for the token's own member) is the only write.
 - **Frontend:** React, TypeScript, Vite, and **Bryntum Scheduler** for the rotation board, which the agent redraws
   after a swap. A phone-frame inbox shows what each member receives.
 - **Hosting:** a Render free web service (Docker) at the URL above.
@@ -160,8 +165,8 @@ what replayed and what was refused. Both are tested in CI against the real app.
   never decides whether money moves.
 - **Replay cache:** every model turn is stored and keyed on provider, model, prompt and normalized history; a recorded
   turn is replayed instead of spending quota, and the screen says "AI replay".
-- **Rules fallback:** any failure (no key, a 429, a refusal, bad JSON, a timeout over 20 s) falls back to a
-  deterministic path labelled "rules mode". The hosted demo caps live AI runs per visitor per hour.
+- **Rules fallback:** any failure (a 429, a refusal, bad JSON, a timeout over 20 s, or, with no key, a turn that was
+  never recorded) falls back to a deterministic path labelled "rules mode". The hosted demo caps live AI runs per visitor per hour.
 - **Honest note:** the video's recovery, injection test and member-agent scenes replay the recorded Gemini run and are labelled "AI replay"; the compile, payout and Round 4 footage is an earlier rules-mode take, and the app's own chip says so.
 
 **At build time:**
@@ -202,7 +207,7 @@ what replayed and what was refused. Both are tested in CI against the real app.
 - **Zero illegal actions executed** across 100 rules-mode eval runs and every live-model run. 95% of rules-mode
   proposals were charter-legal before the policy check; the gates blocked the one miss, which goes to the organizer.
 - **A real PayPal webhook** (`PAYMENT.CAPTURE.COMPLETED`) reached the hosted app and passed PayPal's signature check.
-- **853 pytest tests and 121 web (Vitest) tests** with PayPal and every model mocked, plus a 20-scenario remedy eval
+- **931 pytest tests and 131 web (Vitest) tests** with PayPal and every model mocked, plus a 20-scenario remedy eval
   and a forecaster backtest.
 
 ## What we learned
@@ -244,8 +249,8 @@ what replayed and what was refused. Both are tested in CI against the real app.
 - **The judge mini-circle** can do a real PayPal approval, but it is not charged or paid yet. PayPal wallet only; Venmo
   was cut.
 - **Back-to-back live runs** can drain the sandbox Business balance; the payout then fails with a clear message and
-  nothing is paid. On 3 Nov every pot payout failed with `INSUFFICIENT_FUNDS`, so the clean Round 4 has no AI
-  recording yet and runs in rules mode.
+  nothing is paid. On 3 Nov every pot payout failed with `INSUFFICIENT_FUNDS`; after a sandbox top-up the clean
+  Round 4 was recorded on 6 Nov, so it now replays too.
 - **Invoice reminders** (`send_invoice_reminder`) are wired but not reachable in the current flow; only the
   invoice status read (`get_invoice`) is used, from the member MCP.
 
@@ -264,7 +269,7 @@ Plugin · Playwright · Remotion · Kokoro TTS · edge-tts
 - **Render** hosts the live demo.
 
 <!--
-CLAIM SOURCES (checked 2026-11-02 against the repo)
+CLAIM SOURCES (checked 2026-11-02 against the repo; counts, replay and MCP lines updated 2026-11-10)
 
 Logline / pitch / what it does
 - Collects, recovers, pays out; charter compile EN/HI; SHA-256 charter; billing plan: README.md "30-second summary"; app/domain/charter.py; app/domain/billing_plan.py
@@ -284,16 +289,16 @@ Logline / pitch / what it does
 - Tomas's agent yes (earlier), Ravi's agent asks, 5 of 6 yes, quorum 4: video/script/storyboard.json line L12; video/out/qa/f_090.png; video/out/thumbnail.png; app/engine/member_agent.py
 - Payout after ledger + organizer mandate; receipt polls every 5 s up to 2 min: README.md step 10 and PayPal APIs table; app/domain/policy.py payout rule; docs/limitations.md "Payout mandate"
 - Clean round 4 no organizer input: docs/live-run/2026-10-25-rerun.md step 11; video/script/narration.md claim 16
-- Rules mode with no AI key: README.md "AI layer"
+- No AI key: 138 recorded turns replay (3 and 6 Nov), rules mode only on a miss: app/fixtures/llm_cache.jsonl (138 lines); app/agent/llm.py get_llm_provider, replay_identity; docs/limitations.md "AI runs on the hosted demo are recordings"; README.md "AI layer"
 
 Criteria / API tables
 - Six products, FIFO gateway 40/min, cached OAuth, PayPal-Request-Id: docs/api-table.md; app/paypal/gateway.py (rate_per_min=40); app/paypal/client.py; app/paypal/keys.py
 - 18-tool internal MCP, 25 tool-call cap, allowlists, no agent task can execute remedies: app/mcp/internal.py (18 @tool); app/agent/treasurer.py MAX_TOOL_CALLS=25; README.md AI layer
-- Public read-only MCP, 4 tools, masked: app/mcp/public.py; README.md "Read-only MCP"
+- Public MCP, 7 tools (4 read-only, masked; get_request, answer_request = the one write, get_my_repayment): app/mcp/public.py PUBLIC_TOOL_NAMES; README.md "Public MCP"
 - Toolkit: 4 tools on demo path; adapter shares token and adds request id: docs/api-table.md; app/paypal/toolkit_adapter.py; docs/d1-smoke.md row g
 - Refuses non-sandbox PAYPAL_ENV: docs/limitations.md "Scope"; docs/api-table.md intro
 - Webhook events reconciled: docs/api-table.md "Webhook events the reconciler handles"
-- Video timestamps: video/script/storyboard.json scene start times (total_sec 176.914; ffprobe of video/out/turnkeeper_v3_master.mp4 = 177.0 s)
+- Video timestamps: video/script/storyboard.json scene start times, each rounded up to the next whole second as in docs/youtube.md (total_sec 176.914; ffprobe of video/out/turnkeeper_v3_master.mp4 = 177.0 s)
 
 Inspiration
 - 11M stokvel members (NASASA 2025), 28% SSA savings club 2024 (Findex 2025), 19M US underbanked households 2023 (FDIC), PayPal Money Pools 2021 / Nov 2024: docs/sources.md "Figures cleared"
@@ -321,7 +326,8 @@ Accomplishments
 - Video take Story B live, payout read back SUCCESS: video/out/qa/f_090.png ("PayPal sandbox live" chip, agent votes), video/out/qa/f_108.png (receipt + GET /v1/payments/payouts read-back SUCCESS). Not written up in a docs/live-run file.
 - 0 illegal executed, 0.95 legal before policy: eval/RESULTS.md sections 1, 2, 2b
 - Real webhook verified: docs/d1-smoke.md row f (PASS 2026-10-26); docs/decisions.md 2026-10-26.
-- 853 pytest + 121 vitest, mocked: README.md "Criteria → evidence" (Nov 2 version); `pytest --collect-only -q` = 853 on 2026-11-02 (another team was editing tests at the time, so re-check before submitting)
+- 931 pytest + 131 vitest, mocked: README.md "Criteria → evidence"; `pytest --collect-only -q` = 931 on 2026-11-10; web vitest 131 (re-check just before submitting)
+- Agent Skills, marketplace, CI coverage: skills/*/SKILL.md; .claude-plugin/marketplace.json; tests/skills/test_skills.py (spec checks for both, judge tour end to end); tests/routes/test_member_api.py
 
 Limitations
 - docs/limitations.md; docs/d1-smoke.md rows d, d2, e, f; eval/RESULTS.md caveats; docs/live-run/2026-10-25-rerun.md R1; README.md "Limitations and custody"

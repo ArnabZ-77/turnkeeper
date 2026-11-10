@@ -20,13 +20,18 @@ A **member capability** token that starts with `tkc1.`, either pasted or inside 
 (`https://<host>/m#tkc1...`: the token is everything after `#`). Treat it like a password: never print it back in
 full, never put it in a URL, never send it anywhere except the Turnkeeper host it came from.
 
+Given a passbook link, `scripts/member.py` sends the token only to that link's own `scheme://host`; a different
+`--base` is refused. It requires https (plain http only for `localhost` / `127.0.0.1`) and never follows a redirect.
+If it refuses, tell the member why; do not override it with another host.
+
 - An **answer** token: 15 minutes, one answer to one item (a consent or a vote), single use.
 - A **read** token (passbook links): up to a day, read-only. It cannot answer.
 
 ## Steps
 
 1. **Read the request.** With MCP connected (the operator's Turnkeeper server), call `get_request(cap)`. Otherwise run:
-   `TURNKEEPER_CAP='<token>' python3 scripts/member.py request [--base URL]`
+   `TURNKEEPER_CAP='<token or passbook link>' python3 scripts/member.py request` (add `--base URL` only for a bare
+   token from another deployment)
 2. **Explain it plainly**, in the member's language if you know it (Hindi, English, ...): what happened in the round,
    each remedy (`buffer_advance`, `repay_by_invoice`, `turn_swap`, `retry_on_date`), amounts, due dates, and what a yes
    would mean for *their* payout turn. Amounts come from the circle's frozen charter; say so.
@@ -49,7 +54,7 @@ full, never put it in a URL, never send it anywhere except the Turnkeeper host i
 
 ## When something is refused
 
-Every refusal has a name (`CAPABILITY_SCOPE`, `CAPABILITY_USED`, `CAPABILITY_EXPIRED`, `CAPABILITY_INVALID`,
+Every 403 refusal has a name (`CAPABILITY_SCOPE`, `CAPABILITY_USED`, `CAPABILITY_EXPIRED`, `CAPABILITY_INVALID`,
 `SET_SUPERSEDED`, `NOT_A_DEMO_CIRCLE`). Read [references/refusals.md](references/refusals.md) for what each means
 and what to tell the member. Do not work around a refusal; ask the organizer for a new link instead.
 

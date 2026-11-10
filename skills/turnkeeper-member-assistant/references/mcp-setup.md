@@ -1,7 +1,8 @@
 # Connecting to Turnkeeper over MCP
 
-Turnkeeper serves a public MCP endpoint at `https://<host>/mcp` (streamable HTTP). It needs the operator's bearer token
-(`MCP_DEMO_TOKEN`), and allows 30 requests a minute per token and IP. Member tools also take the member's own `cap`.
+Turnkeeper serves a public MCP endpoint at `https://<host>/mcp` (streamable HTTP); the live demo serves it at
+`https://turnkeeper-s8xv.onrender.com/mcp`. It needs the operator's bearer token (`MCP_DEMO_TOKEN`), and allows 30
+requests a minute per token and IP. Member tools also take the member's own `cap`.
 
 Claude Code:
 
@@ -24,7 +25,7 @@ Any MCP client configuration (JSON):
 }
 ```
 
-Tools:
+Seven tools; `answer_request` is the only one that writes:
 
 | Tool | Needs | Does |
 |---|---|---|
@@ -33,5 +34,5 @@ Tools:
 | `get_my_repayment(cap, member="")` | member token | The member's invoice: amount, due date, status |
 | `get_circle`, `get_round_matrix`, `get_charter`, `get_payout_status` | bearer only | Read-only, PII-masked demo circle views |
 
-No tool moves money. Without the bearer token, use `scripts/member.py`, which calls the same engine over HTTP with
-the member token alone.
+No tool moves money. Without the bearer token, use `scripts/member.py`, which calls the same engine over HTTP
+(`/api/member/*`, on the live demo by default) with the member token alone.

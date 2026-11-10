@@ -2,6 +2,12 @@
 
 **An AI treasurer for rotating savings circles (chit, susu, tanda, chama, stokvel), on PayPal sandbox rails.**
 
+- **Live demo:** https://turnkeeper-s8xv.onrender.com (no login; press **Judge Mode**. The free host can take about a
+  minute to wake.)
+- **Video (2:57):** `<YouTube URL>`
+- **Judge guide:** [docs/judge-guide.md](docs/judge-guide.md) · **From your own AI:**
+  [Agent Skills](#use-turnkeeper-from-your-own-ai-agent-skills)
+
 Built for the PayPal AI Hackathon 2026. Everything runs against the **PayPal sandbox**; no real money moves.
 License: [MIT](LICENSE).
 
@@ -24,7 +30,8 @@ be the bank, the debt collector and the insurer. Turnkeeper does that job:
    shows the money is there.
 
 The model proposes; deterministic code (`app/domain/policy.py`) decides; humans approve where it matters. The
-whole demo also works with **no AI key at all** (rules mode, labelled as such).
+whole demo also works with **no AI key at all**: the shipped model turns replay (labelled "AI replay"), and anything
+not recorded falls back to a labelled rules mode.
 
 ## What to click: the Judge Mode story
 
@@ -85,6 +92,9 @@ the repo is a Claude Code plugin marketplace:
 /plugin install turnkeeper-skills@turnkeeper
 ```
 
+The marketplace command needs the public GitHub repo. Both skills work against the live demo
+(https://turnkeeper-s8xv.onrender.com, the scripts' default host; `--base` points them at a local run).
+
 - **`turnkeeper-judge-tour`**: your agent runs the live demo end to end over the API and writes an evidence report:
   every step with how it ran (PayPal live or simulated; AI live, recorded replay or rules). By default it runs Story B
   and, mid-story, plays Ravi's own assistant with a single-use member token: it reads the request, records one answer,
@@ -97,18 +107,21 @@ the repo is a Claude Code plugin marketplace:
   `/repayment`, token in the `X-Turnkeeper-Capability` header). Same rules either way: one member, one question,
   15 minutes, single use, the member's mandate as a floor, and no money tools.
 
-Both skills are tested in CI ([`tests/skills/test_skills.py`](tests/skills/test_skills.py)): spec compliance, the
-marketplace manifest, and a full tour against the real app.
+CI tests ([`tests/skills/test_skills.py`](tests/skills/test_skills.py)) check both skills against the Agent Skills
+spec, check the marketplace manifest and the member script's token parsing, and run the judge tour end to end (Story B,
+with the member's own assistant) against the real app on a local port (PayPal simulated, AI in rules mode). The
+`/api/member/*` endpoints have their own tests ([`tests/routes/test_member_api.py`](tests/routes/test_member_api.py));
+`member.py`'s commands are not run against the app in CI.
 
 ## Criteria → evidence
 
 | Criterion | Evidence | Where |
 |---|---|---|
-| Technological implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway (calls start in order inside a 40/min budget, up to 6 in flight, so a round's charges and toolkit confirmations overlap) with cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a public MCP (read-only, plus one capability-scoped answer per member token) | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md) |
+| Technological Implementation | 6 PayPal products on the money path (Vault v3, Orders v2, Payouts, Reporting/Balances, Webhooks, Invoicing via the Agent Toolkit); one FIFO gateway (calls start in order inside a 40/min budget, up to 6 in flight, so a round's charges and toolkit confirmations overlap) with cached OAuth and idempotent `PayPal-Request-Id` per run; a policy engine every money action must pass; 18-tool internal MCP server and a 7-tool public MCP (4 read-only circle views, 3 member-capability tools; one capability-scoped answer per member token is its only write). Tested: 931 pytest tests and 131 web (Vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [docs/api-table.md](docs/api-table.md), [docs/architecture.md](docs/architecture.md), [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
-| Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
-| Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
-| Testing and honesty | 901 pytest tests and 131 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
+| Potential Impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
+| Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout; member agents vote inside signed mandates | `app/engine/recovery.py`, `app/agent/forecast.py`, `app/engine/member_agent.py` |
+| Presentation | One persona and one story: a decline, a Hindi reply, a vote, a payout, a clean round. Judge Mode runs it in 11 clicks, every simulated, replayed or rule-based step is labelled on screen, and a judge's own agent can run it with the judge-tour skill | [docs/judge-guide.md](docs/judge-guide.md), [What to click](#what-to-click-the-judge-mode-story), [Agent Skills](#use-turnkeeper-from-your-own-ai-agent-skills) |
 
 ## PayPal APIs
 
@@ -142,13 +155,15 @@ All model use goes through one provider layer, [`app/agent/llm.py`](app/agent/ll
   OpenAI-compatible server (Ollama, OpenRouter, ...). Anthropic is an optional paid switch.
 - **Replay cache.** Every model turn is keyed on the provider, model, prompt and a history normalized to logical
   handles, and stored in the `llm_cache` table. A recorded turn is replayed instead of spending quota; a run that
-  replays is labelled "AI replay". 68 recorded `gemini-3.5-flash-lite` turns ship in
-  `app/fixtures/llm_cache.jsonl` (exported with `scripts/export_llm_cache.py`; takes log:
-  [docs/live-run/2026-11-03-takes.md](docs/live-run/2026-11-03-takes.md)). Each trace row says where it came from,
+  replays is labelled "AI replay". 138 recorded `gemini-3.5-flash-lite` turns ship in
+  `app/fixtures/llm_cache.jsonl`: compile, forecast, Round 3, recovery, the s06 injection reply and Story B's consents
+  and votes (recorded 3 Nov), and the clean Round 4 (recorded 6 Nov). They were exported with
+  `scripts/export_llm_cache.py`; takes log:
+  [docs/live-run/2026-11-03-takes.md](docs/live-run/2026-11-03-takes.md). Each trace row says where it came from,
   e.g. "AI replay · gemini-3.5-flash-lite · recorded 3 Nov", with the tool, the model's one-line reason (rendered as
   text, never HTML) and the PayPal object the call produced (order, capture, invoice and QR, payout batch).
-- **Rules mode.** Any failure (no key, 429, refusal, bad JSON, a replay miss) falls back to a deterministic path,
-  labelled "rules mode". Live AI **runs** are capped per visitor IP per hour (`TK_LIVE_LLM_PER_IP_HOUR`,
+- **Rules mode.** Any failure (a 429, a refusal, bad JSON, or, with no key, a turn that was never recorded) falls
+  back to a deterministic path, labelled "rules mode". Live AI **runs** are capped per visitor IP per hour (`TK_LIVE_LLM_PER_IP_HOUR`,
   default 10). The cap counts runs, not model calls: one treasurer task makes up to 26 model turns (25 tool
   calls), one forecast up to 3 explanation calls and one compile one call. A compile that replays from the
   cache, or a forecast that is already stored, is not counted.
@@ -254,7 +269,14 @@ reader's own.
 
 Named refusals: `CAPABILITY_SCOPE` (another member, a read token answering, an answer not allowed),
 `CAPABILITY_USED`, `CAPABILITY_EXPIRED`, `CAPABILITY_INVALID`, `SET_SUPERSEDED`, `NOT_A_DEMO_CIRCLE`. There are
-no money tools. `TK_MEMBER_AGENTS=0` switches all of it off.
+no money tools.
+
+`TK_MEMBER_AGENTS=0` switches off the answering side: mandates stop being required (no charge gate), the mandate,
+member-agent run and capability-mint routes, Story B and the Advanced mandate toggle answer 404, and a token that
+was minted earlier can no longer answer (`answer_request`, and `get_request` with an answer token, refuse with
+`CAPABILITY_SCOPE`). It does not switch off reads: a read token (a passbook link, while `TK_PASSBOOK=1`) still sees
+the open proposal through `get_request`, and any unexpired token can still read the member's repayment invoice
+through `get_my_repayment`.
 
 ## Member Passbook (opt-in, `TK_PASSBOOK=1`)
 
@@ -309,12 +331,13 @@ please use made-up names, emails and phone numbers. What you type (charter rules
 a temporary database for your session only and is never sold or shared. When live AI is on, the rules text or
 reply you type is sent to a third-party model provider (on the hosted demo, a free tier that may keep prompts);
 emails, phone numbers and long tokens are masked first (`app/engine/privacy.py`). With no AI key, or once the
-hourly per-visitor AI limit is reached, the app uses built-in rules and sends nothing. The hosted database lives
+hourly per-visitor AI limit is reached, the app replays recorded model turns or uses built-in rules, and sends
+nothing to a provider. The hosted database lives
 in `/tmp` and is erased when the server restarts. PayPal sign-in happens on PayPal's own sandbox page; Turnkeeper
 never sees a password. The session cookie is HttpOnly and the session id never appears in a URL or response body.
 Security review and fixes: [docs/security-audit.md](docs/security-audit.md).
 
-## D1 sandbox findings (2026-10-23)
+## D1 sandbox findings (2026-10-23; webhook delivery 2026-10-26)
 
 Run against the real US sandbox with `scripts/smoke/*.py`; details in [docs/d1-smoke.md](docs/d1-smoke.md) and
 [docs/decisions.md](docs/decisions.md).
@@ -330,7 +353,7 @@ Run against the real US sandbox with `scripts/smoke/*.py`; details in [docs/d1-s
 | Balances freshness | **Lags** ~2.5 h | Shown as "last refreshed …"; the ledger is the binding check |
 | Toolkit with shared token | PASS | Toolkit on the critical path |
 | Venmo payouts | Not run | Cut; PayPal wallet only |
-| Real webhook delivery | Not run yet | Unit-tested with mocks |
+| Real webhook delivery (D1 f) | PASS 2026-10-26 on the hosted demo: a live `PAYMENT.CAPTURE.COMPLETED` arrived with a valid PayPal signature | Verify, dedupe, reconcile; polling stays as the backup |
 
 ## AI tools used
 
@@ -343,7 +366,8 @@ Run against the real US sandbox with `scripts/smoke/*.py`; details in [docs/d1-s
 ## Local quickstart
 
 Needs x64 Python 3.11 (on Windows ARM64 use the x64 build) and Node 20. Without PayPal credentials the app still
-runs: Judge Mode simulates the PayPal steps and labels them. Without an AI key it runs in rules mode.
+runs: Judge Mode simulates the PayPal steps and labels them. Without an AI key it replays the shipped model turns
+(labelled "AI replay") and runs anything not recorded in labelled rules mode.
 
 PowerShell:
 
@@ -391,9 +415,9 @@ Each value may also be an object `{"vault_id", "customer_id", "payout_receiver",
 every charge reads "No vault id on file", `/healthz` reports `"vault_seeded": false` with a warning, and
 `GET /api/session` returns `"vault_seeded": false` so the board can say so.
 
-### Read-only MCP
+### Public MCP
 
-`/mcp` serves four read-only tools (`get_circle`, `get_round_matrix`, `get_charter`, `get_payout_status`) for demo
+`/mcp` serves seven tools. Four are read-only (`get_circle`, `get_round_matrix`, `get_charter`, `get_payout_status`) for demo
 circles only, with names reduced to first names and contact details masked. It also serves the three member
 capability tools (`get_request`, `answer_request`, `get_my_repayment`; see
 [A member's own assistant](#a-members-own-assistant-capability-scoped-mcp)); `answer_request` is the one write, and

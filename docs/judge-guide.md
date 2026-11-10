@@ -41,9 +41,10 @@ with the tool, a one-line reason and the PayPal object it produced (order, captu
 ## Let your own AI judge it (Agent Skills)
 
 In Claude Code: `/plugin marketplace add ArnabZ-77/turnkeeper`, then `/plugin install turnkeeper-skills@turnkeeper`,
-then ask "run the Turnkeeper judge tour". Or run `python3 skills/turnkeeper-judge-tour/scripts/judge_tour.py`
-(standard library only). It walks the live demo, plays a member's own assistant with a single-use token, and prints
-a step-by-step evidence report with how each step ran.
+then ask "run the Turnkeeper judge tour". The marketplace command needs the public GitHub repo. Or, from a clone, run
+`python3 skills/turnkeeper-judge-tour/scripts/judge_tour.py` (standard library only). It works against the live demo
+by default: it runs Story B on https://turnkeeper-s8xv.onrender.com, plays a member's own assistant with a
+single-use token, and prints a step-by-step evidence report with how each step ran.
 
 ## Story B: member agents
 
@@ -87,7 +88,7 @@ mandate still applies, and no tool there moves money.
 | **Cancel not available in sandbox** | Cancelling an unclaimed payout fails in the sandbox (400, then 500). The app re-routes as a new batch and never claims the cancel worked. |
 | **PayPal balance (last refreshed …)** | Sandbox Balances lags by hours, so it is shown as context only. The circle's own ledger decides whether a payout can go. |
 | **Recorded replay** | A saved story run, read-only, with no PayPal or AI calls. It says whether its PayPal steps were live or simulated. |
-| **AI replay · gemini-3.5-flash-lite · recorded 3 Nov** | A trace row replayed from a model turn recorded on that day; no model was called just now. |
+| **AI replay · gemini-3.5-flash-lite · recorded 3 Nov** | A trace row replayed from a model turn recorded on that day (the clean Round 4 was recorded on 6 Nov); no model was called just now. |
 | **replay, no PayPal call** | A passbook payment from the demo's seeded history or a simulated round. No money moved for it. |
 
 ## Troubleshooting
@@ -104,8 +105,8 @@ mandate still applies, and no tool there moves money.
 
 ## Run it locally (no keys)
 
-Without PayPal credentials the PayPal steps are simulated and labelled; without an AI key, AI steps run in rules mode
-or replay recorded answers. Needs x64 Python 3.11 and Node 20.
+Without PayPal credentials the PayPal steps are simulated and labelled; without an AI key, AI steps replay the
+recorded answers ("AI replay"), and anything not recorded runs in rules mode. Needs x64 Python 3.11 and Node 20.
 
 ```bash
 git clone https://github.com/ArnabZ-77/turnkeeper && cd turnkeeper

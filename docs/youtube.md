@@ -29,11 +29,10 @@ Chapters
 0:00 Ravi's payment fails, and the organizer's problem
 0:20 Rules become a charter; members approve on PayPal and hold signed mandates
 0:39 Forecast flags Ravi; Round 3 runs live: five charges, one decline
-0:56 Ravi replies in Hindi; Gemini proposes charter-legal fixes
-1:15 An injection test, then member agents vote inside their mandates
-1:31 Ravi's own AI assistant answers over MCP, for him only
-1:41 Board reschedule, invoice with QR, every member's passbook
-1:53 Payout read back from PayPal; a $230 charge refused; clean Round 4
+0:55 Ravi replies in Hindi; Gemini proposes charter-legal fixes
+1:15 An injection test, member agents vote, and Ravi's own AI answers over MCP
+1:40 Board reschedule, invoice with QR, every member's passbook
+1:52 Payout read back from PayPal; a $230 charge refused; clean Round 4
 2:14 How it's built: PayPal APIs, MCP, a free Gemini model
 2:28 Evidence: held-out eval and the live sandbox run
 2:40 Prior art and what we don't claim
@@ -55,18 +54,18 @@ PayPal, PayPal AI Hackathon, PayPal sandbox, PayPal Agent Toolkit, PayPal Payout
 
 Scene start times in `video/script/storyboard.json` (v3, `total_sec` 176.914; `ffprobe` reads the master as 177.0 s).
 Each chapter starts at the next whole second after its first scene begins, and every chapter is at least 10 seconds
-long, as YouTube requires.
+long, as YouTube requires. The Devpost write-up and the judge guide use the same rounding. s10b (Ravi's own assistant,
+90.2 s) has no chapter of its own: one at 1:31 would last only 9 seconds before 1:40, so it sits in the 1:15 chapter.
 
 | Chapter | Scenes | Scene start (s) |
 |---|---|---|
 | 0:00 | s00 cold open, s02 Priya and figures | 0.0, 6.4 |
 | 0:20 | s04 compile, s05 phone join, s05b mandates | 19.0, 26.6, 32.0 |
 | 0:39 | s06 forecast, s07 round 3 | 38.3, 45.5 |
-| 0:56 | s08 Ravi's reply, s09 remedies (recorded Gemini) | 55.0, 64.3 |
-| 1:15 | s09b injection test, s10 member agents | 74.4, 82.2 |
-| 1:31 | s10b Ravi's own assistant (MCP transcript) | 90.2 |
-| 1:41 | s11 execute, s11b passbooks | 99.9, 104.9 |
-| 1:53 | s12 payout, s12b PayPal read-back, s13a $230 refusal, s13 round 4 | 111.9, 118.5, 121.5, 128.2 |
+| 0:55 | s08 Ravi's reply, s09 remedies (recorded Gemini) | 54.989, 64.3 |
+| 1:15 | s09b injection test, s10 member agents, s10b Ravi's own assistant (MCP transcript) | 74.4, 82.2, 90.2 |
+| 1:40 | s11 execute, s11b passbooks | 99.865, 104.9 |
+| 1:52 | s12 payout, s12b PayPal read-back, s13a $230 refusal, s13 round 4 | 111.874, 118.5, 121.5, 128.2 |
 | 2:14 | s14 how it's built | 133.2 |
 | 2:28 | s17 evidence | 147.9 |
 | 2:40 | s18 prior art and honesty, s19 outro | 159.0, 172.6 |
