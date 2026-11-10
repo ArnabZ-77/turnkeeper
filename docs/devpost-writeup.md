@@ -1,9 +1,7 @@
 # Turnkeeper: Devpost project details
 
-> Paste everything below the line into Devpost's "Project details". One blank to fill before submitting: the
-> YouTube URL. Search for `<YouTube URL>` and replace it in all three places it appears: below, in
-> `docs/judge-guide.md` (line 4) and in the `README.md` header. Every claim is backed by a file listed in the HTML
-> comment at the end.
+> Paste everything below the line into Devpost's "Project details". The video link is filled in
+> (https://youtu.be/NHSca_WzwSQ). Every claim is backed by a file listed in the HTML comment at the end.
 
 **Elevator pitch (Devpost tagline, under 200 characters):**
 An AI treasurer for rotating savings circles. Members approve once on PayPal; it collects every round, fixes shortfalls within the circle's rules, and pays out the pot.
@@ -14,7 +12,7 @@ An AI treasurer for rotating savings circles. Members approve once on PayPal; it
 
 - **Live demo:** https://turnkeeper-s8xv.onrender.com (no login; press the Judge Mode button. The free host can take about a minute to wake.)
 - **Code:** https://github.com/ArnabZ-77/turnkeeper (MIT)
-- **Video (2:57):** `<YouTube URL>`
+- **Video (2:57):** https://youtu.be/NHSca_WzwSQ
 - **One-page judge guide:** [docs/judge-guide.md](https://github.com/ArnabZ-77/turnkeeper/blob/main/docs/judge-guide.md)
 
 Everything runs on the **PayPal sandbox**. No real money moves.

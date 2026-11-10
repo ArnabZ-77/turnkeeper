@@ -4,7 +4,7 @@
 
 - **Live demo:** https://turnkeeper-s8xv.onrender.com (no login; press **Judge Mode**. The free host can take about a
   minute to wake.)
-- **Video (2:57):** `<YouTube URL>`
+- **Video (2:57):** https://youtu.be/NHSca_WzwSQ
 - **Judge guide:** [docs/judge-guide.md](docs/judge-guide.md) · **From your own AI:**
   [Agent Skills](#use-turnkeeper-from-your-own-ai-agent-skills)
 

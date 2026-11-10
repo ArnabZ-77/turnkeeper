@@ -1,7 +1,7 @@
 # Judge guide
 
 Turnkeeper is an AI treasurer for rotating savings circles, running on the **PayPal sandbox** (no real money). This
-page shows how to see the whole thing in a few minutes. Video: `<YouTube URL>` (2:57).
+page shows how to see the whole thing in a few minutes. Video: https://youtu.be/NHSca_WzwSQ (2:57).
 
 ## Try it in 60 seconds
 
