@@ -117,6 +117,7 @@ def _include_routers() -> None:
         "app.routes.join",
         "app.routes.compile",  # charter compiler + freeze (builder B)
         "app.routes.passbook",  # flag TK_PASSBOOK (default off): 404 when off
+        "app.routes.member_api",  # member capability over HTTP (same rules as the public MCP member tools)
         "app.routes.webhooks",
         "app.routes.events",
     ):

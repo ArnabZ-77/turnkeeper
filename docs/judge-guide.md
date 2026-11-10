@@ -38,6 +38,13 @@ the policy code returns for a copy of the proposal with that amount, computed on
 **Treasurer trace.** Each row says where it came from, such as "AI replay · gemini-3.5-flash-lite · recorded 3 Nov",
 with the tool, a one-line reason and the PayPal object it produced (order, capture, invoice and QR, payout batch).
 
+## Let your own AI judge it (Agent Skills)
+
+In Claude Code: `/plugin marketplace add ArnabZ-77/turnkeeper`, then `/plugin install turnkeeper-skills@turnkeeper`,
+then ask "run the Turnkeeper judge tour". Or run `python3 skills/turnkeeper-judge-tour/scripts/judge_tour.py`
+(standard library only). It walks the live demo, plays a member's own assistant with a single-use token, and prints
+a step-by-step evidence report with how each step ran.
+
 ## Story B: member agents
 
 Story B is the same story with one change: steps 6 and 7 are answered by each member's own agent, inside a signed

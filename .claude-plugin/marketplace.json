@@ -1,0 +1,22 @@
+{
+  "name": "turnkeeper",
+  "owner": {
+    "name": "ArnabZ-77"
+  },
+  "metadata": {
+    "description": "Agent Skills for Turnkeeper, an AI treasurer for savings circles on the PayPal sandbox",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "turnkeeper-skills",
+      "description": "A member's own AI assistant for a Turnkeeper savings circle (one token, one question, never money) and a judge tour that runs the live demo end to end and reports the evidence",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/turnkeeper-member-assistant",
+        "./skills/turnkeeper-judge-tour"
+      ]
+    }
+  ]
+}

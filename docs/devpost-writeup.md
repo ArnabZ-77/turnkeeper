@@ -127,6 +127,14 @@ here runs both ways: the treasurer is bounded by every member's own mandate, and
 - **It is opt-in.** With the flag off, the default story, the board and the policy path are unchanged, and a
   golden-file test checks that. Judges can run it as "Story B" with `?member_agents=1`.
 
+### Agent Skills: bring your own AI
+
+The repo ships two [Agent Skills](https://agentskills.io) and is a Claude Code plugin marketplace
+(`/plugin marketplace add ArnabZ-77/turnkeeper`). `turnkeeper-member-assistant` lets a member's own AI answer their
+circle's request with a single-use capability token (over MCP, or HTTP with the token alone), never touching money.
+`turnkeeper-judge-tour` lets a judge's agent run the live demo end to end and report, step by step, what ran live,
+what replayed and what was refused. Both are tested in CI against the real app.
+
 ## How we built it
 
 - **Backend:** Python 3.11, FastAPI, Pydantic, SQLite. A single PayPal gateway runs every call, REST or toolkit, in

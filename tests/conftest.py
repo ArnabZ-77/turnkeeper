@@ -30,10 +30,11 @@ os.environ["TK_CSP_MODE"] = "enforce"
 def _fresh_rate_limiters():
     """In-memory per-IP budgets (sessions, webhooks) must not leak between tests."""
     from app.engine import sessions
-    from app.routes import webhooks
+    from app.routes import member_api, webhooks
 
     sessions.session_limiter().reset()
     webhooks.WEBHOOK_LIMITER.reset()
+    member_api.MEMBER_LIMITER.reset()
     yield
 
 

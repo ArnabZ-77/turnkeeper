@@ -75,6 +75,31 @@ A real PayPal approval: `POST /api/join/judge-circle` creates a $5, 2-member cir
 member join page, which runs the Vault approval on PayPal's sandbox (see [Limitations](#limitations-and-custody) for what it does
 not do yet).
 
+## Use Turnkeeper from your own AI (Agent Skills)
+
+Turnkeeper ships two [Agent Skills](https://agentskills.io) (the open `SKILL.md` format) in [`skills/`](skills/), and
+the repo is a Claude Code plugin marketplace:
+
+```text
+/plugin marketplace add ArnabZ-77/turnkeeper
+/plugin install turnkeeper-skills@turnkeeper
+```
+
+- **`turnkeeper-judge-tour`**: your agent runs the live demo end to end over the API and writes an evidence report:
+  every step with how it ran (PayPal live or simulated; AI live, recorded replay or rules). By default it runs Story B
+  and, mid-story, plays Ravi's own assistant with a single-use member token: it reads the request, records one answer,
+  and the same token used for Tomas comes back `CAPABILITY_SCOPE`. Without Claude Code:
+  `python3 skills/turnkeeper-judge-tour/scripts/judge_tour.py` (standard library only; `--story injection` runs the
+  held-out prompt-injection case).
+- **`turnkeeper-member-assistant`**: a member's own AI acts for them, and only them. It explains the proposal in their
+  language, asks the human, records one yes/no, and checks their PayPal repayment invoice. It works over the public
+  MCP (operator bearer token) or over HTTP with the member token alone (`/api/member/request`, `/answer`,
+  `/repayment`, token in the `X-Turnkeeper-Capability` header). Same rules either way: one member, one question,
+  15 minutes, single use, the member's mandate as a floor, and no money tools.
+
+Both skills are tested in CI ([`tests/skills/test_skills.py`](tests/skills/test_skills.py)): spec compliance, the
+marketplace manifest, and a full tour against the real app.
+
 ## Criteria → evidence
 
 | Criterion | Evidence | Where |
@@ -83,7 +108,7 @@ not do yet).
 | Design | One frozen charter drives consent, remedies and the payout mandate; Bryntum rotation board with the agent's swap; one-tap approvals; zero clicks on a clean round | `web/src/board/`, `app/domain/charter.py` |
 | Potential impact | Sourced figures only; fees shown before consent; buffer optional and disclosed; no credit claims | [docs/prior-art.md](docs/prior-art.md), [docs/limitations.md](docs/limitations.md) |
 | Innovation | Predict → decline → charter-legal remedy → vote → agent reschedules → ledger-checked payout | `app/engine/recovery.py`, `app/agent/forecast.py` |
-| Testing and honesty | 891 pytest tests and 131 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
+| Testing and honesty | 901 pytest tests and 131 web (vitest) tests (PayPal and every model mocked), remedy eval 20 scenarios × 5 runs, forecaster backtest, real D1 sandbox findings | [eval/RESULTS.md](eval/RESULTS.md), [docs/d1-smoke.md](docs/d1-smoke.md) |
 
 ## PayPal APIs
 
