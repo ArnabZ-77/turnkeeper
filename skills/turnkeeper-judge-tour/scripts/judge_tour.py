@@ -89,7 +89,9 @@ class Api:
                     }
                 return e.code, _json(e.read()) or {"detail": e.reason}
             except (urllib.error.URLError, ConnectionError, TimeoutError):
-                if attempt == 2:
+                # never resend a POST: it may have reached the server (a story step, a payout); the caller re-reads
+                # the story state instead
+                if attempt == 2 or method != "GET":
                     raise
                 time.sleep(2)
         raise RuntimeError("unreachable")
@@ -290,7 +292,13 @@ def _walk(api: Api, story: str, rows: list[dict], extras: dict) -> None:
         path = "/api/judge/story/next" + (
             "?reply=s06" if story == "injection" and step == "reply_as_ravi" else ""
         )
-        status, body = api.call("POST", path)
+        try:
+            status, body = api.call("POST", path)
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            status, body = (
+                200,
+                {},
+            )  # the step may still have run server-side; the story state below is the truth
         view = wait_idle(api)
         rec = next((s for s in view["steps"] if s["step"] == step), {})
         rows.append(

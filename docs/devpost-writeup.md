@@ -207,7 +207,7 @@ local port (PayPal simulated, AI in rules mode); the member HTTP endpoints have 
 - **Zero illegal actions executed** across 100 rules-mode eval runs and every live-model run. 95% of rules-mode
   proposals were charter-legal before the policy check; the gates blocked the one miss, which goes to the organizer.
 - **A real PayPal webhook** (`PAYMENT.CAPTURE.COMPLETED`) reached the hosted app and passed PayPal's signature check.
-- **931 pytest tests and 131 web (Vitest) tests** with PayPal and every model mocked, plus a 20-scenario remedy eval
+- **932 pytest tests and 131 web (Vitest) tests** with PayPal and every model mocked, plus a 20-scenario remedy eval
   and a forecaster backtest.
 
 ## What we learned
@@ -326,7 +326,7 @@ Accomplishments
 - Video take Story B live, payout read back SUCCESS: video/out/qa/f_090.png ("PayPal sandbox live" chip, agent votes), video/out/qa/f_108.png (receipt + GET /v1/payments/payouts read-back SUCCESS). Not written up in a docs/live-run file.
 - 0 illegal executed, 0.95 legal before policy: eval/RESULTS.md sections 1, 2, 2b
 - Real webhook verified: docs/d1-smoke.md row f (PASS 2026-10-26); docs/decisions.md 2026-10-26.
-- 931 pytest + 131 vitest, mocked: README.md "Criteria → evidence"; `pytest --collect-only -q` = 931 on 2026-11-10; web vitest 131 (re-check just before submitting)
+- 932 pytest + 131 vitest, mocked: README.md "Criteria → evidence"; `pytest --collect-only -q` = 932 on 2026-11-10; web vitest 131 (re-check just before submitting)
 - Agent Skills, marketplace, CI coverage: skills/*/SKILL.md; .claude-plugin/marketplace.json; tests/skills/test_skills.py (spec checks for both, judge tour end to end); tests/routes/test_member_api.py
 
 Limitations

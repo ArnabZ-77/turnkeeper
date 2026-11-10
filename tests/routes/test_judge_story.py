@@ -497,3 +497,28 @@ def test_judge_reply_is_tagged_with_round_3(client, session):
     for step in ORDER[1 : ORDER.index("reply_as_ravi") + 1]:
         body = _next(client, step)
     assert body["result"]["message"]["round_n"] == 3
+
+
+def test_payout_step_reports_an_already_sent_payout_instead_of_failing(client, session, toolkit, monkeypatch):
+    """A retried 'Next' after the payout went out (dropped connection, double click) must not fail or pay twice."""
+    from app.config import get_settings
+    from app.routes import judge_story
+
+    cid = _next(client, "reset")["session"]["circle_id"]
+    for step in ORDER[1:9]:
+        _next(client, step)
+    rnd = state.get_round(cid, 3)
+
+    class Live:
+        paypal_configured = True
+
+    monkeypatch.setattr(judge_story, "get_settings", lambda: Live())
+    monkeypatch.setattr(judge_story.rounds, "SIMULATED_REQUEST_PREFIX", "NEVER-")
+    monkeypatch.setattr(judge_story.state, "live_payout_exists", lambda r: r.circle_id == cid and r.n == 3)
+    called = []
+    monkeypatch.setattr(judge_story.rounds, "pay_round", lambda *a, **k: called.append(1))
+    body = _next(client, "payout")
+    assert body["result"]["already"] is True and not called
+    assert "already sent" in _story(client)["steps"][9]["summary"]
+    get_settings.cache_clear()
+    assert rnd is not None

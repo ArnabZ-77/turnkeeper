@@ -460,6 +460,16 @@ async def _step_payout(sess: Session, request: Request) -> StepOut:
             f"Round {DEMO_ROUND} was already paid (no new payout)",
             JUDGE,
         )
+    if rnd is not None and state.live_payout_exists(rnd):
+        # a retried click (or a dropped connection) after the payout was already sent: report that payout, never a
+        # second one (the policy refuses a second live payout per round anyway)
+        return (
+            {"ok": True, "already": True, "status": rnd.payout_status, "batch_id": rnd.payout_batch_id},
+            None,
+            "live",
+            f"Round {DEMO_ROUND} payout already sent ({rnd.payout_status}); no second payout",
+            {"paypal": "live", "ai": None},
+        )
     simulated = any(
         (c.request_id or "").startswith(rounds.SIMULATED_REQUEST_PREFIX)
         for c in state.round_contributions(cid, DEMO_ROUND)
